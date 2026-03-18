@@ -1,6 +1,6 @@
-"use client";
+ "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabase";
 
@@ -161,7 +161,7 @@ function SignupForm({
   );
 }
 
-export default function SignupPage() {
+function SignupInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const emailParam = searchParams.get("email");
@@ -337,5 +337,13 @@ html, body {
         )}
       </main>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: "100vh", background: "#f7f7f5" }} />}>
+      <SignupInner />
+    </Suspense>
   );
 }
