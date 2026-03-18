@@ -141,7 +141,7 @@ export default function AppAccountPage() {
   const initial = (displayName.trim() || greetingName.trim() || user.email || "?").charAt(0).toUpperCase();
   const email = user.email ?? "";
   const plan = "Free Trial";
-  const isPro = plan === "Pro";
+  const isPro = (plan as string) === "Pro";
   const scansText = isPro ? "Unlimited scans" : "10 scans per month";
 
   return (
