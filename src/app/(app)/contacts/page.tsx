@@ -118,12 +118,14 @@ export default function ContactsPage() {
   useEffect(() => {
     if (!user?.id) return;
 
-    supabase
-      .from('user_settings')
-      .select('signals')
-      .eq('user_id', user.id)
-      .single()
-      .then(({ data }) => {
+    const loadSignals = async () => {
+      try {
+        const { data } = await supabase
+          .from('user_settings')
+          .select('signals')
+          .eq('user_id', user.id)
+          .single();
+
         if (data?.signals && Array.isArray(data.signals)) {
           const enabled = (data.signals as any[])
             .filter((s) => s && s.enabled !== false)
@@ -134,10 +136,12 @@ export default function ContactsPage() {
             setSignalLabels(enabled);
           }
         }
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error('user_settings fetch error:', err);
-      });
+      }
+    };
+
+    loadSignals();
   }, [user?.id]);
 
   useEffect(() => {
