@@ -17,6 +17,7 @@ type Contact = {
   phone: string | null;
   linkedin: string | null;
   event: string | null;
+  image?: string | null;
   free_note?: string | null;
   freeNote?: string | null;
   lead_score?: number | null;
