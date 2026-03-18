@@ -12,7 +12,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (!data.session) {
-        router.replace("/landing2");
+        router.replace("/landing");
       } else {
         setUser(data.session.user);
       }

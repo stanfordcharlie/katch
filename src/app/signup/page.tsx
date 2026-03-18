@@ -200,7 +200,7 @@ html, body {
       <main className="max-w-5xl mx-auto px-4 py-10 md:py-16">
         {/* Header */}
         <header className="mb-10 md:mb-12 flex items-center justify-between gap-4">
-          <a href="/landing2" className="flex items-center gap-2 text-[#1a2e1a] no-underline">
+          <a href="/landing" className="flex items-center gap-2 text-[#1a2e1a] no-underline">
             <img src="/logo.svg" width={36} height={36} alt="Katch" style={{ borderRadius: 10 }} />
             <span
               className="heading-font tracking-tight text-[#1a2e1a]"

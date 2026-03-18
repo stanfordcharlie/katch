@@ -1,18 +1,18 @@
 'use client';
-
++
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-
++
 export default function LandingPageV2() {
   const router = useRouter();
-
++
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const input = e.currentTarget.querySelector('input[type=email]') as HTMLInputElement | null;
     const email = input?.value || "";
     router.push(`/signup?email=${encodeURIComponent(email)}`);
   };
-
++
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -25,13 +25,13 @@ export default function LandingPageV2() {
       },
       { threshold: 0.1 }
     );
-
++
     const elements = document.querySelectorAll<HTMLElement>(".reveal");
     elements.forEach((el) => observer.observe(el));
-
++
     return () => observer.disconnect();
   }, []);
-
++
   return (
     <div style={{ backgroundColor: "#0a0a0a" }}>
       <style>{`html, body { background: #0a0a0a !important; }`}</style>
@@ -43,14 +43,14 @@ export default function LandingPageV2() {
         dangerouslySetInnerHTML={{
           __html: `
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
++
 body {
   font-family: 'Geist', system-ui, sans-serif;
   background: #0a0a0a;
   color: #ffffff;
   overflow-x: hidden;
 }
-
++
 /* NAV */
 nav.landing2-nav {
   position: fixed;
@@ -70,7 +70,7 @@ nav.landing2-nav {
   align-items: center;
   justify-content: space-between;
 }
-
++
 .nav-logo {
   display: flex;
   align-items: center;
@@ -78,14 +78,14 @@ nav.landing2-nav {
   text-decoration: none;
   color: #ffffff;
 }
-
++
 .logo-name {
   font-family: 'Syne', sans-serif;
   font-size: 22px;
   letter-spacing: -0.04em;
   color: #ffffff;
 }
-
++
 .nav-links { display: flex; gap: 24px; }
 .nav-links a {
   font-size: 15px;
@@ -94,9 +94,9 @@ nav.landing2-nav {
   transition: color 0.2s ease;
 }
 .nav-links a:hover { color: #ffffff; }
-
++
 .nav-actions { display: flex; align-items: center; gap: 10px; }
-
++
 .btn-ghost {
   font-size: 14px; padding: 8px 16px;
   border-radius: 999px;
@@ -112,7 +112,7 @@ nav.landing2-nav {
   border-color: rgba(255,255,255,0.28);
   color: #ffffff;
 }
-
++
 .btn-solid {
   font-size: 14px; padding: 9px 20px;
   border-radius: 999px;
@@ -130,7 +130,7 @@ nav.landing2-nav {
   transform: translateY(-1px);
   box-shadow: 0 18px 55px rgba(125,222,60,0.5);
 }
-
++
 /* HERO */
 .hero2 {
   position: relative;
@@ -143,7 +143,7 @@ nav.landing2-nav {
   overflow: hidden;
   color: #ffffff;
 }
-
++
 .hero2-bg {
   position: absolute;
   inset: 0;
@@ -153,13 +153,13 @@ nav.landing2-nav {
   filter: grayscale(100%);
   opacity: 0.9;
 }
-
++
 .hero2-overlay {
   position: absolute;
   inset: 0;
   background: radial-gradient(circle at top, rgba(0,0,0,0.2), rgba(0,0,0,0.65));
 }
-
++
 .hero2-inner {
   position: relative;
   max-width: 650px;
@@ -169,7 +169,7 @@ nav.landing2-nav {
   align-items: flex-start;
   text-align: left;
 }
-
++
 .hero2-title {
   font-family: 'Syne', sans-serif;
   
@@ -181,46 +181,46 @@ nav.landing2-nav {
   text-shadow: 0 0 40px rgba(0,0,0,0.6);
   margin-bottom: 20px;
 }
-
++
 .hero2-title span {
   display: block;
 }
-
++
 .hero2-sub {
   font-size: 20px;
   font-weight: 400;
   color: #ffffff;
   margin-bottom: 32px;
 }
-
++
 .hero2-form {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-top: 32px;
 }
-
++
 .hero2-footnote {
   font-size: 11px;
   color: #ffffff;
   margin-top: 14px;
 }
-
++
 /* SECTIONS */
 .section-shell {
   padding: 80px 40px;
   background: #0d0d0d;
 }
-
++
 .section-shell.alt {
   background: #111111;
 }
-
++
 .section-inner {
   max-width: 1100px;
   margin: 0 auto;
 }
-
++
 .section-label {
   font-size: 11px;
   letter-spacing: 0.14em;
@@ -229,7 +229,7 @@ nav.landing2-nav {
   font-weight: 500;
   margin-bottom: 18px;
 }
-
++
 h2.section-title {
   font-family: 'Syne', sans-serif;
   font-size: clamp(32px, 4vw, 48px);
@@ -238,12 +238,12 @@ h2.section-title {
   color: #ffffff;
   margin-bottom: 40px;
 }
-
++
 h2.section-title em {
   
   color: #ffffff;
 }
-
++
 .steps-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -252,32 +252,32 @@ h2.section-title em {
   border-radius: 18px;
   overflow: hidden;
 }
-
++
 .step {
   background: #0f0f0f;
   padding: 28px 22px;
 }
-
++
 .step-num {
   font-family: 'Syne', sans-serif;
   font-size: 32px;
   color: rgba(255,255,255,0.12);
   margin-bottom: 14px;
 }
-
++
 .step-title {
   font-size: 15px;
   font-weight: 500;
   color: #ffffff;
   margin-bottom: 8px;
 }
-
++
 .step-desc {
   font-size: 13px;
   line-height: 1.6;
   color: rgba(255,255,255,0.6);
 }
-
++
 /* ROI */
 .roi-grid {
   display: grid;
@@ -285,14 +285,14 @@ h2.section-title em {
   gap: 64px;
   align-items: center;
 }
-
++
 .roi-sub {
   font-size: 15px;
   line-height: 1.7;
   color: rgba(255,255,255,0.6);
   margin-bottom: 24px;
 }
-
++
 .roi-points {
   list-style: none;
   display: flex;
@@ -301,42 +301,42 @@ h2.section-title em {
   font-size: 14px;
   color: rgba(255,255,255,0.75);
 }
-
++
 .roi-points li::before {
   content: '→';
   margin-right: 8px;
   color: #ffffff;
 }
-
++
 .roi-stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
-
++
 .roi-stat {
   background: #0f0f0f;
   border-radius: 16px;
   padding: 22px;
   border: 1px solid rgba(255,255,255,0.08);
 }
-
++
 .roi-stat-num {
   font-family: 'Syne', sans-serif;
   font-size: 36px;
   color: #ffffff;
   margin-bottom: 6px;
 }
-
++
 .roi-stat-num span {
   color: #ffffff;
 }
-
++
 .roi-stat-label {
   font-size: 12px;
   color: rgba(255,255,255,0.6);
 }
-
++
 /* TESTIMONIALS */
 .testimonials-grid {
   display: grid;
@@ -344,14 +344,14 @@ h2.section-title em {
   gap: 20px;
   margin-top: 40px;
 }
-
++
 .testimonial {
   background: #101010;
   border-radius: 16px;
   border: 1px solid rgba(255,255,255,0.08);
   padding: 26px;
 }
-
++
 .testimonial-quote {
   font-family: 'Syne', sans-serif;
   
@@ -360,13 +360,13 @@ h2.section-title em {
   color: #ffffff;
   margin-bottom: 22px;
 }
-
++
 .testimonial-author {
   display: flex;
   align-items: center;
   gap: 10px;
 }
-
++
 .t-avatar {
   width: 32px;
   height: 32px;
@@ -380,26 +380,26 @@ h2.section-title em {
   background: #7dde3c;
   color: #0a1a0a;
 }
-
++
 .t-name {
   font-size: 13px;
   font-weight: 500;
   color: #ffffff;
 }
-
++
 .t-role {
   font-size: 11px;
   color: rgba(255,255,255,0.6);
   margin-top: 1px;
 }
-
++
 /* CTA */
 .cta-section {
   padding: 90px 40px 80px;
   text-align: left;
   background: #0d0d0d;
 }
-
++
 .cta-title {
   font-family: 'Syne', sans-serif;
   font-size: clamp(40px, 5vw, 64px);
@@ -408,18 +408,18 @@ h2.section-title em {
   color: #ffffff;
   margin-bottom: 18px;
 }
-
++
 .cta-title em {
   
   color: #ffffff;
 }
-
++
 .cta-sub {
   font-size: 15px;
   color: rgba(255,255,255,0.6);
   margin-bottom: 32px;
 }
-
++
 .cta-form {
   display: flex;
   align-items: center;
@@ -432,7 +432,7 @@ h2.section-title em {
   border: 1px solid rgba(255,255,255,0.16);
   box-shadow: 0 18px 60px rgba(0,0,0,0.9);
 }
-
++
 .cta-form input {
   flex: 1;
   border: none;
@@ -442,26 +442,26 @@ h2.section-title em {
   font-family: 'Geist', sans-serif;
   color: #ffffff;
 }
-
++
 .cta-form input::placeholder {
   color: rgba(255,255,255,0.5);
 }
-
++
 .cta-form button {
   border-radius: 999px;
 }
-
++
 .cta-note {
   font-size: 12px;
   color: rgba(255,255,255,0.6);
   margin-top: 12px;
 }
-
++
 .cta-note a {
   color: #ffffff;
   text-decoration: underline;
 }
-
++
 /* FOOTER */
 footer {
   padding: 26px 40px;
@@ -471,39 +471,39 @@ footer {
   justify-content: space-between;
   background: #050505;
 }
-
++
 .footer-copy {
   font-size: 12px;
   color: rgba(255,255,255,0.5);
 }
-
++
 .footer-links {
   display: flex;
   gap: 20px;
 }
-
++
 .footer-links a {
   font-size: 12px;
   color: rgba(255,255,255,0.5);
   text-decoration: none;
 }
-
++
 .footer-links a:hover {
   color: #ffffff;
 }
-
++
 /* Reveal animation */
 .reveal {
   opacity: 0;
   transform: translateY(20px);
   transition: opacity 0.6s ease, transform 0.6s ease;
 }
-
++
 .reveal.visible {
   opacity: 1;
   transform: translateY(0);
 }
-
++
 @media (max-width: 768px) {
   nav.landing2-nav { padding: 14px 20px; }
   .nav-links { display: none; }
@@ -518,7 +518,7 @@ footer {
 `,
         }}
       />
-
++
       <nav className="landing2-nav">
         <a href="#" className="nav-logo">
           <img src="/logo.svg" width={36} height={36} alt="Katch" style={{ borderRadius: 10 }} />
@@ -538,7 +538,7 @@ footer {
           </button>
         </div>
       </nav>
-
++
       {/* HERO */}
       <section className="hero2">
         <div className="hero2-bg" />
@@ -645,7 +645,7 @@ footer {
           </div>
         </div>
       </section>
-
++
       {/* HOW IT WORKS */}
       <section className="section-shell reveal" id="how">
         <div className="section-inner">
@@ -694,7 +694,7 @@ footer {
           </div>
         </div>
       </section>
-
++
       {/* EVENT ROI */}
       <section className="section-shell alt reveal" id="roi">
         <div className="section-inner">
@@ -741,7 +741,7 @@ footer {
           </div>
         </div>
       </section>
-
++
       {/* TESTIMONIALS */}
       <section className="section-shell reveal">
         <div className="section-inner">
@@ -793,7 +793,7 @@ footer {
           </div>
         </div>
       </section>
-
++
       {/* CTA */}
       <section className="cta-section reveal" id="pricing">
         <div className="cta-title">
@@ -813,7 +813,7 @@ footer {
           <a href="/login">Sign in</a>
         </p>
       </section>
-
++
       <footer>
         <div className="footer-copy">© 2026 Katch. All rights reserved.</div>
         <div className="footer-links">
@@ -825,4 +825,3 @@ footer {
     </div>
   );
 }
-

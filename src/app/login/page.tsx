@@ -49,7 +49,7 @@ export default function LoginPage() {
     >
       <div className="flex min-h-screen items-center justify-center px-4">
         <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white/90 p-8 shadow-sm">
-          <Link href="/landing2" className="text-xs text-[#5b534c] hover:text-[#1a2e1a] mb-4 inline-block">
+          <Link href="/landing" className="text-xs text-[#5b534c] hover:text-[#1a2e1a] mb-4 inline-block">
             ← Back to home
           </Link>
           <div className="mb-3 flex items-center gap-2">
