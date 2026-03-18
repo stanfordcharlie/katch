@@ -1,3 +1,31 @@
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=Geist:wght@300;400;500&display=swap");
+
+:root {
+  --bg: #f0f0ec;
+  --bg-2: #1a3a2a;
+  --surface: #ffffff;
+  --ink: #1a2e1a;
+  --ink-50: #7a9a7a;
+  --ink-20: rgba(26, 46, 26, 0.12);
+  --accent: #7ab648;
+  --accent-light: rgba(122, 182, 72, 0.18);
+  --accent-2: #a8d878;
+  --border: #dce8d0;
+  --copper: #d4874a;
+}
+
+html {
+  overflow-y: scroll;
+}
+html,
+body {
+  background-color: #f0f0ec;
+}
+* {
+  box-sizing: border-box;
+  color: black;
+}
+
 @import "tailwindcss";
 
 :root {
@@ -23,4 +51,93 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+button {
+  color: inherit;
+}
+
+.bg-slate-900, [class*="bg-slate-9"] {
+  color: white !important;
+}
+
+input, textarea, select {
+  color: #1a2e1a !important;
+}
+
+.bg-slate-900 svg, [class*="bg-slate-9"] svg {
+  stroke: white !important;
+  color: white !important;
+}
+
+/* Force button text colors (accent dark buttons) */
+button[style*="background: #1a3a2a"],
+button[style*="background:#1a3a2a"],
+a[style*="background: #1a3a2a"],
+a[style*="background:#1a3a2a"] {
+  color: #a8d878 !important;
+}
+
+/* Landing page specific overrides */
+.landing-btn-primary {
+  color: white !important;
+}
+
+.landing-btn-ghost {
+  color: #1a2e1a !important;
+}
+
+input, textarea, select {
+  color: #1a2e1a !important;
+}
+
+/* Lead score range slider */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 4px;
+  background: linear-gradient(to right, #7ab648 var(--val, 0%), #dce8d0 var(--val, 0%));
+  outline: none;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid #7ab648;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+/* Global button hover fix */
+button:hover {
+  opacity: 1 !important;
+}
+
+/* Prevent dark fill on light buttons */
+button:not([class*="bg-[#1a3a2a]"]):not([class*="bg-ink"]):hover {
+  background-color: #f7faf4 !important;
+  color: #1a2e1a !important;
+}
+
+/* Global pointer cursor for buttons and clickable elements */
+button,
+a,
+[role="button"],
+input[type="submit"],
+input[type="button"],
+input[type="reset"],
+select,
+label[for],
+.cursor-pointer {
+  cursor: pointer !important;
 }
