@@ -118,7 +118,7 @@ nav.landing2-nav {
   border-radius: 999px;
   border: none;
   background: #7dde3c;
-  color: #0a1a0a;
+  color: #ffffff;
   cursor: pointer;
   font-family: 'Geist', sans-serif;
   font-weight: 500;
@@ -378,7 +378,7 @@ h2.section-title em {
   font-weight: 500;
   font-family: 'Geist', sans-serif;
   background: #7dde3c;
-  color: #0a1a0a;
+  color: #ffffff;
 }
 
 .t-name {
@@ -628,7 +628,7 @@ footer {
                 height: "48px",
                 padding: "0 24px",
                 background: "#7dde3c",
-                color: "#0a1a0a",
+                color: "#ffffff",
                 border: "none",
                 borderRadius: "8px",
                 fontSize: "15px",
@@ -708,10 +708,10 @@ footer {
               </h2>
               <p className="roi-sub">Give your VP a number, not a stack of business cards.</p>
               <ul className="roi-points">
-                <li>Leads collected per event, broken down by score</li>
-                <li>Which shows consistently produce the hottest leads</li>
-                <li>One-click CSV export for RevOps or your manager</li>
-                <li>Side-by-side event comparison before you sign contracts</li>
+                <li style={{ color: '#ffffff' }}>Leads collected per event, broken down by score</li>
+                <li style={{ color: '#ffffff' }}>Which shows consistently produce the hottest leads</li>
+                <li style={{ color: '#ffffff' }}>One-click CSV export for RevOps or your manager</li>
+                <li style={{ color: '#ffffff' }}>Side-by-side event comparison before you sign contracts</li>
               </ul>
             </div>
             <div className="roi-stats">

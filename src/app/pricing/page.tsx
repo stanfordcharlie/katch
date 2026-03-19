@@ -318,7 +318,7 @@ nav.landing2-nav {
 
 .pricing-cta button.solid {
   background: #7dde3c;
-  color: #0a1a0a;
+  color: #ffffff;
   border-color: #7dde3c;
 }
 
@@ -412,27 +412,27 @@ nav.landing2-nav {
               <ul className='feature-list'>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span>10 scans per month</span>
+                  <span style={{ color: '#ffffff' }}>10 scans per month</span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span>Basic contact export (CSV)</span>
+                  <span style={{ color: '#ffffff' }}>Basic contact export (CSV)</span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span>1 event</span>
+                  <span style={{ color: '#ffffff' }}>1 event</span>
                 </li>
                 <li className='feature-item feature-item-muted'>
                   <span className='feature-icon cross'>✕</span>
-                  <span>AI email sequences</span>
+                  <span style={{ color: 'rgba(255,255,255,0.35)' }}>AI email sequences</span>
                 </li>
                 <li className='feature-item feature-item-muted'>
                   <span className='feature-icon cross'>✕</span>
-                  <span>Lead scoring 1–10</span>
+                  <span style={{ color: 'rgba(255,255,255,0.35)' }}>Lead scoring 1–10</span>
                 </li>
                 <li className='feature-item feature-item-muted'>
                   <span className='feature-icon cross'>✕</span>
-                  <span>HubSpot import</span>
+                  <span style={{ color: 'rgba(255,255,255,0.35)' }}>HubSpot import</span>
                 </li>
               </ul>
             </div>
@@ -450,27 +450,27 @@ nav.landing2-nav {
               <ul className='feature-list'>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span>Unlimited scans</span>
+                  <span style={{ color: '#ffffff' }}>Unlimited scans</span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span>AI email sequences</span>
+                  <span style={{ color: '#ffffff' }}>AI email sequences</span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span>Lead scoring 1–10</span>
+                  <span style={{ color: '#ffffff' }}>Lead scoring 1–10</span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span>Unlimited events</span>
+                  <span style={{ color: '#ffffff' }}>Unlimited events</span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span>HubSpot CSV export</span>
+                  <span style={{ color: '#ffffff' }}>HubSpot CSV export</span>
                 </li>
                 <li className='feature-item feature-item-muted'>
                   <span className='feature-icon cross'>✕</span>
-                  <span>Team collaboration</span>
+                  <span style={{ color: 'rgba(255,255,255,0.35)' }}>Team collaboration</span>
                 </li>
               </ul>
             </div>
@@ -489,27 +489,27 @@ nav.landing2-nav {
               <ul className='feature-list'>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span>Everything in Solo</span>
+                  <span style={{ color: '#ffffff' }}>Everything in Solo</span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span>Up to 5 seats</span>
+                  <span style={{ color: '#ffffff' }}>Up to 5 seats</span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span>Shared contact pool</span>
+                  <span style={{ color: '#ffffff' }}>Shared contact pool</span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span>Team dashboard & analytics</span>
+                  <span style={{ color: '#ffffff' }}>Team dashboard & analytics</span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span>Attendee list analysis</span>
+                  <span style={{ color: '#ffffff' }}>Attendee list analysis</span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span>Priority support</span>
+                  <span style={{ color: '#ffffff' }}>Priority support</span>
                 </li>
               </ul>
             </div>
@@ -527,27 +527,27 @@ nav.landing2-nav {
               <ul className='feature-list'>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span>Everything in Team</span>
+                  <span style={{ color: '#ffffff' }}>Everything in Team</span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span>Unlimited seats</span>
+                  <span style={{ color: '#ffffff' }}>Unlimited seats</span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span>CRM integrations (Salesforce, HubSpot)</span>
+                  <span style={{ color: '#ffffff' }}>CRM integrations (Salesforce, HubSpot)</span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span>SSO & admin controls</span>
+                  <span style={{ color: '#ffffff' }}>SSO & admin controls</span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span>Dedicated CSM</span>
+                  <span style={{ color: '#ffffff' }}>Dedicated CSM</span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span>Custom onboarding</span>
+                  <span style={{ color: '#ffffff' }}>Custom onboarding</span>
                 </li>
               </ul>
             </div>
