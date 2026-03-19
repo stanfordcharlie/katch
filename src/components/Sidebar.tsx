@@ -138,8 +138,8 @@ export function Sidebar({ user }: { user: User }) {
             <span style={{ width: 32, height: 32, borderRadius: "50%", backgroundColor: "#7ab648", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 500, flexShrink: 0 }}>{initial}</span>
           )}
           <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-            <span style={{ fontSize: 13, fontWeight: 500, color: "#333", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 120 }}>{displayName || "Account"}</span>
-            <span style={{ fontSize: 11, color: "#888" }}>Account</span>
+            <span style={{ fontSize: 14, fontWeight: 500, color: "#333", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 120 }}>{displayName || "Account"}</span>
+            <span style={{ fontSize: 12, color: "#888" }}>Account</span>
           </div>
         </div>
       </div>
