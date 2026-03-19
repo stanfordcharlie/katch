@@ -119,7 +119,6 @@ export function Sidebar({ user }: { user: User }) {
     const url = (meta?.avatar_url as string | undefined) || null;
     return url;
   });
-  const [settingsOpen, setSettingsOpen] = useState(() => pathname.startsWith("/settings") || pathname.startsWith("/account"));
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -398,10 +397,8 @@ export function Sidebar({ user }: { user: User }) {
           }}
         />
 
-        {/* Group 3: Settings dropdown */}
-        <button
-          type="button"
-          onClick={() => setSettingsOpen((prev) => !prev)}
+        <Link
+          href="/settings"
           style={{
             display: "flex",
             alignItems: "center",
@@ -413,77 +410,17 @@ export function Sidebar({ user }: { user: User }) {
             cursor: "pointer",
             fontSize: 15,
             marginBottom: 2,
-            backgroundColor: "transparent",
-            border: "none",
-            outline: "none",
-            color: "#666666",
+            textDecoration: "none",
+            backgroundColor: pathname.startsWith("/settings") ? "#f0f7eb" : "transparent",
+            color: pathname.startsWith("/settings") ? "#2d6a1f" : "#666666",
+            fontWeight: pathname.startsWith("/settings") ? 500 : 400,
           }}
         >
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#666666",
-              width: 18,
-              height: 18,
-            }}
-          >
+          <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, color: pathname.startsWith("/settings") ? "#2d6a1f" : "#666666" }}>
             {NAV_ITEMS[7].icon}
           </span>
           <span>Settings</span>
-          <span
-            style={{
-              marginLeft: "auto",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#999999",
-              transition: "transform 0.2s ease",
-              transform: settingsOpen ? "rotate(180deg)" : "rotate(0deg)",
-            }}
-          >
-            <svg width={16} height={16} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth={1.4}>
-              <path d="M3 4l3 3 3-3" />
-            </svg>
-          </span>
-        </button>
-        {settingsOpen && (
-          <div>
-            <Link
-              href="/settings"
-              style={{
-                display: "block",
-                paddingLeft: 44,
-                paddingTop: 6,
-                paddingBottom: 6,
-                fontSize: 14,
-                color: pathname.startsWith("/settings") ? "#2d6a1f" : "#666666",
-                fontWeight: pathname.startsWith("/settings") ? 500 : 400,
-                textDecoration: "none",
-                cursor: "pointer",
-              }}
-            >
-              Settings
-            </Link>
-            <Link
-              href="/account"
-              style={{
-                display: "block",
-                paddingLeft: 44,
-                paddingTop: 6,
-                paddingBottom: 6,
-                fontSize: 14,
-                color: pathname.startsWith("/account") ? "#2d6a1f" : "#666666",
-                fontWeight: pathname.startsWith("/account") ? 500 : 400,
-                textDecoration: "none",
-                cursor: "pointer",
-              }}
-            >
-              Account
-            </Link>
-          </div>
-        )}
+        </Link>
       </nav>
       <div
         style={{
@@ -534,19 +471,28 @@ export function Sidebar({ user }: { user: User }) {
               {initial}
             </span>
           )}
-          <span
+          <div
             style={{
               color: "#333333",
-              fontSize: "13px",
-              fontWeight: 500,
+              display: "flex",
+              flexDirection: "column",
+              gap: 1,
               maxWidth: 120,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
             }}
           >
-            {displayName || "Account"}
-          </span>
+            <span
+              style={{
+                fontSize: "13px",
+                fontWeight: 500,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {displayName || "Account"}
+            </span>
+            <span style={{ fontSize: 11, color: "#888888" }}>Account</span>
+          </div>
         </div>
       </div>
       </aside>

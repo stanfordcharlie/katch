@@ -229,7 +229,7 @@ export default function SettingsPage() {
       ],
     },
     {
-      title: "Account",
+      title: "Preferences",
       items: [
         { id: "profile", label: "Profile" },
         { id: "notifications", label: "Notifications" },
