@@ -298,7 +298,6 @@ export default function HomePage() {
               borderRadius: isMobile ? 14 : 12,
               border: "1px solid #ebebeb",
               padding: isMobile ? 16 : 24,
-              minHeight: 120,
               cursor: "pointer",
               display: "flex",
               flexDirection: "column",
