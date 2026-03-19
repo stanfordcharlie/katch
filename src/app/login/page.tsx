@@ -30,7 +30,7 @@ export default function LoginPage() {
       if (error) {
         setError(error.message);
       } else {
-        router.push("/scan");
+        router.push("/home");
       }
     } catch {
       setError("Something went wrong. Please try again.");
