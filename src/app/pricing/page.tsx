@@ -191,7 +191,7 @@ nav.landing2-nav {
 }
 
 .toggle-pill.inactive {
-  color: rgba(255,255,255,0.6);
+  color: rgba(255,255,255,0.85);
 }
 
 .toggle-badge {
@@ -227,7 +227,7 @@ nav.landing2-nav {
   font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 0.16em;
-  color: rgba(255,255,255,0.7);
+  color: rgba(255,255,255,0.9);
   margin-bottom: 8px;
 }
 
@@ -240,7 +240,7 @@ nav.landing2-nav {
 
 .pricing-meta {
   font-size: 13px;
-  color: rgba(255,255,255,0.6);
+  color: rgba(255,255,255,0.85);
   margin-bottom: 16px;
 }
 
@@ -271,11 +271,11 @@ nav.landing2-nav {
   align-items: flex-start;
   gap: 8px;
   font-size: 13px;
-  color: rgba(255,255,255,0.85);
+  color: rgba(255,255,255,0.9);
 }
 
 .feature-item-muted {
-  color: rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.35);
 }
 
 .feature-icon {
@@ -290,12 +290,12 @@ nav.landing2-nav {
 
 .feature-icon.check {
   background: rgba(125,222,60,0.18);
-  color: #7dde3c;
+  color: rgba(255,255,255,0.9);
 }
 
 .feature-icon.cross {
   background: transparent;
-  color: rgba(255,255,255,0.28);
+  color: rgba(255,255,255,0.35);
 }
 
 .pricing-cta {
