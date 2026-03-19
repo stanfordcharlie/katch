@@ -258,7 +258,7 @@ export function Sidebar({ user }: { user: User }) {
         }}
       >
       <Link
-        href="/scan"
+        href="/home"
         style={{
           padding: 18,
           display: "flex",
