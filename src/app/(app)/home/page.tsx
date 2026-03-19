@@ -26,6 +26,14 @@ export default function HomePage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [events, setEvents] = useState<EventRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -145,7 +153,7 @@ export default function HomePage() {
     <div
       style={{
         minHeight: "100vh",
-        padding: "24px 32px 32px",
+        padding: isMobile ? "20px 16px 100px" : "24px 32px 32px",
         fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         color: "#111111",
       }}
@@ -156,15 +164,17 @@ export default function HomePage() {
           background: "linear-gradient(135deg, #e8f5d8 0%, #c8e8a0 40%, #a8d870 70%, #d4edb8 100%)",
           borderRadius: 16,
           margin: "20px 20px 0",
-          padding: "36px 40px",
+          padding: isMobile ? "24px 20px" : "36px 40px",
           border: "1px solid rgba(0,0,0,0.04)",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           minHeight: 180,
+          flexDirection: isMobile ? "column" : "row",
+          gap: isMobile ? 14 : 0,
         }}
       >
-        <div style={{ maxWidth: "40%" }}>
+        <div style={{ maxWidth: isMobile ? "100%" : "40%", width: isMobile ? "100%" : "auto" }}>
           <p
             style={{
               fontSize: 13,
@@ -179,7 +189,7 @@ export default function HomePage() {
           </p>
           <h1
             style={{
-              fontSize: 32,
+              fontSize: isMobile ? 20 : 32,
               fontWeight: 800,
               color: "#1a3a0a",
               letterSpacing: "-0.5px",
@@ -190,7 +200,7 @@ export default function HomePage() {
           </h1>
           <p
             style={{
-              fontSize: 14,
+              fontSize: isMobile ? 13 : 14,
               color: "rgba(26,58,10,0.6)",
               marginBottom: 0,
             }}
@@ -201,9 +211,10 @@ export default function HomePage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-            gap: 12,
-            maxWidth: "52%",
+            gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(2, minmax(0, 1fr))",
+            gap: isMobile ? 10 : 12,
+            maxWidth: isMobile ? "100%" : "52%",
+            width: isMobile ? "100%" : "auto",
           }}
         >
           {[
@@ -217,7 +228,7 @@ export default function HomePage() {
               style={{
                 backgroundColor: "rgba(255,255,255,0.65)",
                 borderRadius: 12,
-                padding: "14px 20px",
+                padding: isMobile ? "14px 16px" : "14px 20px",
                 minWidth: 120,
                 display: "flex",
                 flexDirection: "column",
@@ -255,9 +266,10 @@ export default function HomePage() {
       <section
         style={{
           margin: "20px 20px 0",
-          display: "grid",
-          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-          gap: 16,
+          display: isMobile ? "flex" : "grid",
+          gridTemplateColumns: isMobile ? undefined : "repeat(3, minmax(0, 1fr))",
+          flexDirection: isMobile ? "column" : undefined,
+          gap: isMobile ? 10 : 16,
         }}
       >
         {[
@@ -283,20 +295,23 @@ export default function HomePage() {
             style={{
               textAlign: "left",
               background: "#ffffff",
-              borderRadius: 12,
+              borderRadius: isMobile ? 14 : 12,
               border: "1px solid #ebebeb",
-              padding: 24,
+              padding: isMobile ? 16 : 24,
               minHeight: 120,
               cursor: "pointer",
               display: "flex",
               flexDirection: "column",
               justifyContent: "space-between",
+              width: isMobile ? "100%" : "auto",
+              minWidth: isMobile ? 0 : undefined,
+              minHeight: isMobile ? 44 : 120,
             }}
           >
             <div
               style={{
-                width: 32,
-                height: 32,
+                width: isMobile ? 40 : 32,
+                height: isMobile ? 40 : 32,
                 borderRadius: 999,
                 backgroundColor: "#f0f7eb",
                 display: "flex",
@@ -321,7 +336,7 @@ export default function HomePage() {
               </div>
               <div
                 style={{
-                  fontSize: 13,
+                  fontSize: isMobile ? 13 : 13,
                   color: "#888888",
                 }}
               >
@@ -348,7 +363,7 @@ export default function HomePage() {
         style={{
           margin: "22px 20px 0",
           display: "grid",
-          gridTemplateColumns: "minmax(0, 3fr) minmax(0, 2fr)",
+          gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 3fr) minmax(0, 2fr)",
           gap: 16,
           alignItems: "flex-start",
         }}
@@ -372,7 +387,7 @@ export default function HomePage() {
           >
             <h2
               style={{
-                fontSize: 15,
+                fontSize: isMobile ? 15 : 15,
                 fontWeight: 600,
                 color: "#111111",
               }}
@@ -388,6 +403,7 @@ export default function HomePage() {
                 color: "#4b5563",
                 fontSize: 12,
                 cursor: "pointer",
+                minHeight: isMobile ? 44 : undefined,
               }}
             >
               View all →
@@ -418,7 +434,7 @@ export default function HomePage() {
                   <div
                     key={ev.id}
                     style={{
-                      padding: "16px 20px",
+                      padding: isMobile ? "14px 16px" : "16px 20px",
                       borderRadius: 10,
                       border: "1px solid #ebebeb",
                       display: "flex",
@@ -520,6 +536,7 @@ export default function HomePage() {
                 color: "#4b5563",
                 fontSize: 12,
                 cursor: "pointer",
+                minHeight: isMobile ? 44 : undefined,
               }}
             >
               View all →
@@ -551,7 +568,7 @@ export default function HomePage() {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "space-between",
-                      padding: "6px 8px",
+                      padding: isMobile ? "12px 0" : "6px 8px",
                       borderRadius: 8,
                       border: "1px solid #ebebeb",
                       backgroundColor: "#ffffff",
@@ -560,7 +577,7 @@ export default function HomePage() {
                     <div>
                       <div
                         style={{
-                          fontSize: 14,
+                          fontSize: isMobile ? 14 : 14,
                           fontWeight: 500,
                           color: "#111111",
                         }}
@@ -569,7 +586,7 @@ export default function HomePage() {
                       </div>
                       <div
                         style={{
-                          fontSize: 12,
+                          fontSize: isMobile ? 12 : 12,
                           color: "#6b7280",
                         }}
                       >

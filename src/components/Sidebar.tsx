@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { cloneElement, isValidElement, useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 
@@ -30,8 +30,8 @@ const NAV_ITEMS = [
     href: "/contacts",
     icon: (
       <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
-        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-        <circle cx="9" cy="7" r="4" />
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
       </svg>
     ),
   },
@@ -111,6 +111,7 @@ function getDisplayName(user: User): string {
 export function Sidebar({ user }: { user: User }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [isMobile, setIsMobile] = useState(false);
   const [displayName, setDisplayName] = useState<string>(() => getDisplayName(user));
   const [email, setEmail] = useState<string | null>(() => user.email ?? null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(() => {
@@ -119,6 +120,13 @@ export function Sidebar({ user }: { user: User }) {
     return url;
   });
   const [settingsOpen, setSettingsOpen] = useState(() => pathname.startsWith("/settings") || pathname.startsWith("/account"));
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -140,6 +148,92 @@ export function Sidebar({ user }: { user: User }) {
   const initial =
     displayName.trim().charAt(0).toUpperCase() ||
     (email || user.email || user.id || "?").toString().charAt(0).toUpperCase();
+
+  if (isMobile) {
+    const mobileItems = [
+      {
+        label: "Home",
+        href: "/home",
+        icon: (
+          <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
+            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+            <path d="M9 21V12h6v9" />
+          </svg>
+        ),
+      },
+      NAV_ITEMS[1],
+      NAV_ITEMS[2],
+      NAV_ITEMS[3],
+      NAV_ITEMS[7],
+    ];
+    return (
+      <>
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        />
+        <nav
+          style={{
+            position: "fixed",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: 100,
+            background: "#ffffff",
+            borderTop: "1px solid #ebebeb",
+            height: 64,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-evenly",
+            width: "100%",
+            paddingBottom: "env(safe-area-inset-bottom)",
+            fontFamily: "Inter, -apple-system, sans-serif",
+          }}
+        >
+          {mobileItems.map(({ label, href, icon }) => {
+            const isActive = pathname === href;
+            const mobileIcon = isValidElement(icon)
+              ? cloneElement(icon as React.ReactElement<any>, { width: 22, height: 22 })
+              : icon;
+            return (
+              <Link
+                key={href}
+                href={href}
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 0,
+                  color: isActive ? "#2d6a1f" : "#999",
+                  textDecoration: "none",
+                  cursor: "pointer",
+                  padding: "4px 0",
+                  borderRadius: 10,
+                }}
+              >
+                <span
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 22,
+                    height: 22,
+                    color: isActive ? "#2d6a1f" : "#999",
+                    margin: "0 auto",
+                  }}
+                >
+                  {mobileIcon}
+                </span>
+                <span style={{ fontSize: 10, fontWeight: 500, marginTop: 3, lineHeight: 1, textAlign: "center", display: "block" }}>{label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      </>
+    );
+  }
 
   return (
     <>

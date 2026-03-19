@@ -25,9 +25,17 @@ export default function ScanPage() {
   const [showNewEvent, setShowNewEvent] = useState(false);
   const [newEventName, setNewEventName] = useState("");
   const [restoredDraft, setRestoredDraft] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -314,6 +322,32 @@ export default function ScanPage() {
         fontFamily: "Inter, sans-serif",
       }}
     >
+      <style>{`
+        input[type=range] {
+          touch-action: none;
+          -webkit-appearance: none;
+          appearance: none;
+          width: 100%;
+          height: 6px;
+          border-radius: 3px;
+          outline: none;
+          cursor: pointer;
+        }
+        input[type=range]::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 22px;
+          height: 22px;
+          border-radius: 50%;
+          background: #ffffff;
+          border: 2px solid #7ab648;
+          cursor: pointer;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+        }
+        @media (max-width: 767px) {
+          button { min-height: 44px; }
+        }
+      `}</style>
       {toast && (
         <div
           className="fixed top-4 left-1/2 -translate-x-1/2 z-50 text-sm px-4 py-2 rounded-lg shadow-xl"
@@ -322,10 +356,10 @@ export default function ScanPage() {
           {toast}
         </div>
       )}
-      <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "36px 36px 0" }}>
+      <div style={{ maxWidth: isMobile ? "100%" : "1100px", margin: "0 auto", padding: isMobile ? "20px 16px 0" : "36px 36px 0" }}>
         <h1
           style={{
-            fontSize: 26,
+            fontSize: isMobile ? 22 : 26,
             fontWeight: 700,
             color: "#111",
             fontFamily: "Inter, sans-serif",
@@ -344,10 +378,12 @@ export default function ScanPage() {
               color: "#2d6a1f",
               background: "#f0f7eb",
               borderRadius: 999,
-              display: "inline-flex",
+              display: isMobile ? "flex" : "inline-flex",
               alignItems: "center",
+              justifyContent: "center",
               padding: "4px 10px",
               marginBottom: 12,
+              width: isMobile ? "100%" : "auto",
             }}
           >
             Draft restored
@@ -357,15 +393,16 @@ export default function ScanPage() {
       <div
         style={{
           display: "flex",
+          flexDirection: isMobile ? "column" : "row",
           gap: "24px",
           alignItems: "flex-start",
-          padding: "36px",
-          maxWidth: "1100px",
+          padding: isMobile ? "20px 16px 0" : "36px",
+          maxWidth: isMobile ? "100%" : "1100px",
           margin: "0 auto",
         }}
       >
         {/* Left column — Scan area */}
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ flex: isMobile ? "none" : 1, width: isMobile ? "100%" : "auto", minWidth: 0 }}>
           {scanMode === "idle" && (
             <>
               <div
@@ -373,7 +410,7 @@ export default function ScanPage() {
                   background: "#fff",
                   border: "1px solid #ebebeb",
                   borderRadius: 16,
-                  padding: "40px 24px",
+                  padding: isMobile ? "24px 16px" : "40px 24px",
                   width: "100%",
                   boxSizing: "border-box",
                   display: "flex",
@@ -413,6 +450,7 @@ export default function ScanPage() {
                     fontSize: 15,
                     border: "none",
                     cursor: "pointer",
+                    width: isMobile ? "100%" : "auto",
                   }}
                 >
                   Open Camera
@@ -584,7 +622,7 @@ export default function ScanPage() {
         </div>
 
         {/* Right column — Placeholder or Contact form */}
-        <div style={{ flex: 1, minWidth: 0, position: "sticky", top: "36px" }}>
+        <div style={{ flex: isMobile ? "none" : 1, width: isMobile ? "100%" : "auto", minWidth: 0, position: isMobile ? "static" : "sticky", top: "36px" }}>
           {!showRightForm ? (
             <div
               style={{
@@ -607,7 +645,7 @@ export default function ScanPage() {
                 background: "#fff",
                 borderRadius: 16,
                 border: "1px solid #ebebeb",
-                padding: 28,
+                padding: isMobile ? "20px 16px" : 28,
               }}
             >
               <div
@@ -678,7 +716,13 @@ export default function ScanPage() {
                     min={1}
                     max={10}
                     value={leadScore}
-                    style={{ ["--val" as string]: `${((leadScore - 1) / 9) * 100}%`, flex: 1 }}
+                    style={{
+                      ["--val" as string]: `${((leadScore - 1) / 9) * 100}%`,
+                      flex: 1,
+                      touchAction: "none",
+                      height: 6,
+                      borderRadius: 3,
+                    }}
                     onChange={(e) => setLeadScore(Number(e.target.value))}
                     onInput={(e) => {
                       const val = ((Number(e.currentTarget.value) - 1) / 9) * 100;
@@ -760,7 +804,7 @@ export default function ScanPage() {
                       type="button"
                       onClick={() => setEventTag(eventTag === ev.name ? "" : ev.name)}
                       style={{
-                        padding: "8px 14px",
+                        padding: isMobile ? "10px 16px" : "8px 14px",
                         borderRadius: 20,
                         fontSize: 13,
                         border: eventTag === ev.name ? "1px solid #1a3a2a" : "1px solid #e8e8e8",
@@ -776,7 +820,7 @@ export default function ScanPage() {
                     type="button"
                     onClick={() => setShowNewEvent(true)}
                     style={{
-                      padding: "8px 14px",
+                      padding: isMobile ? "10px 16px" : "8px 14px",
                       borderRadius: 20,
                       fontSize: 13,
                       border: "1px dashed #ccc",
@@ -841,7 +885,7 @@ export default function ScanPage() {
                   color: "#0a1a0a",
                   fontWeight: 700,
                   borderRadius: 10,
-                  height: 44,
+                  height: isMobile ? 52 : 44,
                   width: "100%",
                   fontSize: 15,
                   border: "none",
@@ -856,8 +900,8 @@ export default function ScanPage() {
                 style={{
                   width: "100%",
                   marginTop: 12,
-                  padding: "10px",
-                  fontSize: 13,
+                  padding: isMobile ? "12px" : "10px",
+                  fontSize: isMobile ? 14 : 13,
                   color: "#999",
                   background: "transparent",
                   border: "none",

@@ -61,6 +61,14 @@ export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState<SectionId>("conversation-signals");
   const [notifEmailSequence, setNotifEmailSequence] = useState(true);
   const [notifWeeklySummary, setNotifWeeklySummary] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -248,10 +256,16 @@ export default function SettingsPage() {
         fontFamily: "Inter, -apple-system, sans-serif",
       }}
     >
+      <style>{`
+        .tabs-scroll::-webkit-scrollbar{display:none}
+        @media (max-width: 767px) {
+          input, select, textarea { min-height: 44px; font-size: 15px; width: 100%; }
+        }
+      `}</style>
       <div
         className="max-w-3xl mx-auto"
         style={{
-          padding: "32px 36px 48px 36px",
+          padding: isMobile ? "20px 16px 100px" : "32px 36px 48px 36px",
         }}
       >
         {/* Page header */}
@@ -259,7 +273,7 @@ export default function SettingsPage() {
           <div>
             <h1
               style={{
-                fontSize: 28,
+                fontSize: isMobile ? 22 : 28,
                 fontWeight: 700,
                 color: "#111",
                 letterSpacing: "-0.5px",
@@ -287,10 +301,15 @@ export default function SettingsPage() {
               color: "#0a1a0a",
               border: "none",
               borderRadius: "10px",
-              padding: "10px 20px",
+              padding: isMobile ? "0 24px" : "10px 20px",
+              height: isMobile ? 44 : undefined,
               fontWeight: 600,
               fontSize: 14,
               cursor: "pointer",
+              position: isMobile ? "fixed" : "static",
+              bottom: isMobile ? "80px" : undefined,
+              right: isMobile ? "16px" : undefined,
+              zIndex: isMobile ? 50 : undefined,
             }}
           >
             {saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "Saved!" : "Save"}
@@ -304,6 +323,7 @@ export default function SettingsPage() {
             alignItems: "center",
             gap: 12,
             marginBottom: 20,
+            padding: isMobile ? "4px 0" : undefined,
           }}
         >
           <div
@@ -351,10 +371,15 @@ export default function SettingsPage() {
         <div
           style={{
             display: "flex",
-            gap: 4,
+            flexDirection: "row",
+            overflowX: isMobile ? "auto" : "visible",
+            WebkitOverflowScrolling: "touch",
             borderBottom: "1px solid #ebebeb",
-            marginBottom: 28,
+            marginBottom: 24,
+            gap: 0,
+            scrollbarWidth: "none",
           }}
+          className="tabs-scroll"
         >
           {tabs.map((tab) => {
             const active = activeSection === tab.id;
@@ -365,13 +390,14 @@ export default function SettingsPage() {
                 onClick={() => setActiveSection(tab.id)}
                 style={{
                   background: "transparent",
-                  border: "none",
                   borderBottom: active ? "2px solid #7ab648" : "2px solid transparent",
-                  padding: "8px 16px",
-                  fontSize: 14,
+                  padding: isMobile ? "10px 14px" : "8px 16px",
+                  fontSize: isMobile ? 13 : 14,
                   cursor: "pointer",
                   color: active ? "#111" : "#888",
                   fontWeight: active ? 500 : 400,
+                  flexShrink: 0,
+                  minHeight: isMobile ? 44 : undefined,
                 }}
               >
                 {tab.label}
@@ -406,87 +432,136 @@ export default function SettingsPage() {
                 <div className="space-y-3">
                   <div className="space-y-2">
                     {signals.map((signal) => (
-                      <div
-                        key={signal.id}
-                        className="flex items-center gap-3"
-                        style={{
-                          backgroundColor: "#ffffff",
-                          border: "1px solid #dce8d0",
-                          borderRadius: 10,
-                          padding: "8px 10px",
-                        }}
-                      >
-                        <button
-                          type="button"
-                          role="switch"
-                          aria-checked={signal.enabled}
-                          onClick={() =>
-                            setSignals((prev) =>
-                              prev.map((s) => (s.id === signal.id ? { ...s, enabled: !s.enabled } : s))
-                            )
-                          }
-                          className="w-10 h-6 rounded flex items-center flex-shrink-0 transition-colors"
-                          style={{ backgroundColor: signal.enabled ? "#7ab648" : "#dce8d0" }}
+                      isMobile ? (
+                        <div
+                          key={signal.id}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            padding: "14px 0",
+                            borderBottom: "1px solid #f5f5f5",
+                          }}
                         >
-                          <span
-                            className="w-5 h-5 rounded"
+                          <span style={{ fontSize: 14, color: "#111", flex: 1 }}>{signal.name}</span>
+                          <div
+                            role="switch"
+                            aria-checked={signal.enabled}
+                            onClick={() =>
+                              setSignals((prev) =>
+                                prev.map((s) => (s.id === signal.id ? { ...s, enabled: !s.enabled } : s))
+                              )
+                            }
                             style={{
-                              borderRadius: 4,
-                              backgroundColor: "#ffffff",
-                              boxShadow: "0 1px 2px rgba(0,0,0,0.12)",
-                              transform: signal.enabled ? "translateX(18px)" : "translateX(2px)",
-                              transition: "transform 150ms ease",
+                              width: 44,
+                              height: 26,
+                              borderRadius: 13,
+                              background: signal.enabled ? "#7dde3c" : "#e0e0e0",
+                              cursor: "pointer",
+                              flexShrink: 0,
+                              position: "relative",
+                              transition: "background 0.2s",
+                            }}
+                          >
+                            <div
+                              style={{
+                                position: "absolute",
+                                top: 3,
+                                left: signal.enabled ? 21 : 3,
+                                width: 20,
+                                height: 20,
+                                borderRadius: "50%",
+                                background: "#fff",
+                                transition: "left 0.2s",
+                                boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          key={signal.id}
+                          className="flex items-center gap-3"
+                          style={{
+                            backgroundColor: "#ffffff",
+                            border: "1px solid #dce8d0",
+                            borderRadius: 10,
+                            padding: "8px 10px",
+                            width: "100%",
+                          }}
+                        >
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={signal.enabled}
+                            onClick={() =>
+                              setSignals((prev) =>
+                                prev.map((s) => (s.id === signal.id ? { ...s, enabled: !s.enabled } : s))
+                              )
+                            }
+                            className="w-10 h-6 rounded flex items-center flex-shrink-0 transition-colors"
+                            style={{ backgroundColor: signal.enabled ? "#7ab648" : "#dce8d0" }}
+                          >
+                            <span
+                              className="w-5 h-5 rounded"
+                              style={{
+                                borderRadius: 4,
+                                backgroundColor: "#ffffff",
+                                boxShadow: "0 1px 2px rgba(0,0,0,0.12)",
+                                transform: signal.enabled ? "translateX(18px)" : "translateX(2px)",
+                                transition: "transform 150ms ease",
+                              }}
+                            />
+                          </button>
+                          <input
+                            type="text"
+                            value={signal.name}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setSignals((prev) =>
+                                prev.map((s) => (s.id === signal.id ? { ...s, name: value } : s))
+                              );
+                            }}
+                            onBlur={(e) => {
+                              const value = e.target.value.trim();
+                              setSignals((prev) =>
+                                prev.map((s) => (s.id === signal.id ? { ...s, name: value } : s))
+                              );
+                            }}
+                            className="flex-1 px-3 py-2 text-sm rounded outline-none"
+                            style={{
+                              border: "none",
+                              backgroundColor: "transparent",
+                              color: "#1a2e1a",
+                              fontFamily: "'Geist', sans-serif",
                             }}
                           />
-                        </button>
-                        <input
-                          type="text"
-                          value={signal.name}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            setSignals((prev) =>
-                              prev.map((s) => (s.id === signal.id ? { ...s, name: value } : s))
-                            );
-                          }}
-                          onBlur={(e) => {
-                            const value = e.target.value.trim();
-                            setSignals((prev) =>
-                              prev.map((s) => (s.id === signal.id ? { ...s, name: value } : s))
-                            );
-                          }}
-                          className="flex-1 px-3 py-2 text-sm rounded outline-none"
-                          style={{
-                            border: "none",
-                            backgroundColor: "transparent",
-                            color: "#1a2e1a",
-                            fontFamily: "'Geist', sans-serif",
-                          }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setSignals((prev) => prev.filter((s) => s.id !== signal.id))}
-                          className="p-1 rounded"
-                          style={{ color: "#a99a8e" }}
-                        >
-                          <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            xmlns="http://www.w3.org/2000/svg"
+                          <button
+                            type="button"
+                            onClick={() => setSignals((prev) => prev.filter((s) => s.id !== signal.id))}
+                            className="p-1 rounded"
+                            style={{ color: "#a99a8e" }}
                           >
-                            <path
-                              d="M18 6L6 18M6 6L18 18"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                            />
-                          </svg>
-                        </button>
-                      </div>
+                            <svg
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                d="M18 6L6 18M6 6L18 18"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      )
                     ))}
                   </div>
-                  <div className="flex gap-2 items-center">
+                  <div className="flex gap-2 items-center" style={{ flexDirection: isMobile ? "column" : "row" }}>
                     <input
                       type="text"
                       value={signalInput}
@@ -510,6 +585,8 @@ export default function SettingsPage() {
                         borderColor: "#c47c4a",
                         backgroundColor: "#f0f0ec",
                         color: "#c47c4a",
+                        minHeight: isMobile ? 44 : undefined,
+                        width: isMobile ? "100%" : undefined,
                       }}
                     >
                       Add
@@ -550,7 +627,7 @@ export default function SettingsPage() {
                 >
                   <div className="space-y-2">
                     {fields.map((field) => (
-                      <div key={field.id} className="flex items-center gap-3">
+                      <div key={field.id} className="flex items-center gap-3" style={{ width: "100%", padding: isMobile ? "12px 0" : undefined, borderBottom: isMobile ? "1px solid #f0f0f0" : undefined }}>
                         <button
                           type="button"
                           role="switch"
@@ -561,7 +638,12 @@ export default function SettingsPage() {
                             )
                           }
                           className="w-10 h-6 rounded flex items-center flex-shrink-0 transition-colors"
-                          style={{ backgroundColor: field.enabled ? "#7ab648" : "#dce8d0" }}
+                          style={{
+                            backgroundColor: field.enabled ? "#7ab648" : "#dce8d0",
+                            width: isMobile ? 44 : undefined,
+                            height: isMobile ? 44 : undefined,
+                            justifyContent: "center",
+                          }}
                         >
                           <span
                             className="w-5 h-5 rounded"
@@ -595,13 +677,15 @@ export default function SettingsPage() {
                             backgroundColor: "#f0f0ec",
                             color: "#1a2e1a",
                             fontFamily: "'Geist', sans-serif",
+                            height: isMobile ? 44 : undefined,
+                            fontSize: isMobile ? 15 : undefined,
                           }}
                         />
                         <button
                           type="button"
                           onClick={() => setFields((prev) => prev.filter((f) => f.id !== field.id))}
                           className="p-1 rounded"
-                          style={{ color: "#a99a8e" }}
+                          style={{ color: "#a99a8e", width: isMobile ? 44 : undefined, height: isMobile ? 44 : undefined }}
                         >
                           <svg
                             width="16"
@@ -621,7 +705,7 @@ export default function SettingsPage() {
                       </div>
                     ))}
                   </div>
-                  <div className="flex gap-2 items-center">
+                  <div className="flex gap-2 items-center" style={{ flexDirection: isMobile ? "column" : "row" }}>
                     <input
                       type="text"
                       value={fieldInput}
@@ -646,6 +730,8 @@ export default function SettingsPage() {
                         borderColor: "#c47c4a",
                         backgroundColor: "#f0f0ec",
                         color: "#c47c4a",
+                        minHeight: isMobile ? 44 : undefined,
+                        width: isMobile ? "100%" : undefined,
                       }}
                     >
                       Add
@@ -684,7 +770,7 @@ export default function SettingsPage() {
                   className="rounded-2xl p-4"
                   style={{ border: "1px solid #dce8d0", backgroundColor: "#ffffff" }}
                 >
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2" style={{ width: "100%" }}>
                     {TONE_OPTIONS.map((tone) => {
                       const active = defaultTone === tone;
                       return (
@@ -698,6 +784,11 @@ export default function SettingsPage() {
                             backgroundColor: active ? "#1a3a2a" : "#f0f0ec",
                             color: active ? "#a8d878" : "#1a2e1a",
                             fontFamily: "'Geist', sans-serif",
+                            width: isMobile ? "100%" : undefined,
+                            padding: isMobile ? "14px" : undefined,
+                            fontSize: isMobile ? 14 : undefined,
+                            minHeight: isMobile ? 44 : undefined,
+                            borderRadius: isMobile ? 12 : undefined,
                           }}
                         >
                           {titleCaseTone(tone)}
@@ -729,9 +820,10 @@ export default function SettingsPage() {
                     border: "1px dashed #dce8d0",
                     backgroundColor: "#f4f1eb",
                     color: "#6b6157",
+                    width: "100%",
                   }}
                 >
-                  <p className="text-sm font-medium mb-1">Custom templates coming soon</p>
+                  <p className="text-sm font-medium mb-1" style={{ fontSize: isMobile ? 14 : undefined }}>Custom templates coming soon</p>
                   <p className="text-xs">
                     You&apos;ll be able to define your own multi-touch follow-up templates and reuse them
                     across events.
@@ -762,7 +854,7 @@ export default function SettingsPage() {
                   style={{ border: "1px solid #dce8d0", backgroundColor: "#ffffff" }}
                 >
                   <div>
-                    <label className="block text-xs mb-1" style={{ color: "#6b6157" }}>
+                    <label className="block text-xs mb-1" style={{ color: "#6b6157", fontSize: isMobile ? 13 : undefined }}>
                       Display name
                     </label>
                     <input
@@ -774,11 +866,13 @@ export default function SettingsPage() {
                         borderColor: "#dce8d0",
                         backgroundColor: "#f0f0ec",
                         color: "#1a2e1a",
+                        height: isMobile ? 44 : undefined,
+                        fontSize: isMobile ? 15 : undefined,
                       }}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs mb-1" style={{ color: "#6b6157" }}>
+                    <label className="block text-xs mb-1" style={{ color: "#6b6157", fontSize: isMobile ? 13 : undefined }}>
                       Email
                     </label>
                     <div
@@ -787,10 +881,33 @@ export default function SettingsPage() {
                         borderColor: "#dce8d0",
                         backgroundColor: "#f4f1eb",
                         color: "#1a2e1a",
+                        minHeight: isMobile ? 44 : undefined,
+                        width: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        fontSize: isMobile ? 15 : undefined,
                       }}
                     >
                       {userEmail || "—"}
                     </div>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "center", width: "100%" }}>
+                    <button
+                      type="button"
+                      style={{
+                        width: isMobile ? "100%" : "auto",
+                        minHeight: isMobile ? 44 : undefined,
+                        border: "1px dashed #dce8d0",
+                        borderRadius: 12,
+                        background: "#f7f7f5",
+                        color: "#6b6157",
+                        fontSize: 13,
+                        cursor: "pointer",
+                        padding: "10px 12px",
+                      }}
+                    >
+                      Upload avatar (coming soon)
+                    </button>
                   </div>
                   <button
                     type="button"
@@ -800,6 +917,8 @@ export default function SettingsPage() {
                       borderColor: "#1a2e1a",
                       backgroundColor: "#f0f0ec",
                       color: "#1a2e1a",
+                      minHeight: isMobile ? 44 : undefined,
+                      width: isMobile ? "100%" : undefined,
                     }}
                     disabled={profileSaving}
                   >
@@ -830,7 +949,7 @@ export default function SettingsPage() {
                   className="rounded-2xl p-4 space-y-3"
                   style={{ border: "1px solid #dce8d0", backgroundColor: "#ffffff" }}
                 >
-                  <label className="flex items-center justify-between gap-3 text-sm">
+                  <label className="flex items-center justify-between gap-3 text-sm" style={{ width: "100%", padding: isMobile ? "12px 0" : undefined, fontSize: isMobile ? 14 : undefined }}>
                     <span>Email me when a sequence is sent</span>
                     <button
                       type="button"
@@ -838,7 +957,12 @@ export default function SettingsPage() {
                       aria-checked={notifEmailSequence}
                       onClick={() => setNotifEmailSequence((v) => !v)}
                       className="w-10 h-6 rounded flex items-center flex-shrink-0 transition-colors"
-                      style={{ backgroundColor: notifEmailSequence ? "#7ab648" : "#dce8d0" }}
+                      style={{
+                        backgroundColor: notifEmailSequence ? "#7ab648" : "#dce8d0",
+                        width: isMobile ? 44 : undefined,
+                        height: isMobile ? 44 : undefined,
+                        justifyContent: "center",
+                      }}
                     >
                       <span
                         className="w-5 h-5 rounded"
@@ -852,7 +976,7 @@ export default function SettingsPage() {
                       />
                     </button>
                   </label>
-                  <label className="flex items-center justify-between gap-3 text-sm">
+                  <label className="flex items-center justify-between gap-3 text-sm" style={{ width: "100%", padding: isMobile ? "12px 0" : undefined, fontSize: isMobile ? 14 : undefined }}>
                     <span>Weekly lead summary</span>
                     <button
                       type="button"
@@ -860,7 +984,12 @@ export default function SettingsPage() {
                       aria-checked={notifWeeklySummary}
                       onClick={() => setNotifWeeklySummary((v) => !v)}
                       className="w-10 h-6 rounded flex items-center flex-shrink-0 transition-colors"
-                      style={{ backgroundColor: notifWeeklySummary ? "#7ab648" : "#dce8d0" }}
+                      style={{
+                        backgroundColor: notifWeeklySummary ? "#7ab648" : "#dce8d0",
+                        width: isMobile ? 44 : undefined,
+                        height: isMobile ? 44 : undefined,
+                        justifyContent: "center",
+                      }}
                     >
                       <span
                         className="w-5 h-5 rounded"
@@ -897,7 +1026,13 @@ export default function SettingsPage() {
                 </p>
                 <div
                   className="rounded-2xl p-4 flex items-center justify-between"
-                  style={{ border: "1px solid #dce8d0", backgroundColor: "#ffffff" }}
+                  style={{
+                    border: "1px solid #dce8d0",
+                    backgroundColor: "#ffffff",
+                    width: "100%",
+                    padding: isMobile ? "16px" : undefined,
+                    fontSize: isMobile ? 14 : undefined,
+                  }}
                 >
                   <div>
                     <p className="text-sm font-medium" style={{ color: "#1a2e1a" }}>
@@ -915,6 +1050,7 @@ export default function SettingsPage() {
                       borderColor: "#1a2e1a",
                       backgroundColor: "#f0f0ec",
                       color: "#1a2e1a",
+                      minHeight: isMobile ? 44 : undefined,
                     }}
                   >
                     Upgrade

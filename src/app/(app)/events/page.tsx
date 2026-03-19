@@ -25,6 +25,14 @@ export default function EventsPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [allContacts, setAllContacts] = useState<any[]>([]);
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -169,7 +177,7 @@ export default function EventsPage() {
       className="max-w-2xl mx-auto min-h-screen"
       style={{
         background: "#f7f7f5",
-        padding: "36px",
+        padding: isMobile ? "20px 16px 100px" : "36px",
         fontFamily: "Inter, -apple-system, sans-serif",
       }}
     >
@@ -178,11 +186,11 @@ export default function EventsPage() {
           {toast}
         </div>
       )}
-      <div className="flex items-end justify-between mb-6">
+      <div className="flex items-end justify-between mb-6" style={{ alignItems: "center" }}>
         <div>
           <h1
             style={{
-              fontSize: 28,
+              fontSize: isMobile ? 22 : 28,
               fontWeight: 700,
               color: "#111",
               letterSpacing: "-0.5px",
@@ -195,7 +203,7 @@ export default function EventsPage() {
           </p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <button
+          {!isMobile && <button
             type="button"
             onClick={() => {
               const visibleIds = events.map((e) => e.id);
@@ -223,7 +231,7 @@ export default function EventsPage() {
                 visibleIds.length > 0 && visibleIds.every((id: string) => selectedIds.includes(id));
               return allSelected ? "Deselect all" : "Select all";
             })()}
-          </button>
+          </button>}
           <button
             type="button"
             onClick={() => {
@@ -236,8 +244,10 @@ export default function EventsPage() {
               color: "#0a1a0a",
               border: "none",
               borderRadius: "10px",
-              padding: "10px 18px",
-              fontSize: "14px",
+              height: isMobile ? 40 : undefined,
+              minHeight: isMobile ? 44 : undefined,
+              padding: isMobile ? "0 14px" : "10px 18px",
+              fontSize: 14,
               fontWeight: 600,
               cursor: "pointer",
             }}
@@ -268,35 +278,35 @@ export default function EventsPage() {
           >
             {editingEvent ? "Edit Event" : "New Event"}
           </p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3" style={{ gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))" }}>
             <div className="col-span-2">
-              <label className="text-xs text-slate-500 mb-1 block">Event name *</label>
+              <label className="text-xs text-slate-500 mb-1 block" style={{ fontSize: 13 }}>Event name *</label>
               <input
                 type="text"
                 value={evForm.name}
                 onChange={(e) => setEvForm((f) => ({ ...f, name: e.target.value }))}
                 placeholder="e.g. SaaStr Annual 2026"
                 className="w-full text-sm text-slate-900 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-slate-400 bg-slate-50"
-                style={{ fontFamily: "Georgia, serif", color: "black" }}
+                style={{ fontFamily: "Georgia, serif", color: "black", height: isMobile ? 44 : undefined }}
               />
             </div>
             <div>
-              <label className="text-xs text-slate-500 mb-1 block">Date</label>
+              <label className="text-xs text-slate-500 mb-1 block" style={{ fontSize: 13 }}>Date</label>
               <input
                 type="date"
                 value={evForm.date}
                 onChange={(e) => setEvForm((f) => ({ ...f, date: e.target.value }))}
                 className="w-full text-sm text-slate-900 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-slate-400 bg-slate-50"
-                style={{ fontFamily: "Georgia, serif", color: "black" }}
+                style={{ fontFamily: "Georgia, serif", color: "black", height: isMobile ? 44 : undefined }}
               />
             </div>
             <div>
-              <label className="text-xs text-slate-500 mb-1 block">Type</label>
+              <label className="text-xs text-slate-500 mb-1 block" style={{ fontSize: 13 }}>Type</label>
               <select
                 value={evForm.type}
                 onChange={(e) => setEvForm((f) => ({ ...f, type: e.target.value }))}
                 className="w-full text-sm text-slate-900 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-slate-400 bg-slate-50"
-                style={{ fontFamily: "Georgia, serif", color: "black" }}
+                style={{ fontFamily: "Georgia, serif", color: "black", height: isMobile ? 44 : undefined }}
               >
                 {EVENT_TYPES.map((t) => (
                   <option key={t}>{t}</option>
@@ -304,19 +314,19 @@ export default function EventsPage() {
               </select>
             </div>
             <div className="col-span-2">
-              <label className="text-xs text-slate-500 mb-1 block">Location</label>
+              <label className="text-xs text-slate-500 mb-1 block" style={{ fontSize: 13 }}>Location</label>
               <input
                 type="text"
                 value={evForm.location}
                 onChange={(e) => setEvForm((f) => ({ ...f, location: e.target.value }))}
                 placeholder="e.g. San Francisco, CA"
                 className="w-full text-sm text-slate-900 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-slate-400 bg-slate-50"
-                style={{ fontFamily: "Georgia, serif", color: "black" }}
+                style={{ fontFamily: "Georgia, serif", color: "black", height: isMobile ? 44 : undefined }}
               />
             </div>
           </div>
           <div>
-            <label className="text-xs text-slate-500 mb-1.5 block">Who&apos;s attending</label>
+            <label className="text-xs text-slate-500 mb-1.5 block" style={{ fontSize: 13 }}>Who&apos;s attending</label>
             <div className="flex gap-2 mb-2">
               <input
                 type="text"
@@ -324,7 +334,7 @@ export default function EventsPage() {
                 onChange={(e) => setAttendeeInput(e.target.value)}
                 placeholder="Name or company..."
                 className="flex-1 text-sm text-slate-900 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-slate-400 bg-slate-50"
-                style={{ fontFamily: "Georgia, serif", color: "black" }}
+                style={{ fontFamily: "Georgia, serif", color: "black", height: isMobile ? 44 : undefined }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") addAttendeeTag();
                 }}
@@ -332,6 +342,7 @@ export default function EventsPage() {
               <button
                 onClick={addAttendeeTag}
                 className="px-3 py-2 border border-slate-200 text-xs text-slate-600 rounded-lg hover:bg-slate-50 transition-colors"
+                style={{ minHeight: isMobile ? 44 : undefined }}
               >
                 Tag
               </button>
@@ -380,20 +391,21 @@ export default function EventsPage() {
             )}
           </div>
           <div>
-            <label className="text-xs text-slate-500 mb-1 block">Notes</label>
+            <label className="text-xs text-slate-500 mb-1 block" style={{ fontSize: 13 }}>Notes</label>
             <textarea
               value={evForm.notes}
               onChange={(e) => setEvForm((f) => ({ ...f, notes: e.target.value }))}
               placeholder="Goals, context, booth number..."
               rows={2}
               className="w-full text-sm text-slate-900 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-slate-400 bg-slate-50 resize-none"
-              style={{ fontFamily: "Georgia, serif", color: "black" }}
+              style={{ fontFamily: "Georgia, serif", color: "black", minHeight: isMobile ? 44 : undefined }}
             />
           </div>
-          <div className="flex gap-2 pt-1">
+          <div className="flex gap-2 pt-1" style={{ flexDirection: isMobile ? "column" : "row" }}>
             <button
               onClick={handleSaveEvent}
               className="flex-1 rounded-full border border-[#1a3a2a] bg-[#f0f0ec] py-2.5 text-sm font-medium text-[#1a2e1a] hover:bg-[#f7faf4] hover:text-[#1a2e1a] transition-colors"
+              style={{ width: isMobile ? "100%" : undefined, height: isMobile ? 48 : undefined }}
             >
               {editingEvent ? "Save Changes" : "Create Event"}
             </button>
@@ -404,6 +416,7 @@ export default function EventsPage() {
                 resetEvForm();
               }}
               className="px-4 py-2.5 border border-slate-200 text-sm text-slate-600 rounded-xl hover:bg-slate-50 transition-colors"
+              style={{ width: isMobile ? "100%" : undefined, height: isMobile ? 48 : undefined }}
             >
               Cancel
             </button>
@@ -459,8 +472,8 @@ export default function EventsPage() {
               style={{
                 background: "#fff",
                 border: "1px solid #ebebeb",
-                borderRadius: 16,
-                padding: "20px 24px",
+                borderRadius: isMobile ? 14 : 16,
+                padding: isMobile ? "16px" : "20px 24px",
                 marginBottom: 12,
               }}
               onMouseEnter={(e) => {
@@ -470,8 +483,11 @@ export default function EventsPage() {
                 e.currentTarget.style.borderColor = "#ebebeb";
               }}
             >
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 12 : 12 }}>
+                <div
+                  onClick={() => setExpandedEventId(expandedEventId === ev.id ? null : ev.id)}
+                  style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0, cursor: "pointer" }}
+                >
                   <div
                     onClick={(e) => {
                       e.stopPropagation();
@@ -505,26 +521,26 @@ export default function EventsPage() {
                       </svg>
                     )}
                   </div>
-                  <div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 0 }}>
-                      <span style={{ fontSize: 17, fontWeight: 700, color: "#111" }}>{ev.name}</span>
-                    {ev.type && (
-                      <span
-                        style={{
-                          background: "#f0f7eb",
-                          color: "#2d6a1f",
-                          borderRadius: 999,
-                          fontSize: 12,
-                          fontWeight: 500,
-                          padding: "3px 10px",
-                          marginLeft: 10,
-                        }}
-                      >
-                        {ev.type}
-                      </span>
-                    )}
+                      <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 600, color: "#111", whiteSpace: "normal", overflow: "hidden", textOverflow: "ellipsis" }}>{ev.name}</span>
+                      {ev.type && (
+                        <span
+                          style={{
+                            background: "#f0f7eb",
+                            color: "#2d6a1f",
+                            borderRadius: 999,
+                            fontSize: 12,
+                            fontWeight: 500,
+                            padding: "3px 10px",
+                            marginLeft: 10,
+                          }}
+                        >
+                          {ev.type}
+                        </span>
+                      )}
                     </div>
-                    <div style={{ fontSize: 13, color: "#999", marginTop: 4 }}>
+                    <div style={{ fontSize: 12, color: "#999", marginTop: 4 }}>
                       {ev.date && (
                         <>
                           {new Date(ev.date + "T00:00:00").toLocaleDateString("en-US", {
@@ -538,27 +554,28 @@ export default function EventsPage() {
                       {ev.location && <>{ev.location}</>}
                     </div>
                   </div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                  <Link
-                    href={`/contacts?event=${encodeURIComponent(ev.name)}`}
+                  <span
                     style={{
-                      background: "#f5f5f5",
-                      color: "#111",
-                      border: "none",
-                      borderRadius: 8,
-                      padding: "7px 14px",
-                      fontSize: 13,
-                      fontWeight: 500,
-                      cursor: "pointer",
-                      textDecoration: "none",
+                      marginLeft: "auto",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#bbb",
+                      transition: "transform 0.2s ease",
+                      transform: expandedEventId === ev.id ? "rotate(180deg)" : "rotate(0deg)",
+                      flexShrink: 0,
                     }}
                   >
-                    Leads
-                  </Link>
+                    <svg width={14} height={14} fill="none" viewBox="0 0 24 24" stroke="#bbb" strokeWidth="2">
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 8, marginTop: isMobile ? 4 : 0, flexWrap: isMobile ? "wrap" : "nowrap" }}>
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setEvForm({
                         name: ev.name,
                         date: ev.date || "",
@@ -575,8 +592,9 @@ export default function EventsPage() {
                       color: "#111",
                       border: "none",
                       borderRadius: 8,
-                      padding: "7px 14px",
-                      fontSize: 13,
+                      padding: isMobile ? "6px 10px" : "7px 14px",
+                      fontSize: isMobile ? 12 : 13,
+                      height: isMobile ? 34 : undefined,
                       fontWeight: 500,
                       cursor: "pointer",
                     }}
@@ -585,14 +603,18 @@ export default function EventsPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => exportEventCsv(ev.name)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      exportEventCsv(ev.name);
+                    }}
                     style={{
                       background: "#f5f5f5",
                       color: "#111",
                       border: "none",
                       borderRadius: 8,
-                      padding: "7px 14px",
-                      fontSize: 13,
+                      padding: isMobile ? "6px 10px" : "7px 14px",
+                      fontSize: isMobile ? 12 : 13,
+                      height: isMobile ? 34 : undefined,
                       fontWeight: 500,
                       cursor: "pointer",
                     }}
@@ -601,7 +623,8 @@ export default function EventsPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={async () => {
+                    onClick={async (e) => {
+                      e.stopPropagation();
                       const { error } = await supabase.from("events").delete().eq("id", ev.id);
                       if (error) {
                         console.error("Delete event error:", error);
@@ -616,8 +639,9 @@ export default function EventsPage() {
                       border: "1px solid #fde8e8",
                       color: "#e55a5a",
                       borderRadius: 8,
-                      padding: "6px 14px",
-                      fontSize: 13,
+                      padding: isMobile ? "6px 10px" : "6px 14px",
+                      fontSize: isMobile ? 12 : 13,
+                      height: isMobile ? 34 : undefined,
                       cursor: "pointer",
                     }}
                   >
@@ -626,7 +650,7 @@ export default function EventsPage() {
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
-                <span style={{ fontSize: 13, color: "#666" }}>
+                <span style={{ fontSize: 13, color: "#999" }}>
                   {evContacts.length} contact{evContacts.length !== 1 ? "s" : ""}
                 </span>
                 {hotCount > 0 && (
@@ -648,12 +672,12 @@ export default function EventsPage() {
                       <div
                         key={c.id}
                         style={{
-                          width: 32,
-                          height: 32,
+                          width: 28,
+                          height: 28,
                           borderRadius: "50%",
                           background: "#f0f7eb",
                           color: "#2d6a1f",
-                          fontSize: 12,
+                          fontSize: 11,
                           fontWeight: 700,
                           display: "flex",
                           alignItems: "center",
@@ -666,12 +690,12 @@ export default function EventsPage() {
                     {evContacts.length > 5 && (
                       <div
                         style={{
-                          width: 32,
-                          height: 32,
+                          width: 28,
+                          height: 28,
                           borderRadius: "50%",
                           background: "#f0f7eb",
                           color: "#2d6a1f",
-                          fontSize: 12,
+                          fontSize: 11,
                           fontWeight: 700,
                           display: "flex",
                           alignItems: "center",
@@ -684,6 +708,45 @@ export default function EventsPage() {
                   </div>
                 )}
               </div>
+              {expandedEventId === ev.id && (
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #f0f0f0" }}>
+                  {(() => {
+                    const eventContacts = allContacts.filter((c) => c.event === ev.name);
+                    if (eventContacts.length === 0) {
+                      return <div style={{ fontSize: 13, color: "#bbb", padding: "12px 0" }}>No contacts tagged to this event yet.</div>;
+                    }
+                    return (
+                      <div>
+                        {eventContacts.map((c) => {
+                          const score = Number(c.lead_score || 0);
+                          const badgeStyle =
+                            score >= 7
+                              ? { background: "#f0f7eb", color: "#2d6a1f" }
+                              : score >= 4
+                              ? { background: "#fff3eb", color: "#b07020" }
+                              : { background: "#fde8e8", color: "#e55a5a" };
+                          return (
+                            <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: "1px solid #f7f7f7" }}>
+                              {c.image ? (
+                                <img src={c.image} alt={c.name || "Contact"} style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover" }} />
+                              ) : (
+                                <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#f0f7eb", color: "#2d6a1f", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                  {(c.name || "?").toString().trim().charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              <div style={{ minWidth: 0, flex: 1 }}>
+                                <div style={{ fontSize: 13, fontWeight: 600, color: "#111" }}>{c.name || "Unknown contact"}</div>
+                                <div style={{ fontSize: 12, color: "#999" }}>{[c.title, c.company].filter(Boolean).join(" · ") || "—"}</div>
+                              </div>
+                              <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 999, ...badgeStyle }}>{score}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
               {ev.attendees?.length > 0 && (
                 <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #f0f0f0" }}>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>

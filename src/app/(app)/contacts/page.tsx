@@ -69,6 +69,14 @@ export default function ContactsPage() {
   const [signalLabels, setSignalLabels] = useState<string[]>(DEFAULT_SIGNAL_LABELS);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [events, setEvents] = useState<any[]>([]);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   useEffect(() => {
     if (eventFromUrl) setFilterEvent(eventFromUrl);
@@ -315,7 +323,7 @@ export default function ContactsPage() {
     <div
       className='max-w-2xl mx-auto'
       style={{
-        padding: '32px 36px',
+        padding: isMobile ? '20px 16px 100px' : '32px 36px',
         fontFamily: 'Inter, -apple-system, sans-serif',
         backgroundColor: '#f7f7f5',
         minHeight: '100vh',
@@ -344,16 +352,18 @@ export default function ContactsPage() {
       <div
         style={{
           display: 'flex',
+          flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
           marginBottom: 16,
+          gap: 8,
         }}
       >
         <div>
           <h1
             style={{
               fontFamily: 'Inter, sans-serif',
-              fontSize: 28,
+              fontSize: isMobile ? 22 : 28,
               fontWeight: 700,
               letterSpacing: '-0.5px',
               color: '#111111',
@@ -379,48 +389,52 @@ export default function ContactsPage() {
                 }`}
           </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button
-            type='button'
-            onClick={() => {
-              const visibleIds = filteredContacts.map((c) => c.id);
-              const allSelected =
-                visibleIds.length > 0 &&
-                visibleIds.every((id) => selectedIds.includes(id));
-              if (allSelected) {
-                setSelectedIds((prev) =>
-                  prev.filter((id) => !visibleIds.includes(id))
-                );
-              } else {
-                setSelectedIds(visibleIds);
-              }
-            }}
-            style={{
-              fontSize: 13,
-              color: '#7dde3c',
-              cursor: 'pointer',
-              background: 'none',
-              border: 'none',
-              fontWeight: 500,
-              padding: '0 12px',
-            }}
-          >
-            {(() => {
-              const visibleIds = filteredContacts.map((c) => c.id);
-              const allSelected =
-                visibleIds.length > 0 &&
-                visibleIds.every((id) => selectedIds.includes(id));
-              return allSelected ? 'Deselect all' : 'Select all';
-            })()}
-          </button>
+        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          {!isMobile && (
+            <button
+              type='button'
+              onClick={() => {
+                const visibleIds = filteredContacts.map((c) => c.id);
+                const allSelected =
+                  visibleIds.length > 0 &&
+                  visibleIds.every((id) => selectedIds.includes(id));
+                if (allSelected) {
+                  setSelectedIds((prev) =>
+                    prev.filter((id) => !visibleIds.includes(id))
+                  );
+                } else {
+                  setSelectedIds(visibleIds);
+                }
+              }}
+              style={{
+                fontSize: 13,
+                color: '#7dde3c',
+                cursor: 'pointer',
+                background: 'none',
+                border: 'none',
+                fontWeight: 500,
+                padding: '0 12px',
+              }}
+            >
+              {(() => {
+                const visibleIds = filteredContacts.map((c) => c.id);
+                const allSelected =
+                  visibleIds.length > 0 &&
+                  visibleIds.every((id) => selectedIds.includes(id));
+                return allSelected ? 'Deselect all' : 'Select all';
+              })()}
+            </button>
+          )}
           <Link
             href='/scan'
             style={{
               display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: 7,
               height: 40,
-              padding: '0 18px',
+              width: 'auto',
+              padding: isMobile ? '0 16px' : '0 18px',
               background: '#1a3a2a',
               color: '#ffffff',
               border: 'none',
@@ -476,8 +490,8 @@ export default function ContactsPage() {
               width: '100%',
               paddingLeft: 32,
               paddingRight: 12,
-              height: 42,
-              fontSize: 14,
+              height: isMobile ? 44 : 42,
+              fontSize: isMobile ? 15 : 14,
               borderRadius: 10,
               border: '1px solid #ebebeb',
               backgroundColor: '#ffffff',
@@ -493,7 +507,10 @@ export default function ContactsPage() {
           style={{
             display: 'flex',
             gap: 8,
-            flexWrap: 'wrap',
+            flexWrap: isMobile ? 'nowrap' : 'wrap',
+            overflowX: isMobile ? 'auto' : 'visible',
+            paddingBottom: isMobile ? 4 : 0,
+            WebkitOverflowScrolling: isMobile ? 'touch' : undefined,
           }}
         >
           <button
@@ -507,9 +524,11 @@ export default function ContactsPage() {
                   ? '1px solid #1a3a2a'
                   : '1px solid #e8e8e8',
               borderRadius: 999,
-              padding: '6px 14px',
+              padding: '8px 16px',
               fontSize: 13,
               cursor: 'pointer',
+              minHeight: isMobile ? 44 : undefined,
+              flexShrink: isMobile ? 0 : 1,
             }}
           >
             All
@@ -527,9 +546,11 @@ export default function ContactsPage() {
                     ? '1px solid #1a3a2a'
                     : '1px solid #e8e8e8',
                 borderRadius: 999,
-                padding: '6px 14px',
+                padding: '8px 16px',
                 fontSize: 13,
                 cursor: 'pointer',
+                minHeight: isMobile ? 44 : undefined,
+                flexShrink: isMobile ? 0 : 1,
               }}
             >
               {name}
@@ -609,7 +630,7 @@ export default function ContactsPage() {
                 backgroundColor: '#ffffff',
                 borderRadius: 12,
                 marginBottom: 8,
-                padding: '16px 20px',
+                padding: isMobile ? '14px 16px' : '16px 20px',
                 border: '1px solid #f0f0f0',
                 borderLeft: `4px solid ${borderColor}`,
               }}
@@ -625,8 +646,8 @@ export default function ContactsPage() {
                     );
                   }}
                   style={{
-                    width: 20,
-                    height: 20,
+                    width: isMobile ? 22 : 20,
+                    height: isMobile ? 22 : 20,
                     borderRadius: 4,
                     border: '1.5px solid #dddddd',
                     background: isSelected ? '#7dde3c' : '#ffffff',
@@ -655,8 +676,8 @@ export default function ContactsPage() {
                     src={contact.image as string}
                     alt={`${contact.name || 'Contact'} badge`}
                     style={{
-                      width: 56,
-                      height: 56,
+                      width: isMobile ? 48 : 56,
+                      height: isMobile ? 48 : 56,
                       borderRadius: 8,
                       objectFit: 'cover',
                       flexShrink: 0,
@@ -665,8 +686,8 @@ export default function ContactsPage() {
                 ) : (
                   <div
                     style={{
-                      width: 56,
-                      height: 56,
+                      width: isMobile ? 48 : 56,
+                      height: isMobile ? 48 : 56,
                       borderRadius: 8,
                       background: '#f0f0f0',
                       display: 'flex',
@@ -724,7 +745,7 @@ export default function ContactsPage() {
                     {contact.enriched && (
                       <span
                         style={{
-                          fontSize: 12,
+                          fontSize: isMobile ? 11 : 12,
                           color: '#7ab648',
                           display: 'inline-flex',
                           alignItems: 'center',
@@ -745,7 +766,7 @@ export default function ContactsPage() {
                     {contact.checks && contact.checks.length > 0 && (
                       <span
                         style={{
-                          fontSize: 12,
+                          fontSize: isMobile ? 11 : 12,
                           backgroundColor: '#f0f7eb',
                           color: '#2d6a1f',
                           borderRadius: 999,
@@ -989,70 +1010,70 @@ export default function ContactsPage() {
                           }}
                         />
                       )}
-                      <div className='grid grid-cols-2 gap-3'>
+                      <div className='grid grid-cols-2 gap-3' style={{ gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))' }}>
                         {contact.email && (
                           <div>
-                            <p className='text-xs text-slate-400 mb-0.5'>
+                            <p className='text-xs text-slate-400 mb-0.5' style={{ fontSize: 12, color: '#999' }}>
                               Email
                             </p>
-                            <p className='text-sm text-slate-700'>
+                            <p className='text-sm text-slate-700' style={{ fontSize: 14, color: '#111' }}>
                               {contact.email}
                             </p>
                           </div>
                         )}
                         {contact.phone && (
                           <div>
-                            <p className='text-xs text-slate-400 mb-0.5'>
+                            <p className='text-xs text-slate-400 mb-0.5' style={{ fontSize: 12, color: '#999' }}>
                               Phone
                             </p>
-                            <p className='text-sm text-slate-700'>
+                            <p className='text-sm text-slate-700' style={{ fontSize: 14, color: '#111' }}>
                               {contact.phone}
                             </p>
                           </div>
                         )}
                         {contact.linkedin && (
                           <div>
-                            <p className='text-xs text-slate-400 mb-0.5'>
+                            <p className='text-xs text-slate-400 mb-0.5' style={{ fontSize: 12, color: '#999' }}>
                               LinkedIn
                             </p>
-                            <p className='text-sm text-slate-700 truncate'>
+                            <p className='text-sm text-slate-700 truncate' style={{ fontSize: 14, color: '#111' }}>
                               {contact.linkedin}
                             </p>
                           </div>
                         )}
                         {contact.company && (
                           <div>
-                            <p className='text-xs text-slate-400 mb-0.5'>
+                            <p className='text-xs text-slate-400 mb-0.5' style={{ fontSize: 12, color: '#999' }}>
                               Company
                             </p>
-                            <p className='text-sm text-slate-700'>
+                            <p className='text-sm text-slate-700' style={{ fontSize: 14, color: '#111' }}>
                               {contact.company}
                             </p>
                           </div>
                         )}
                         {contact.title && (
                           <div>
-                            <p className='text-xs text-slate-400 mb-0.5'>
+                            <p className='text-xs text-slate-400 mb-0.5' style={{ fontSize: 12, color: '#999' }}>
                               Title
                             </p>
-                            <p className='text-sm text-slate-700'>
+                            <p className='text-sm text-slate-700' style={{ fontSize: 14, color: '#111' }}>
                               {contact.title}
                             </p>
                           </div>
                         )}
                         <div>
-                          <p className='text-xs text-slate-400 mb-0.5'>
+                          <p className='text-xs text-slate-400 mb-0.5' style={{ fontSize: 12, color: '#999' }}>
                             Event
                           </p>
-                          <p className='text-sm text-slate-700'>
+                          <p className='text-sm text-slate-700' style={{ fontSize: 14, color: '#111' }}>
                             {contact.event ?? '—'}
                           </p>
                         </div>
                         <div>
-                          <p className='text-xs text-slate-400 mb-0.5'>
+                          <p className='text-xs text-slate-400 mb-0.5' style={{ fontSize: 12, color: '#999' }}>
                             Lead Score
                           </p>
-                          <p className='text-sm text-slate-700'>
+                          <p className='text-sm text-slate-700' style={{ fontSize: 14, color: '#111' }}>
                             {rawScore ?? '—'}
                           </p>
                         </div>
@@ -1092,7 +1113,7 @@ export default function ContactsPage() {
                           </p>
                         </div>
                       )}
-                      <div className='flex gap-2 pt-1 flex-wrap items-center'>
+                      <div className='flex gap-2 pt-1 flex-wrap items-center' style={{ flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center' }}>
                         <Link
                           href={`/sequences?contactId=${contact.id}`}
                           style={{
@@ -1106,8 +1127,12 @@ export default function ContactsPage() {
                             cursor: 'pointer',
                             display: 'inline-flex',
                             alignItems: 'center',
+                            justifyContent: 'center',
                             gap: 6,
                             textDecoration: 'none',
+                            width: isMobile ? '100%' : 'auto',
+                            minHeight: isMobile ? 44 : undefined,
+                            marginBottom: isMobile ? 8 : 0,
                           }}
                         >
                           Generate Sequence
@@ -1127,12 +1152,15 @@ export default function ContactsPage() {
                             fontSize: '13px',
                             fontWeight: 500,
                             cursor: 'pointer',
+                            width: isMobile ? '100%' : 'auto',
+                            minHeight: isMobile ? 44 : undefined,
+                            marginBottom: isMobile ? 8 : 0,
                           }}
                         >
                           Edit
                         </button>
                         {confirmDeleteId === contact.id ? (
-                          <div className='flex items-center gap-2 flex-wrap'>
+                          <div className='flex items-center gap-2 flex-wrap' style={{ width: isMobile ? '100%' : 'auto' }}>
                             <span className='text-xs text-slate-500'>
                               Delete this contact?
                             </span>
@@ -1151,6 +1179,9 @@ export default function ContactsPage() {
                                 fontSize: '13px',
                                 fontWeight: 500,
                                 cursor: 'pointer',
+                                width: isMobile ? '100%' : 'auto',
+                                minHeight: isMobile ? 44 : undefined,
+                                marginBottom: isMobile ? 8 : 0,
                               }}
                             >
                               Yes, delete
@@ -1170,6 +1201,9 @@ export default function ContactsPage() {
                                 fontSize: '13px',
                                 fontWeight: 500,
                                 cursor: 'pointer',
+                                width: isMobile ? '100%' : 'auto',
+                                minHeight: isMobile ? 44 : undefined,
+                                marginBottom: isMobile ? 8 : 0,
                               }}
                             >
                               Cancel
@@ -1191,6 +1225,9 @@ export default function ContactsPage() {
                               fontSize: '13px',
                               fontWeight: 500,
                               cursor: 'pointer',
+                              width: isMobile ? '100%' : 'auto',
+                              minHeight: isMobile ? 44 : undefined,
+                              marginBottom: isMobile ? 8 : 0,
                             }}
                           >
                             Delete
@@ -1210,20 +1247,22 @@ export default function ContactsPage() {
         <div
           style={{
             position: 'fixed',
-            bottom: 24,
-            left: '50%',
-            transform: 'translateX(-50%)',
+            bottom: isMobile ? 80 : 24,
+            left: isMobile ? 12 : '50%',
+            right: isMobile ? 12 : 'auto',
+            transform: isMobile ? 'none' : 'translateX(-50%)',
             background: 'rgba(20, 20, 20, 0.75)',
             backdropFilter: 'blur(16px)',
             WebkitBackdropFilter: 'blur(16px)',
             border: '1px solid rgba(255, 255, 255, 0.12)',
             borderRadius: 999,
-            padding: '10px 16px',
+            padding: isMobile ? '8px 10px' : '10px 16px',
             display: 'flex',
             alignItems: 'center',
-            gap: 12,
+            gap: isMobile ? 6 : 12,
             boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
             zIndex: 50,
+            overflow: 'hidden',
           }}
         >
           <button
@@ -1241,26 +1280,33 @@ export default function ContactsPage() {
               border: 'none',
               background: 'transparent',
               color: 'rgba(255,255,255,0.6)',
-              fontSize: 13,
+              fontSize: isMobile ? 11 : 13,
               cursor: 'pointer',
               paddingRight: 6,
+              minHeight: isMobile ? 44 : undefined,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
           >
             {(() => {
               const visibleIds = filteredContacts.map((c) => c.id);
               const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
-              return allSelected ? 'Deselect all' : 'Select all';
+              return isMobile ? (allSelected ? 'None' : 'All') : allSelected ? 'Deselect all' : 'Select all';
             })()}
           </button>
           <span
             style={{
               color: '#ffffff',
-              fontSize: 13,
+              fontSize: isMobile ? 11 : 13,
               fontWeight: 600,
               paddingRight: 4,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
           >
-            {selectedIds.length} selected
+            {isMobile ? `${selectedIds.length} sel` : `${selectedIds.length} selected`}
           </span>
           <button
             type='button'
@@ -1272,14 +1318,18 @@ export default function ContactsPage() {
               background: '#7dde3c',
               color: '#0a1a0a',
               borderRadius: 999,
-              padding: '8px 18px',
-              fontSize: 13,
+              padding: isMobile ? '6px 10px' : '8px 18px',
+              fontSize: isMobile ? 11 : 13,
               fontWeight: 700,
               border: 'none',
               cursor: 'pointer',
+              minHeight: isMobile ? 44 : undefined,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
           >
-            Generate Sequences
+            {isMobile ? 'Sequences' : 'Generate Sequences'}
           </button>
           <button
             type='button'
@@ -1335,12 +1385,16 @@ export default function ContactsPage() {
               color: '#ffffff',
               border: '1px solid rgba(255,255,255,0.15)',
               borderRadius: 999,
-              padding: '8px 18px',
-              fontSize: 13,
+              padding: isMobile ? '6px 10px' : '8px 18px',
+              fontSize: isMobile ? 11 : 13,
               cursor: 'pointer',
+              minHeight: isMobile ? 44 : undefined,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
           >
-            Export CSV
+            {isMobile ? 'Export' : 'Export CSV'}
           </button>
           <button
             type='button'
@@ -1350,9 +1404,13 @@ export default function ContactsPage() {
               color: '#e55a5a',
               border: '1px solid rgba(229,90,90,0.2)',
               borderRadius: 999,
-              padding: '8px 18px',
-              fontSize: 13,
+              padding: isMobile ? '6px 10px' : '8px 18px',
+              fontSize: isMobile ? 11 : 13,
               cursor: 'pointer',
+              minHeight: isMobile ? 44 : undefined,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
           >
             Delete
