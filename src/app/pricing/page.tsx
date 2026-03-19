@@ -271,11 +271,11 @@ nav.landing2-nav {
   align-items: flex-start;
   gap: 8px;
   font-size: 13px;
-  color: rgba(255,255,255,0.9);
+  color: #ffffff;
 }
 
 .feature-item-muted {
-  color: rgba(255,255,255,0.35);
+  color: rgba(255,255,255,0.4);
 }
 
 .feature-icon {
@@ -290,12 +290,12 @@ nav.landing2-nav {
 
 .feature-icon.check {
   background: rgba(125,222,60,0.18);
-  color: rgba(255,255,255,0.9);
+  color: #7dde3c;
 }
 
 .feature-icon.cross {
   background: transparent;
-  color: rgba(255,255,255,0.35);
+  color: rgba(255,255,255,0.3);
 }
 
 .pricing-cta {

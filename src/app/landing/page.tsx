@@ -305,7 +305,7 @@ h2.section-title em {
 .roi-points li::before {
   content: '→';
   margin-right: 8px;
-  color: rgba(255,255,255,0.8);
+  color: #ffffff;
 }
 
 .roi-stats {
