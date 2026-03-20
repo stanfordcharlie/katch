@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 
@@ -56,8 +55,8 @@ export default function AppAccountPage() {
     return () => { active = false; };
   }, [router]);
 
-  const handleSaveName = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveName = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!user) return;
     setSavingName(true);
     setNameError(null);
@@ -147,158 +146,123 @@ export default function AppAccountPage() {
   return (
     <div
       style={{
-        backgroundColor: "#f0f0ec",
+        backgroundColor: "#f7f7f5",
         minHeight: "100vh",
-        fontFamily: "'Geist', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-        color: "#1a2e1a",
+        fontFamily: "Inter, -apple-system, sans-serif",
+        color: "#111",
       }}
     >
-      <div className="min-h-screen flex">
-        {/* Left column */}
-        <aside
+      <div style={{ maxWidth: 960, margin: "0 auto", padding: "32px 36px 48px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+          <div>
+            <h1 style={{ fontSize: 26, fontWeight: 700, color: "#111", margin: 0 }}>Account</h1>
+            <p style={{ fontSize: 14, color: "#999", marginTop: 4, marginBottom: 0 }}>Manage your profile and plan.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => handleSaveName()}
+            disabled={savingName}
+            style={{
+              background: "#7dde3c",
+              color: "#0a1a0a",
+              fontWeight: 700,
+              borderRadius: 10,
+              height: 40,
+              padding: "0 20px",
+              fontSize: 14,
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
+            {savingName ? "Saving..." : "Save"}
+          </button>
+        </div>
+
+        <div
           style={{
-            width: 240,
-            backgroundColor: "#1a3a2a",
-            borderRight: "1px solid rgba(255,255,255,0.08)",
-            padding: "24px 20px",
             display: "flex",
-            flexDirection: "column",
+            alignItems: "center",
+            gap: 12,
+            marginBottom: 20,
           }}
         >
-          <div className="flex items-center gap-3 mb-6">
-            <div
-              className="flex items-center justify-center"
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: "999px",
-                backgroundColor: "#7ab648",
-                color: "#1a3a2a",
-                fontSize: 18,
-                fontWeight: 600,
-              }}
-            >
-              {initial}
-            </div>
-            <div className="min-w-0">
-              <p
-                className="truncate"
-                style={{ color: "rgba(245,245,240,0.9)", fontSize: 15, fontWeight: 500, fontFamily: "'Geist', sans-serif" }}
-              >
-                {greetingName}
-              </p>
-              {email && (
-                <p
-                  className="truncate"
-                  style={{ fontSize: 12, color: "#7a9a7a", fontFamily: "'Geist', sans-serif" }}
-                >
-                  {email}
-                </p>
-              )}
-            </div>
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: "999px",
+              backgroundColor: "#1a3a2a",
+              color: "#f7f7f5",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 14,
+              fontWeight: 600,
+            }}
+          >
+            {initial}
           </div>
+          <div style={{ minWidth: 0 }}>
+            <p style={{ fontSize: 15, fontWeight: 600, color: "#111", margin: 0 }}>{greetingName}</p>
+            <p style={{ fontSize: 13, color: "#999", margin: 0 }}>{email || "—"}</p>
+          </div>
+        </div>
 
-          <div className="flex-1 overflow-y-auto">
-            <div>
-              <p
+        <div
+          style={{
+            display: "flex",
+            borderBottom: "1px solid #ebebeb",
+            marginBottom: 24,
+            gap: 0,
+          }}
+        >
+          {[
+            { id: "profile", label: "Profile" },
+            { id: "plan-billing", label: "Plan & Billing" },
+            { id: "security", label: "Security" },
+          ].map((item) => {
+            const isActive = activeSection === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setActiveSection(item.id as typeof activeSection)}
                 style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
-                  color: "#7ab648",
-                  marginTop: 20,
-                  marginBottom: 8,
-                  fontFamily: "'Geist', sans-serif",
+                  padding: "10px 16px",
+                  fontSize: 14,
+                  cursor: "pointer",
+                  border: "none",
+                  background: "transparent",
+                  borderBottom: isActive ? "2px solid #111" : "2px solid transparent",
+                  color: isActive ? "#111" : "#999",
+                  fontWeight: isActive ? 500 : 400,
                 }}
               >
-                Account
-              </p>
-              <div className="space-y-1">
-                {[
-                  { id: "profile", label: "Profile" },
-                  { id: "plan-billing", label: "Plan & Billing" },
-                  { id: "security", label: "Security" },
-                ].map((item) => {
-                  const isActive = activeSection === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setActiveSection(item.id as typeof activeSection)}
-                      className="w-full text-left transition-colors"
-                      style={{
-                        display: "block",
-                        padding: "9px 12px",
-                        borderRadius: 8,
-                        fontSize: 13,
-                        backgroundColor: isActive ? "rgba(122,182,72,0.18)" : "transparent",
-                        color: isActive ? "#a8d878" : "rgba(245,245,240,0.55)",
-                        fontWeight: isActive ? 500 : 400,
-                        fontFamily: "'Geist', sans-serif",
-                      }}
-                    >
-                      {item.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        {/* Right column */}
-        <main
-          className="flex-1"
-          style={{
-            padding: "40px 48px 48px 48px",
-            backgroundColor: "#f0f0ec",
-          }}
-        >
-          <div className="mb-6">
-            <h1
-              className="text-2xl font-bold"
-              style={{
-                color: "#1a2e1a",
-                letterSpacing: "-0.03em",
-                fontFamily: "'Playfair Display', 'Instrument Serif', Georgia, 'Times New Roman', serif",
-                fontSize: 28,
-              }}
-            >
-              Account
-            </h1>
-            <p
-              className="mt-1"
-              style={{
-                fontSize: 13,
-                color: "rgba(26,35,50,0.6)",
-                fontFamily: "'Geist', sans-serif",
-              }}
-            >
-              Manage your profile and plan.
-            </p>
-          </div>
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
 
           {activeSection === "profile" && (
             <section>
               <div
                 style={{
-                  backgroundColor: "#ffffff",
-                  border: "1px solid #dce8d0",
-                  borderRadius: 14,
+                  backgroundColor: "#fff",
+                  border: "1px solid #ebebeb",
+                  borderRadius: 16,
                   padding: 24,
-                  display: "grid",
-                  gridTemplateColumns: "auto minmax(0, 1fr)",
-                  gap: 24,
-                  alignItems: "flex-start",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 18,
                 }}
               >
-                <div style={{ textAlign: "center" }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
                   {avatarUrl ? (
                     <img
                       src={avatarUrl}
-                      width={72}
-                      height={72}
+                      width={64}
+                      height={64}
                       style={{
                         borderRadius: "50%",
                         objectFit: "cover",
@@ -308,16 +272,16 @@ export default function AppAccountPage() {
                   ) : (
                     <div
                       style={{
-                        width: 72,
-                        height: 72,
+                        width: 64,
+                        height: 64,
                         borderRadius: "50%",
-                        backgroundColor: "#7ab648",
-                        color: "#ffffff",
+                        backgroundColor: "#1a3a2a",
+                        color: "#f7f7f5",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        fontSize: 24,
-                        fontWeight: 500,
+                        fontSize: 20,
+                        fontWeight: 600,
                       }}
                     >
                       {initial}
@@ -333,10 +297,9 @@ export default function AppAccountPage() {
                     }}
                     style={{
                       marginTop: 10,
-                      fontSize: 12,
+                      fontSize: 13,
                       color: "#7ab648",
                       fontWeight: 500,
-                      fontFamily: "'Geist', sans-serif",
                       border: "none",
                       background: "none",
                       cursor: "pointer",
@@ -358,10 +321,10 @@ export default function AppAccountPage() {
                     <label
                       style={{
                         display: "block",
-                        fontSize: 12,
-                        color: "rgba(26,35,50,0.7)",
+                        fontSize: 13,
+                        color: "#666",
                         marginBottom: 6,
-                        fontFamily: "'Geist', sans-serif",
+                        fontWeight: 500,
                       }}
                     >
                       Display name
@@ -373,13 +336,13 @@ export default function AppAccountPage() {
                       placeholder="How we refer to you"
                       style={{
                         width: "100%",
-                        padding: "10px 12px",
+                        height: 40,
+                        padding: "0 12px",
                         borderRadius: 8,
-                        border: "1px solid #dce8d0",
-                        backgroundColor: "#f0f0ec",
-                        color: "#1a2e1a",
+                        border: "1px solid #e8e8e8",
+                        backgroundColor: "#f7f7f5",
+                        color: "#111",
                         fontSize: 14,
-                        fontFamily: "'Geist', sans-serif",
                       }}
                     />
                   </div>
@@ -395,9 +358,9 @@ export default function AppAccountPage() {
                     >
                       <label
                         style={{
-                          fontSize: 12,
-                          color: "rgba(26,35,50,0.7)",
-                          fontFamily: "'Geist', sans-serif",
+                          fontSize: 13,
+                          color: "#666",
+                          fontWeight: 500,
                         }}
                       >
                         Email
@@ -407,8 +370,7 @@ export default function AppAccountPage() {
                           fontSize: 10,
                           textTransform: "uppercase",
                           letterSpacing: "0.08em",
-                          color: "#7a9a7a",
-                          fontFamily: "'Geist', sans-serif",
+                          color: "#999",
                         }}
                       >
                         Read only
@@ -416,13 +378,15 @@ export default function AppAccountPage() {
                     </div>
                     <div
                       style={{
-                        padding: "10px 12px",
+                        height: 40,
+                        padding: "0 12px",
                         borderRadius: 8,
-                        border: "1px solid #dce8d0",
-                        backgroundColor: "#ffffff",
+                        border: "1px solid #e8e8e8",
+                        backgroundColor: "#f7f7f5",
                         fontSize: 14,
-                        color: "#1a2e1a",
-                        fontFamily: "'Geist', sans-serif",
+                        color: "#111",
+                        display: "flex",
+                        alignItems: "center",
                       }}
                     >
                       {email || "—"}
@@ -430,48 +394,8 @@ export default function AppAccountPage() {
                   </div>
 
                   {nameError && (
-                    <p style={{ fontSize: 12, color: "#c47c4a", fontFamily: "'Geist', sans-serif" }}>{nameError}</p>
+                    <p style={{ fontSize: 12, color: "#c47c4a" }}>{nameError}</p>
                   )}
-
-                  <div style={{ marginTop: 4 }}>
-                    <button
-                      type="submit"
-                      disabled={savingName}
-                      style={{
-                        backgroundColor: "#1a3a2a",
-                        color: "#a8d878",
-                        padding: "8px 20px",
-                        borderRadius: 100,
-                        border: "none",
-                        fontSize: 13,
-                        fontFamily: "'Geist', sans-serif",
-                        fontWeight: 500,
-                        cursor: savingName ? "not-allowed" : "pointer",
-                      }}
-                    >
-                      {savingName ? "Saving…" : "Save changes"}
-                    </button>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      await supabase.auth.signOut();
-                      router.push("/landing");
-                    }}
-                    style={{
-                      marginTop: 12,
-                      background: "#fff",
-                      border: "1px solid #e8e8e8",
-                      color: "#666",
-                      borderRadius: 10,
-                      height: 40,
-                      padding: "0 20px",
-                      fontSize: 14,
-                      cursor: "pointer",
-                    }}
-                  >
-                    Sign out
-                  </button>
                 </form>
               </div>
             </section>
@@ -481,19 +405,18 @@ export default function AppAccountPage() {
             <section>
               <div
                 style={{
-                  backgroundColor: "#ffffff",
-                  border: "1px solid #dce8d0",
-                  borderRadius: 14,
+                  backgroundColor: "#fff",
+                  border: "1px solid #ebebeb",
+                  borderRadius: 16,
                   padding: 24,
                   maxWidth: 520,
                 }}
               >
                 <h2
                   style={{
-                    fontFamily: "'Playfair Display', serif",
-                    fontSize: 22,
+                    fontSize: 20,
                     fontWeight: 600,
-                    color: "#1a2e1a",
+                    color: "#111",
                     marginBottom: 4,
                   }}
                 >
@@ -501,10 +424,9 @@ export default function AppAccountPage() {
                 </h2>
                 <p
                   style={{
-                    fontSize: 13,
-                    color: "rgba(26,35,50,0.6)",
+                    fontSize: 14,
+                    color: "#666",
                     marginBottom: 16,
-                    fontFamily: "'Geist', sans-serif",
                   }}
                 >
                   {scansText}
@@ -515,14 +437,14 @@ export default function AppAccountPage() {
                     type="button"
                     onClick={() => router.push("/signup")}
                     style={{
-                      backgroundColor: "#7ab648",
-                      color: "#ffffff",
-                      padding: "8px 20px",
-                      borderRadius: 100,
+                      background: "#7dde3c",
+                      color: "#0a1a0a",
+                      padding: "0 20px",
+                      height: 40,
+                      borderRadius: 10,
                       border: "none",
-                      fontSize: 13,
-                      fontFamily: "'Geist', sans-serif",
-                      fontWeight: 500,
+                      fontSize: 14,
+                      fontWeight: 700,
                       cursor: "pointer",
                       marginBottom: 20,
                     }}
@@ -537,8 +459,7 @@ export default function AppAccountPage() {
                       fontSize: 13,
                       fontWeight: 500,
                       marginBottom: 8,
-                      color: "#1a2e1a",
-                      fontFamily: "'Geist', sans-serif",
+                      color: "#111",
                     }}
                   >
                     Pro includes:
@@ -556,8 +477,7 @@ export default function AppAccountPage() {
                           alignItems: "center",
                           gap: 8,
                           fontSize: 13,
-                          color: isPro ? "#1a2e1a" : "rgba(26,35,50,0.7)",
-                          fontFamily: "'Geist', sans-serif",
+                          color: isPro ? "#111" : "#666",
                           marginBottom: 4,
                         }}
                       >
@@ -589,9 +509,9 @@ export default function AppAccountPage() {
             <section>
               <div
                 style={{
-                  backgroundColor: "#ffffff",
-                  border: "1px solid #dce8d0",
-                  borderRadius: 14,
+                  backgroundColor: "#fff",
+                  border: "1px solid #ebebeb",
+                  borderRadius: 16,
                   padding: 24,
                   maxWidth: 520,
                   display: "flex",
@@ -604,24 +524,23 @@ export default function AppAccountPage() {
                     type="button"
                     onClick={handlePasswordReset}
                     style={{
-                      padding: "8px 20px",
-                      borderRadius: 100,
-                      border: "1px solid #dce8d0",
-                      backgroundColor: "transparent",
-                      color: "#1a2e1a",
-                      fontSize: 13,
-                      fontFamily: "'Geist', sans-serif",
+                      height: 40,
+                      padding: "0 20px",
+                      borderRadius: 10,
+                      border: "1px solid #e8e8e8",
+                      backgroundColor: "#fff",
+                      color: "#666",
+                      fontSize: 14,
                       cursor: "pointer",
                     }}
                   >
-                    Send password reset email
+                    Change password
                   </button>
                   <p
                     style={{
                       marginTop: 6,
-                      fontSize: 12,
-                      color: "#7a9a7a",
-                      fontFamily: "'Geist', sans-serif",
+                      fontSize: 13,
+                      color: "#666",
                     }}
                   >
                     We&apos;ll send a secure link to {email || "your email address"} to reset your password.
@@ -632,44 +551,33 @@ export default function AppAccountPage() {
                         marginTop: 4,
                         fontSize: 12,
                         color: "#7ab648",
-                        fontFamily: "'Geist', sans-serif",
                       }}
                     >
                       Check your email for the reset link.
                     </p>
                   )}
                 </div>
-
-                <div>
-                  <button
-                    type="button"
-                    onClick={handleSignOut}
-                    className="px-4 py-2 rounded-full border text-sm transition-colors hover:text-red-500 hover:border-red-300 hover:bg-red-50"
-                    style={{
-                      borderColor: "#dce8d0",
-                      backgroundColor: "transparent",
-                      color: "#1a2e1a",
-                      fontFamily: "'Geist', sans-serif",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Sign out
-                  </button>
-                  <p
-                    style={{
-                      marginTop: 6,
-                      fontSize: 12,
-                      color: "#7a9a7a",
-                      fontFamily: "'Geist', sans-serif",
-                    }}
-                  >
-                    You&apos;ll be signed out of Katch on this browser.
-                  </p>
-                </div>
               </div>
             </section>
           )}
-        </main>
+
+        <button
+          type="button"
+          onClick={handleSignOut}
+          style={{
+            background: "#fff",
+            border: "1px solid #e8e8e8",
+            color: "#666",
+            borderRadius: 10,
+            height: 40,
+            padding: "0 20px",
+            fontSize: 14,
+            cursor: "pointer",
+            marginTop: 24,
+          }}
+        >
+          Sign out
+        </button>
       </div>
     </div>
   );
