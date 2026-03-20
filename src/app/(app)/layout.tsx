@@ -28,10 +28,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   if (!user)
-    return <div style={{ backgroundColor: "#f7f7f5", minHeight: "100vh" }} />;
+    return <div style={{ backgroundColor: "#f7f7f5", minHeight: "100dvh" }} />;
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f7f7f5" }}>
+    <div style={{ display: "flex", minHeight: "100dvh", backgroundColor: "#f7f7f5" }}>
       {isMobile && (
         <div
           style={{
@@ -59,7 +59,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       )}
       <Sidebar user={user as import("@supabase/supabase-js").User} />
-      <main style={{ flex: 1, paddingLeft: isMobile ? 0 : 220, paddingTop: isMobile ? 48 : 0, paddingBottom: isMobile ? 64 : 0, backgroundColor: "#f7f7f5" }}>
+      <main style={{ flex: 1, paddingLeft: isMobile ? 0 : 220, paddingTop: isMobile ? 48 : 0, paddingBottom: isMobile ? 80 : 0, backgroundColor: "#f7f7f5" }}>
         {children}
       </main>
     </div>

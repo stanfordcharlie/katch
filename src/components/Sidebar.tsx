@@ -70,7 +70,7 @@ export function Sidebar({ user }: { user: User }) {
 
   if (isMobile) {
     return (
-      <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 100, background: "#ffffff", borderTop: "1px solid #ebebeb", height: 64, display: "flex", alignItems: "center", justifyContent: "space-evenly", paddingBottom: "env(safe-area-inset-bottom)", fontFamily: "Inter, -apple-system, sans-serif" }}>
+      <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 1000, background: "#ffffff", borderTop: "1px solid #ebebeb", height: 64, display: "flex", alignItems: "center", justifyContent: "space-evenly", paddingBottom: "env(safe-area-inset-bottom)", fontFamily: "Inter, -apple-system, sans-serif" }}>
         {MOBILE_NAV.map(({ label, href, icon }) => {
           const isActive = pathname === href || (href === "/settings" && pathname.startsWith("/settings"));
           return (
