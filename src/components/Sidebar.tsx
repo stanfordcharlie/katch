@@ -24,7 +24,6 @@ const DESKTOP_NAV = [
   { label: "Scan", href: "/scan", icon: <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M3 9V5a2 2 0 012-2h4M3 15v4a2 2 0 002 2h4M21 9V5a2 2 0 00-2-2h-4M21 15v4a2 2 0 01-2 2h-4"/></svg> },
   { label: "Contacts", href: "/contacts", icon: <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg> },
   { label: "Events", href: "/events", icon: <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> },
-  { label: "Import", href: "/import", icon: <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> },
   { label: "Dashboard", href: "/dashboard", icon: <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> },
   { label: "Sequences", href: "/sequences", icon: <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> },
   { label: "Settings", href: "/settings", icon: <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M2 12h2M20 12h2M17.66 17.66l-1.41-1.41M6.34 17.66l1.41-1.41"/></svg> },
@@ -94,7 +93,7 @@ export function Sidebar({ user }: { user: User }) {
       </Link>
 
       <nav style={{ flex: 1, padding: 8, marginTop: 4 }}>
-        {DESKTOP_NAV.slice(0, 5).map(({ label, href, icon }) => {
+        {DESKTOP_NAV.slice(0, 4).map(({ label, href, icon }) => {
           const isActive = pathname === href;
           return (
             <Link key={label} href={href} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 8, cursor: "pointer", fontSize: 15, marginBottom: 2, textDecoration: "none", backgroundColor: isActive ? "#f0f7eb" : "transparent", color: isActive ? "#2d6a1f" : "#666666", fontWeight: isActive ? 500 : 400 }}>
@@ -106,7 +105,7 @@ export function Sidebar({ user }: { user: User }) {
 
         <div style={{ height: 1, backgroundColor: "#f0f0f0", margin: "8px 4px" }} />
 
-        {DESKTOP_NAV.slice(5, 7).map(({ label, href, icon }) => {
+        {DESKTOP_NAV.slice(4, 6).map(({ label, href, icon }) => {
           const isActive = pathname === href;
           return (
             <Link key={label} href={href} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 8, cursor: "pointer", fontSize: 15, marginBottom: 2, textDecoration: "none", backgroundColor: isActive ? "#f0f7eb" : "transparent", color: isActive ? "#2d6a1f" : "#666666", fontWeight: isActive ? 500 : 400 }}>
@@ -119,7 +118,7 @@ export function Sidebar({ user }: { user: User }) {
         <div style={{ height: 1, backgroundColor: "#f0f0f0", margin: "8px 4px" }} />
 
         {(() => {
-          const { label, href, icon } = DESKTOP_NAV[7];
+          const { label, href, icon } = DESKTOP_NAV[6];
           const isActive = pathname.startsWith("/settings");
           return (
             <Link key={label} href={href} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderRadius: 8, cursor: "pointer", fontSize: 15, marginBottom: 2, textDecoration: "none", backgroundColor: isActive ? "#f0f7eb" : "transparent", color: isActive ? "#2d6a1f" : "#666666", fontWeight: isActive ? 500 : 400 }}>
