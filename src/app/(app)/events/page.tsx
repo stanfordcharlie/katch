@@ -21,7 +21,6 @@ export default function EventsPage() {
     notes: "",
     attendees: [] as string[],
   });
-  const [attendeeInput, setAttendeeInput] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [allContacts, setAllContacts] = useState<any[]>([]);
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
@@ -84,7 +83,6 @@ export default function EventsPage() {
 
   const resetEvForm = () => {
     setEvForm({ name: "", date: "", type: "Conference", location: "", notes: "", attendees: [] });
-    setAttendeeInput("");
   };
 
   const handleSaveEvent = async () => {
@@ -93,7 +91,7 @@ export default function EventsPage() {
     if (editingEvent) {
       const { data, error } = await supabase
         .from("events")
-        .update(evForm)
+        .update({ ...evForm, attendees: [] })
         .eq("user_id", user.id)
         .eq("id", editingEvent)
         .select()
@@ -108,7 +106,7 @@ export default function EventsPage() {
     } else {
       const { data, error } = await supabase
         .from("events")
-        .insert({ ...evForm, user_id: user.id })
+        .insert({ ...evForm, attendees: [], user_id: user.id })
         .select()
         .single();
 
@@ -123,16 +121,6 @@ export default function EventsPage() {
     setEditingEvent(null);
     resetEvForm();
   };
-
-  const addAttendeeTag = () => {
-    const val = attendeeInput.trim();
-    if (!val || evForm.attendees.includes(val)) return;
-    setEvForm((f) => ({ ...f, attendees: [...f.attendees, val] }));
-    setAttendeeInput("");
-  };
-
-  const removeAttendee = (name: string) =>
-    setEvForm((f) => ({ ...f, attendees: f.attendees.filter((a) => a !== name) }));
 
   const exportEventCsv = (eventName: string) => {
     const evContacts = contacts.filter((c) => c.event === eventName);
@@ -326,71 +314,6 @@ export default function EventsPage() {
                 style={{ fontFamily: "Georgia, serif", color: "black", height: isMobile ? 44 : undefined }}
               />
             </div>
-          </div>
-          <div>
-            <label className="text-xs text-slate-500 mb-1.5 block" style={{ fontSize: 13 }}>Who&apos;s attending</label>
-            <div className="flex gap-2 mb-2">
-              <input
-                type="text"
-                value={attendeeInput}
-                onChange={(e) => setAttendeeInput(e.target.value)}
-                placeholder="Name or company..."
-                className="flex-1 text-sm text-slate-900 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-slate-400 bg-slate-50"
-                style={{ fontFamily: "Georgia, serif", color: "black", height: isMobile ? 44 : undefined }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") addAttendeeTag();
-                }}
-              />
-              <button
-                onClick={addAttendeeTag}
-                className="px-3 py-2 border border-slate-200 text-xs text-slate-600 rounded-lg hover:bg-slate-50 transition-colors"
-                style={{ minHeight: isMobile ? 44 : undefined }}
-              >
-                Tag
-              </button>
-            </div>
-            {contacts.length > 0 && (
-              <div className="mb-2">
-                <p className="text-xs text-slate-400 mb-1.5">Tag from your contacts</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {contacts
-                    .filter((c) => !evForm.attendees.includes(c.name))
-                    .slice(0, 8)
-                    .map((c) => (
-                      <button
-                        key={c.id}
-                        onClick={() => {
-                          if (!evForm.attendees.includes(c.name))
-                            setEvForm((f) => ({ ...f, attendees: [...f.attendees, c.name] }));
-                        }}
-                        className="flex items-center gap-1.5 px-2.5 py-1 border border-slate-200 rounded-full text-xs text-slate-600 hover:border-slate-400 hover:bg-slate-50 transition-all"
-                      >
-                        <div className="w-4 h-4 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-xs font-bold">
-                          {c.name[0]}
-                        </div>
-                        {c.name}
-                      </button>
-                    ))}
-                </div>
-              </div>
-            )}
-            {evForm.attendees.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-1">
-                {evForm.attendees.map((a) => (
-                  <span
-                    key={a}
-                    className="flex items-center gap-1 rounded-full border border-[#1a3a2a] bg-[#f0f0ec] px-2.5 py-1 text-xs text-[#1a2e1a]"
-                  >
-                    {a}
-                    <button onClick={() => removeAttendee(a)} className="opacity-60 hover:opacity-100 ml-0.5">
-                      <svg width="9" height="9" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                        <path d="M18 6 6 18M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
           </div>
           <div>
             <label className="text-xs text-slate-500 mb-1 block" style={{ fontSize: 13 }}>Notes</label>
@@ -668,45 +591,25 @@ export default function EventsPage() {
                 {ev.attendees?.length > 0 && (
                   <span style={{ fontSize: 13, color: "#666" }}>{ev.attendees.length} tagged</span>
                 )}
-                {evContacts.length > 0 && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: "auto" }}>
-                    {evContacts.slice(0, 5).map((c: any) => (
-                      <div
-                        key={c.id}
+                {ev.attendees?.length > 0 && (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: "auto", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                    {(ev.attendees as string[]).slice(0, 4).map((att: string) => (
+                      <span
+                        key={att}
                         style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: "50%",
                           background: "#f0f7eb",
                           color: "#2d6a1f",
-                          fontSize: 11,
-                          fontWeight: 700,
-                          display: "flex",
+                          borderRadius: 999,
+                          padding: "4px 12px",
+                          fontSize: 13,
+                          display: "inline-flex",
                           alignItems: "center",
-                          justifyContent: "center",
+                          gap: 6,
                         }}
                       >
-                        {(c.name || "?").toString().trim().charAt(0).toUpperCase()}
-                      </div>
+                        {att}
+                      </span>
                     ))}
-                    {evContacts.length > 5 && (
-                      <div
-                        style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: "50%",
-                          background: "#f0f7eb",
-                          color: "#2d6a1f",
-                          fontSize: 11,
-                          fontWeight: 700,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        +{evContacts.length - 5}
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
