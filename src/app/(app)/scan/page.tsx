@@ -26,6 +26,11 @@ export default function ScanPage() {
   const [newEventName, setNewEventName] = useState("");
   const [restoredDraft, setRestoredDraft] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkImages, setBulkImages] = useState<
+    Array<{ id: string; dataUrl: string; status: 'pending' | 'processing' | 'done' | 'error'; contact: any | null }>
+  >([]);
+  const [bulkProcessing, setBulkProcessing] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -111,6 +116,128 @@ export default function ScanPage() {
     try {
       localStorage.removeItem("katch_scan_draft");
     } catch (e) {}
+  };
+
+  const handleBulkFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    e.target.value = "";
+
+    const readers = files.map(
+      (file) =>
+        new Promise<{
+          id: string;
+          dataUrl: string;
+          status: 'pending';
+          contact: any | null;
+        }>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            resolve({
+              id: Math.random().toString(36).slice(2),
+              dataUrl: ev.target?.result as string,
+              status: 'pending',
+              contact: null,
+            });
+          };
+          reader.readAsDataURL(file);
+        })
+    );
+
+    Promise.all(readers).then((images) => {
+      setBulkImages(images);
+      setBulkMode(true);
+    });
+  };
+
+  const handleBulkProcess = async () => {
+    setBulkProcessing(true);
+    for (let i = 0; i < bulkImages.length; i++) {
+      const img = bulkImages[i];
+      if (img.status !== 'pending') continue;
+
+      setBulkImages((prev) => prev.map((x) => (x.id === img.id ? { ...x, status: 'processing' } : x)));
+
+      try {
+        const base64 = img.dataUrl.split(',')[1];
+        const mediaType = img.dataUrl.split(';')[0].split(':')[1];
+        const res = await fetch('/api/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageBase64: base64, mediaType }),
+        });
+        const data = await res.json();
+        setBulkImages((prev) =>
+          prev.map((x) =>
+            x.id === img.id
+              ? {
+                  ...x,
+                  status: data.contact ? 'done' : 'error',
+                  contact: data.contact || null,
+                }
+              : x
+          )
+        );
+      } catch {
+        setBulkImages((prev) => prev.map((x) => (x.id === img.id ? { ...x, status: 'error' } : x)));
+      }
+    }
+    setBulkProcessing(false);
+  };
+
+  const handleBulkSaveAll = async () => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const sessionUser = sessionData.session?.user;
+    if (!sessionUser?.id) return;
+
+    const doneItems = bulkImages.filter((x) => x.status === 'done' && x.contact);
+    for (const item of doneItems) {
+      let imageUrl = null;
+      if (item.dataUrl && item.dataUrl.startsWith('data:')) {
+        try {
+          const arr = item.dataUrl.split(',');
+          const mimeMatch = arr[0].match(/:(.*?);/);
+          const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+          const bstr = atob(arr[1]);
+          let n = bstr.length;
+          const u8arr = new Uint8Array(n);
+          while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+          }
+          const blob = new Blob([u8arr], { type: mime });
+          const filePath = `contacts/${sessionUser.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('avatars')
+            .upload(filePath, blob, { contentType: 'image/jpeg', upsert: true });
+
+          if (!uploadError && uploadData?.path) {
+            const { data: publicData } = supabase.storage.from('avatars').getPublicUrl(uploadData.path);
+            imageUrl = publicData?.publicUrl ?? null;
+          }
+        } catch (e) {}
+      }
+
+      await supabase.from('contacts').insert({
+        user_id: sessionUser.id,
+        name: item.contact.name ?? '',
+        title: item.contact.title ?? '',
+        company: item.contact.company ?? '',
+        email: item.contact.email ?? null,
+        phone: item.contact.phone ?? null,
+        linkedin: item.contact.linkedin ?? null,
+        lead_score: 5,
+        checks: [],
+        free_note: '',
+        event: eventTag || 'Untagged',
+        enriched: false,
+        image: imageUrl,
+      });
+    }
+
+    setBulkMode(false);
+    setBulkImages([]);
+    showToast(`${doneItems.length} contacts saved`);
+    router.push('/contacts');
   };
 
   const handleOpenCamera = async () => {
@@ -313,6 +440,209 @@ export default function ScanPage() {
   if (!user) return <div className="min-h-screen bg-[#f7f7f5]" />;
 
   const showRightForm = scanMode === "review" && extracted;
+  const bulkTotal = bulkImages.length;
+  const bulkProcessedCount = bulkImages.filter((x) => x.status !== 'pending').length;
+  const bulkAllProcessed = bulkTotal > 0 && bulkProcessedCount === bulkTotal;
+  const bulkSuccessfulCount = bulkImages.filter((x) => x.status === 'done' && x.contact).length;
+
+  if (bulkMode) {
+    return (
+      <div
+        className="min-h-screen"
+        style={{
+          background: "#f7f7f5",
+          overflowX: "hidden",
+          maxWidth: "100vw",
+          fontFamily: "Inter, sans-serif",
+        }}
+      >
+        {toast && (
+          <div
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 text-sm px-4 py-2 rounded-lg shadow-xl"
+            style={{ background: "#1a3a2a", color: "#fff" }}
+          >
+            {toast}
+          </div>
+        )}
+
+        <div style={{ maxWidth: isMobile ? "100%" : "1100px", margin: "0 auto", padding: isMobile ? "20px 16px 0" : "36px 36px 0" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+            <h1
+              style={{
+                fontSize: isMobile ? 22 : 26,
+                fontWeight: 700,
+                color: "#111",
+                fontFamily: "Inter, sans-serif",
+                marginBottom: 0,
+              }}
+            >
+              Bulk Upload
+            </h1>
+            <button
+              type="button"
+              onClick={() => {
+                setBulkMode(false);
+                setBulkImages([]);
+                setBulkProcessing(false);
+              }}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "#999",
+                fontWeight: 700,
+                fontSize: 13,
+                cursor: "pointer",
+                padding: 0,
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
+              gap: 12,
+            }}
+          >
+            {bulkImages.map((img) => {
+              const isDone = img.status === 'done' && img.contact;
+              return (
+                <div
+                  key={img.id}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                  }}
+                >
+                  <img
+                    src={img.dataUrl}
+                    alt=""
+                    style={{
+                      width: 120,
+                      height: 120,
+                      objectFit: "cover",
+                      borderRadius: 10,
+                    }}
+                  />
+                  <div style={{ marginTop: 8, height: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {img.status === 'pending' && (
+                      <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#d0d0c6" }} />
+                    )}
+                    {img.status === 'processing' && (
+                      <div
+                        className="animate-spin"
+                        style={{
+                          width: 14,
+                          height: 14,
+                          borderRadius: "50%",
+                          border: "2px solid #dce8d0",
+                          borderTopColor: "#7ab648",
+                        }}
+                      />
+                    )}
+                    {img.status === 'done' && (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7ab648" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                    {img.status === 'error' && (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e55a5a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    )}
+                  </div>
+
+                  {isDone && (
+                    <>
+                      <div
+                        style={{
+                          marginTop: 6,
+                          fontSize: 11,
+                          color: "#111",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {img.contact.name ?? ''}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 10,
+                          color: "#999",
+                        }}
+                      >
+                        {img.contact.company ?? ''}
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div
+            style={{
+              position: "sticky",
+              bottom: 0,
+              marginTop: 16,
+              background: "#f7f7f5",
+              paddingBottom: 16,
+              paddingTop: 12,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <div style={{ fontSize: 13, color: "#111", fontWeight: 600 }}>
+                {bulkProcessedCount} / {bulkTotal} processed
+              </div>
+
+              {!bulkAllProcessed ? (
+                <button
+                  type="button"
+                  onClick={handleBulkProcess}
+                  disabled={bulkProcessing}
+                  style={{
+                    background: "#7dde3c",
+                    color: "#0a1a0a",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    border: "none",
+                    borderRadius: 10,
+                    padding: "10px 16px",
+                    fontSize: 13,
+                  }}
+                >
+                  Process all
+                </button>
+              ) : (
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <button
+                    type="button"
+                    onClick={handleBulkSaveAll}
+                    style={{
+                      background: "#7dde3c",
+                      color: "#0a1a0a",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      border: "none",
+                      borderRadius: 10,
+                      padding: "10px 16px",
+                      fontSize: 13,
+                    }}
+                  >
+                    Save all {bulkTotal} contacts
+                  </button>
+                  <span style={{ fontSize: 13, color: "#111", fontWeight: 700 }}>{bulkSuccessfulCount} successful extractions</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -358,6 +688,14 @@ export default function ScanPage() {
           {toast}
         </div>
       )}
+      <input
+        type="file"
+        accept="image/*"
+        multiple
+        style={{ display: "none" }}
+        id="bulk-upload-input"
+        onChange={handleBulkFileSelect}
+      />
       <div style={{ maxWidth: isMobile ? "100%" : "1100px", margin: "0 auto", padding: isMobile ? "20px 16px 0" : "36px 36px 0" }}>
         <h1
           style={{
@@ -471,6 +809,27 @@ export default function ScanPage() {
                 <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleFileUpload} />
                 Or upload a photo
               </label>
+              <button
+                type="button"
+                onClick={() => {
+                  const input = document.getElementById("bulk-upload-input") as HTMLInputElement | null;
+                  input?.click();
+                }}
+                style={{
+                  display: "block",
+                  textAlign: "center",
+                  marginTop: 8,
+                  color: "#7ab648",
+                  fontSize: 13,
+                  cursor: "pointer",
+                  background: "transparent",
+                  border: "none",
+                  padding: 0,
+                  width: "100%",
+                }}
+              >
+                Bulk upload photos
+              </button>
             </>
           )}
 

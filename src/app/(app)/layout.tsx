@@ -63,7 +63,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b6fd4" strokeWidth="2.5">
               <path d="M3 9V5a2 2 0 012-2h4M3 15v4a2 2 0 002 2h4M21 9V5a2 2 0 00-2-2h-4M21 15v4a2 2 0 01-2 2h-4" />
             </svg>
-            <span style={{ fontSize: 16, fontWeight: 700, color: "#111", fontFamily: "Inter, sans-serif" }}>Katch</span>
           </div>
         </div>
       )}
