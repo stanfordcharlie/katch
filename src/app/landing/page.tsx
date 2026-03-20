@@ -699,11 +699,13 @@ footer {
               )}
             </span>
           </a>
-          <div className="nav-links">
-            <a href="#how">How it works</a>
-            <a href="#roi">Event ROI</a>
-            <a href="/pricing">Pricing</a>
-          </div>
+          {!isMobile && (
+            <div className="nav-links">
+              <a href="#how">How it works</a>
+              <a href="#roi">Event ROI</a>
+              <a href="/pricing">Pricing</a>
+            </div>
+          )}
           <div className="nav-actions">
             {isLoggedIn ? (
               <button
@@ -724,9 +726,11 @@ footer {
               </button>
             ) : (
               <>
-                <button className="btn-ghost" onClick={() => router.push("/login")}>
-                  Sign in
-                </button>
+                {!isMobile && (
+                  <button className="btn-ghost" onClick={() => router.push("/login")}>
+                    Sign in
+                  </button>
+                )}
                 <button className="btn-solid" onClick={() => router.push("/signup")}>
                   Get started
                 </button>
