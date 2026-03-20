@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 
 export default function LandingPageV2() {
   const router = useRouter();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -30,6 +32,12 @@ export default function LandingPageV2() {
     elements.forEach((el) => observer.observe(el));
 
     return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setIsLoggedIn(!!data.session);
+    });
   }, []);
 
   return (
@@ -522,7 +530,21 @@ footer {
       <nav className="landing2-nav">
         <a href="#" className="nav-logo">
           <img src="/logo.svg" width={36} height={36} alt="Katch" style={{ borderRadius: 10 }} />
-          <span className="logo-name">Katch</span>
+          <span className="logo-name">
+            Katch
+            {isLoggedIn && (
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: "#7dde3c",
+                  display: "inline-block",
+                  marginLeft: 6,
+                }}
+              />
+            )}
+          </span>
         </a>
         <div className="nav-links">
           <a href="#how">How it works</a>
@@ -530,12 +552,32 @@ footer {
           <a href="/pricing">Pricing</a>
         </div>
         <div className="nav-actions">
-          <button className="btn-ghost" onClick={() => router.push("/login")}>
-            Sign in
-          </button>
-          <button className="btn-solid" onClick={() => router.push("/signup")}>
-            Get started
-          </button>
+          {isLoggedIn ? (
+            <button
+              onClick={() => router.push('/home')}
+              style={{
+                background: '#7dde3c',
+                color: '#0a1a0a',
+                borderRadius: 999,
+                padding: '8px 18px',
+                fontSize: 13,
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              Go to app
+            </button>
+          ) : (
+            <>
+              <button className="btn-ghost" onClick={() => router.push("/login")}>
+                Sign in
+              </button>
+              <button className="btn-solid" onClick={() => router.push("/signup")}>
+                Get started
+              </button>
+            </>
+          )}
         </div>
       </nav>
 

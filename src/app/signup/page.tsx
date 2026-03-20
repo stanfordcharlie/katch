@@ -41,6 +41,9 @@ function SignupForm({
 }) {
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
+  const [screenName, setScreenName] = useState("");
+  const [company, setCompany] = useState("");
+  const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,10 +52,22 @@ function SignupForm({
     setLoading(true);
     setError(null);
     try {
-      const { error: err } = await supabase.auth.signUp({ email, password });
+      const { data, error: err } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { display_name: screenName } },
+      });
       if (err) {
         setError(err.message);
       } else {
+        if (data.user?.id) {
+          await supabase.from("user_settings").upsert({
+            user_id: data.user.id,
+            company: company,
+            phone: phone,
+            screen_name: screenName,
+          });
+        }
         onSuccess();
       }
     } catch {
@@ -113,7 +128,65 @@ function SignupForm({
             onChange={(e) => setEmail(e.target.value)}
             required
             className="w-full rounded-lg border border-[#d4cdc3] bg-[#f0f0ec] px-3 py-2 text-sm outline-none focus:border-[#7ab648] focus:ring-1 focus:ring-[#7ab648]"
-            style={{ color: "#1a2e1a", height: "44px" }}
+            style={{ color: "#1a2e1a", height: "44px", fontSize: 16 }}
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="screen-name"
+            className="mb-1 block text-sm font-medium"
+            style={{ color: "#1a2e1a" }}
+          >
+            Screen Name
+          </label>
+          <input
+            id="screen-name"
+            type="text"
+            value={screenName}
+            onChange={(e) => setScreenName(e.target.value)}
+            required
+            placeholder="Your name in the app"
+            className="w-full rounded-lg border border-[#d4cdc3] bg-[#f0f0ec] px-3 py-2 text-sm outline-none focus:border-[#7ab648] focus:ring-1 focus:ring-[#7ab648]"
+            style={{ color: "#1a2e1a", height: "44px", fontSize: 16 }}
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="company"
+            className="mb-1 block text-sm font-medium"
+            style={{ color: "#1a2e1a" }}
+          >
+            Company Name
+          </label>
+          <input
+            id="company"
+            type="text"
+            value={company}
+            onChange={(e) => setCompany(e.target.value)}
+            placeholder="Acme Inc."
+            className="w-full rounded-lg border border-[#d4cdc3] bg-[#f0f0ec] px-3 py-2 text-sm outline-none focus:border-[#7ab648] focus:ring-1 focus:ring-[#7ab648]"
+            style={{ color: "#1a2e1a", height: "44px", fontSize: 16 }}
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="phone"
+            className="mb-1 block text-sm font-medium"
+            style={{ color: "#1a2e1a" }}
+          >
+            Phone Number
+          </label>
+          <input
+            id="phone"
+            type="text"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="+1 (555) 000-0000"
+            className="w-full rounded-lg border border-[#d4cdc3] bg-[#f0f0ec] px-3 py-2 text-sm outline-none focus:border-[#7ab648] focus:ring-1 focus:ring-[#7ab648]"
+            style={{ color: "#1a2e1a", height: "44px", fontSize: 16 }}
           />
         </div>
 
@@ -132,7 +205,7 @@ function SignupForm({
             onChange={(e) => setPassword(e.target.value)}
             required
             className="w-full rounded-lg border border-[#d4cdc3] bg-[#f0f0ec] px-3 py-2 text-sm outline-none focus:border-[#7ab648] focus:ring-1 focus:ring-[#7ab648]"
-            style={{ color: "#1a2e1a", height: "44px" }}
+            style={{ color: "#1a2e1a", height: "44px", fontSize: 16 }}
           />
         </div>
 
