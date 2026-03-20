@@ -27,10 +27,17 @@ export default function ScanPage() {
   const [restoredDraft, setRestoredDraft] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [bulkMode, setBulkMode] = useState(false);
-  const [bulkImages, setBulkImages] = useState<
-    Array<{ id: string; dataUrl: string; status: 'pending' | 'processing' | 'done' | 'error'; contact: any | null }>
+  const [bulkFiles, setBulkFiles] = useState<
+    Array<{
+      id: string;
+      dataUrl: string;
+      status: 'pending' | 'scanning' | 'done' | 'failed';
+      contact: any | null;
+    }>
   >([]);
   const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState(0);
+  const [showBulkDiscard, setShowBulkDiscard] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -118,68 +125,61 @@ export default function ScanPage() {
     } catch (e) {}
   };
 
-  const handleBulkFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
+  const handleBulkSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []).slice(0, 20);
     if (!files.length) return;
     e.target.value = "";
-
-    const readers = files.map(
-      (file) =>
-        new Promise<{
-          id: string;
-          dataUrl: string;
-          status: 'pending';
-          contact: any | null;
-        }>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = (ev) => {
-            resolve({
-              id: Math.random().toString(36).slice(2),
-              dataUrl: ev.target?.result as string,
-              status: 'pending',
-              contact: null,
-            });
-          };
-          reader.readAsDataURL(file);
-        })
-    );
-
-    Promise.all(readers).then((images) => {
-      setBulkImages(images);
+    Promise.all(
+      files.map(
+        (file) =>
+          new Promise<(typeof bulkFiles)[0]>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (ev) =>
+              resolve({
+                id: Math.random().toString(36).slice(2),
+                dataUrl: ev.target?.result as string,
+                status: 'pending',
+                contact: null,
+              });
+            reader.readAsDataURL(file);
+          })
+      )
+    ).then((images) => {
+      setBulkFiles(images);
       setBulkMode(true);
+      setBulkProgress(0);
     });
   };
 
   const handleBulkProcess = async () => {
     setBulkProcessing(true);
-    for (let i = 0; i < bulkImages.length; i++) {
-      const img = bulkImages[i];
-      if (img.status !== 'pending') continue;
-
-      setBulkImages((prev) => prev.map((x) => (x.id === img.id ? { ...x, status: 'processing' } : x)));
-
+    for (let i = 0; i < bulkFiles.length; i++) {
+      const item = bulkFiles[i];
+      if (item.status !== 'pending') continue;
+      setBulkFiles((prev) => prev.map((x) => (x.id === item.id ? { ...x, status: 'scanning' } : x)));
+      setBulkProgress(i + 1);
       try {
-        const base64 = img.dataUrl.split(',')[1];
-        const mediaType = img.dataUrl.split(';')[0].split(':')[1];
+        const base64 = item.dataUrl.split(',')[1];
+        const mediaType = item.dataUrl.split(';')[0].split(':')[1];
         const res = await fetch('/api/scan', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ imageBase64: base64, mediaType }),
         });
         const data = await res.json();
-        setBulkImages((prev) =>
+        setBulkFiles((prev) =>
           prev.map((x) =>
-            x.id === img.id
+            x.id === item.id
               ? {
                   ...x,
-                  status: data.contact ? 'done' : 'error',
+                  status: data.contact ? 'done' : 'failed',
                   contact: data.contact || null,
                 }
               : x
           )
         );
       } catch {
-        setBulkImages((prev) => prev.map((x) => (x.id === img.id ? { ...x, status: 'error' } : x)));
+        setBulkFiles((prev) => prev.map((x) => (x.id === item.id ? { ...x, status: 'failed' } : x)));
       }
     }
     setBulkProcessing(false);
@@ -189,34 +189,29 @@ export default function ScanPage() {
     const { data: sessionData } = await supabase.auth.getSession();
     const sessionUser = sessionData.session?.user;
     if (!sessionUser?.id) return;
-
-    const doneItems = bulkImages.filter((x) => x.status === 'done' && x.contact);
+    const doneItems = bulkFiles.filter((x) => x.status === 'done' && x.contact);
     for (const item of doneItems) {
-      let imageUrl = null;
-      if (item.dataUrl && item.dataUrl.startsWith('data:')) {
-        try {
-          const arr = item.dataUrl.split(',');
-          const mimeMatch = arr[0].match(/:(.*?);/);
-          const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
-          const bstr = atob(arr[1]);
-          let n = bstr.length;
-          const u8arr = new Uint8Array(n);
-          while (n--) {
-            u8arr[n] = bstr.charCodeAt(n);
-          }
-          const blob = new Blob([u8arr], { type: mime });
-          const filePath = `contacts/${sessionUser.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('avatars')
-            .upload(filePath, blob, { contentType: 'image/jpeg', upsert: true });
-
-          if (!uploadError && uploadData?.path) {
-            const { data: publicData } = supabase.storage.from('avatars').getPublicUrl(uploadData.path);
-            imageUrl = publicData?.publicUrl ?? null;
-          }
-        } catch (e) {}
-      }
-
+      let imageUrl: string | null = null;
+      try {
+        const arr = item.dataUrl.split(',');
+        const mimeMatch = arr[0].match(/:(.*?);/);
+        const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        const blob = new Blob([u8arr], { type: mime });
+        const filePath = `contacts/${sessionUser.id}/${Date.now()}-${item.id}.jpg`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(filePath, blob, { contentType: 'image/jpeg', upsert: true });
+        if (!uploadError && uploadData?.path) {
+          const { data: publicData } = supabase.storage.from('avatars').getPublicUrl(uploadData.path);
+          imageUrl = publicData?.publicUrl ?? null;
+        }
+      } catch {}
       await supabase.from('contacts').insert({
         user_id: sessionUser.id,
         name: item.contact.name ?? '',
@@ -233,9 +228,9 @@ export default function ScanPage() {
         image: imageUrl,
       });
     }
-
     setBulkMode(false);
-    setBulkImages([]);
+    setBulkFiles([]);
+    setBulkProgress(0);
     showToast(`${doneItems.length} contacts saved`);
     router.push('/contacts');
   };
@@ -440,10 +435,11 @@ export default function ScanPage() {
   if (!user) return <div className="min-h-screen bg-[#f7f7f5]" />;
 
   const showRightForm = scanMode === "review" && extracted;
-  const bulkTotal = bulkImages.length;
-  const bulkProcessedCount = bulkImages.filter((x) => x.status !== 'pending').length;
+  const bulkTotal = bulkFiles.length;
+  const bulkProcessedCount = bulkFiles.filter((x) => x.status !== 'pending').length;
   const bulkAllProcessed = bulkTotal > 0 && bulkProcessedCount === bulkTotal;
-  const bulkSuccessfulCount = bulkImages.filter((x) => x.status === 'done' && x.contact).length;
+  const bulkSuccessfulCount = bulkFiles.filter((x) => x.status === 'done' && x.contact).length;
+  const bulkFailedCount = bulkFiles.filter((x) => x.status === 'failed').length;
 
   if (bulkMode) {
     return (
@@ -464,182 +460,202 @@ export default function ScanPage() {
             {toast}
           </div>
         )}
-
         <div style={{ maxWidth: isMobile ? "100%" : "1100px", margin: "0 auto", padding: isMobile ? "20px 16px 0" : "36px 36px 0" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-            <h1
-              style={{
-                fontSize: isMobile ? 22 : 26,
-                fontWeight: 700,
-                color: "#111",
-                fontFamily: "Inter, sans-serif",
-                marginBottom: 0,
-              }}
-            >
-              Bulk Upload
-            </h1>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
             <button
               type="button"
-              onClick={() => {
-                setBulkMode(false);
-                setBulkImages([]);
-                setBulkProcessing(false);
-              }}
+              onClick={() => setShowBulkDiscard(true)}
               style={{
-                background: "transparent",
-                border: "none",
-                color: "#999",
-                fontWeight: 700,
+                background: "#fff",
+                border: "1px solid #ebebeb",
+                borderRadius: 10,
+                padding: "8px 14px",
                 fontSize: 13,
                 cursor: "pointer",
-                padding: 0,
               }}
             >
-              Cancel
+              ← Back
             </button>
+            <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight: 700, color: "#111", margin: 0 }}>Bulk Upload</h1>
+            <span
+              style={{
+                fontSize: 12,
+                color: "#666",
+                background: "#fff",
+                border: "1px solid #ebebeb",
+                borderRadius: 999,
+                padding: "4px 10px",
+              }}
+            >
+              {bulkTotal} photos
+            </span>
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
-              gap: 12,
-            }}
-          >
-            {bulkImages.map((img) => {
-              const isDone = img.status === 'done' && img.contact;
-              return (
-                <div
-                  key={img.id}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                  }}
-                >
-                  <img
-                    src={img.dataUrl}
-                    alt=""
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(3, 1fr)", gap: 12 }}>
+            {bulkFiles.map((item) => (
+              <div key={item.id}>
+                <div style={{ position: "relative", borderRadius: 12, overflow: "hidden", aspectRatio: "1" }}>
+                  <img src={item.dataUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <div
                     style={{
-                      width: 120,
-                      height: 120,
-                      objectFit: "cover",
-                      borderRadius: 10,
+                      position: "absolute",
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      padding: "6px 8px",
+                      background: "linear-gradient(transparent, rgba(0,0,0,0.6))",
                     }}
-                  />
-                  <div style={{ marginTop: 8, height: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    {img.status === 'pending' && (
-                      <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#d0d0c6" }} />
-                    )}
-                    {img.status === 'processing' && (
-                      <div
-                        className="animate-spin"
-                        style={{
-                          width: 14,
-                          height: 14,
-                          borderRadius: "50%",
-                          border: "2px solid #dce8d0",
-                          borderTopColor: "#7ab648",
-                        }}
-                      />
-                    )}
-                    {img.status === 'done' && (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7ab648" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    )}
-                    {img.status === 'error' && (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e55a5a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6" y1="6" x2="18" y2="18" />
-                      </svg>
-                    )}
+                  >
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "white", display: "flex", alignItems: "center", gap: 6 }}>
+                      {item.status === 'pending' && <span>Pending</span>}
+                      {item.status === 'scanning' && (
+                        <>
+                          <span className="animate-pulse" style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#7dde3c" }} />
+                          <span>Scanning...</span>
+                        </>
+                      )}
+                      {item.status === 'done' && (
+                        <>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                          <span>Done</span>
+                        </>
+                      )}
+                      {item.status === 'failed' && <span style={{ color: "#ffd1d1" }}>Failed</span>}
+                    </div>
                   </div>
-
-                  {isDone && (
-                    <>
-                      <div
-                        style={{
-                          marginTop: 6,
-                          fontSize: 11,
-                          color: "#111",
-                          fontWeight: 600,
-                        }}
-                      >
-                        {img.contact.name ?? ''}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 10,
-                          color: "#999",
-                        }}
-                      >
-                        {img.contact.company ?? ''}
-                      </div>
-                    </>
-                  )}
                 </div>
-              );
-            })}
+                {item.status === 'done' && item.contact && (
+                  <div style={{ marginTop: 6 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "#111" }}>{item.contact.name ?? ''}</div>
+                    <div style={{ fontSize: 10, color: "#999" }}>{item.contact.company ?? ''}</div>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
 
           <div
             style={{
               position: "sticky",
-              bottom: 0,
-              marginTop: 16,
-              background: "#f7f7f5",
-              paddingBottom: 16,
-              paddingTop: 12,
+              bottom: isMobile ? 80 : 24,
+              background: "#fff",
+              border: "1px solid #ebebeb",
+              borderRadius: 16,
+              padding: 16,
+              marginTop: 24,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-              <div style={{ fontSize: 13, color: "#111", fontWeight: 600 }}>
-                {bulkProcessedCount} / {bulkTotal} processed
-              </div>
-
-              {!bulkAllProcessed ? (
-                <button
-                  type="button"
-                  onClick={handleBulkProcess}
-                  disabled={bulkProcessing}
-                  style={{
-                    background: "#7dde3c",
-                    color: "#0a1a0a",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    border: "none",
-                    borderRadius: 10,
-                    padding: "10px 16px",
-                    fontSize: 13,
-                  }}
-                >
-                  Process all
-                </button>
-              ) : (
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <button
-                    type="button"
-                    onClick={handleBulkSaveAll}
-                    style={{
-                      background: "#7dde3c",
-                      color: "#0a1a0a",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      border: "none",
-                      borderRadius: 10,
-                      padding: "10px 16px",
-                      fontSize: 13,
-                    }}
-                  >
-                    Save all {bulkTotal} contacts
-                  </button>
-                  <span style={{ fontSize: 13, color: "#111", fontWeight: 700 }}>{bulkSuccessfulCount} successful extractions</span>
-                </div>
-              )}
+            <div style={{ fontSize: 13, color: "#999" }}>
+              {bulkAllProcessed
+                ? `${bulkSuccessfulCount} successful • ${bulkFailedCount} failed`
+                : bulkProcessing
+                ? `Scanning ${bulkProgress} of ${bulkTotal}...`
+                : `${bulkProcessedCount} / ${bulkTotal} scanned`}
             </div>
+            {!bulkAllProcessed ? (
+              <button
+                type="button"
+                onClick={handleBulkProcess}
+                disabled={bulkProcessing}
+                style={{
+                  background: "#7dde3c",
+                  color: "#0a1a0a",
+                  fontWeight: 700,
+                  borderRadius: 10,
+                  height: 44,
+                  padding: "0 24px",
+                  fontSize: 15,
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                {bulkProcessing ? `Scanning ${bulkProgress} of ${bulkTotal}...` : `Scan all ${bulkTotal} photos`}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleBulkSaveAll}
+                style={{
+                  background: "#7dde3c",
+                  color: "#0a1a0a",
+                  fontWeight: 700,
+                  borderRadius: 10,
+                  height: 44,
+                  padding: "0 24px",
+                  fontSize: 15,
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                Save {bulkSuccessfulCount} contacts
+              </button>
+            )}
           </div>
         </div>
+        {showBulkDiscard && (
+          <div
+            style={{
+              background: "rgba(0,0,0,0.4)",
+              position: "fixed",
+              inset: 0,
+              zIndex: 200,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 16,
+            }}
+          >
+            <div style={{ background: "#fff", borderRadius: 16, padding: 28, maxWidth: 320, width: "100%" }}>
+              <p style={{ fontSize: 17, fontWeight: 600, margin: 0, marginBottom: 8 }}>Discard scans?</p>
+              <p style={{ fontSize: 14, color: "#666", margin: 0, marginBottom: 18 }}>
+                You have {bulkProcessedCount} scanned contacts that will be lost.
+              </p>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowBulkDiscard(false)}
+                  style={{
+                    background: "#fff",
+                    border: "1px solid #ebebeb",
+                    borderRadius: 10,
+                    padding: "8px 14px",
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowBulkDiscard(false);
+                    setBulkMode(false);
+                    setBulkFiles([]);
+                    setBulkProcessing(false);
+                    setBulkProgress(0);
+                  }}
+                  style={{
+                    background: "#fff",
+                    border: "1px solid #fde8e8",
+                    color: "#e55a5a",
+                    borderRadius: 10,
+                    padding: "8px 14px",
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
+                  Discard
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -694,7 +710,7 @@ export default function ScanPage() {
         multiple
         style={{ display: "none" }}
         id="bulk-upload-input"
-        onChange={handleBulkFileSelect}
+        onChange={handleBulkSelect}
       />
       <div style={{ maxWidth: isMobile ? "100%" : "1100px", margin: "0 auto", padding: isMobile ? "20px 16px 0" : "36px 36px 0" }}>
         <h1
@@ -828,7 +844,7 @@ export default function ScanPage() {
                   width: "100%",
                 }}
               >
-                Bulk upload photos
+                Bulk upload
               </button>
             </>
           )}
