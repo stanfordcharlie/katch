@@ -610,8 +610,10 @@ footer {
                 left: '50%',
                 transform: 'translateX(-50%)',
                 width: 'auto',
-                overflowX: 'hidden',
+                overflow: 'hidden',
                 boxSizing: 'border-box',
+                alignItems: 'center',
+                gap: 8,
               }
             : undefined
         }
@@ -647,11 +649,12 @@ footer {
                 background: '#7dde3c',
                 color: '#0a1a0a',
                 borderRadius: 999,
-                padding: '8px 18px',
+                padding: '7px 14px',
                 fontSize: 13,
                 fontWeight: 700,
                 border: 'none',
                 cursor: 'pointer',
+                whiteSpace: 'nowrap',
               }}
             >
               Go to app

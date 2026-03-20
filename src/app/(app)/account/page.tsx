@@ -452,6 +452,26 @@ export default function AppAccountPage() {
                       {savingName ? "Saving…" : "Save changes"}
                     </button>
                   </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await supabase.auth.signOut();
+                      router.push("/landing");
+                    }}
+                    style={{
+                      marginTop: 12,
+                      background: "#fff",
+                      border: "1px solid #e8e8e8",
+                      color: "#666",
+                      borderRadius: 10,
+                      height: 40,
+                      padding: "0 20px",
+                      fontSize: 14,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Sign out
+                  </button>
                 </form>
               </div>
             </section>
