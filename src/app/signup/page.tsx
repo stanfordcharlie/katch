@@ -69,11 +69,7 @@ function SignupForm({
             screen_name: screenName,
           });
         }
-        if (!data.session || data.user?.identities?.length === 0) {
-          setShowConfirmation(true);
-        } else {
-          onSuccess();
-        }
+        setShowConfirmation(true);
       }
     } catch {
       setError("Something went wrong. Please try again.");
@@ -83,6 +79,23 @@ function SignupForm({
   };
 
   return (
+    showConfirmation ? (
+      <div style={{ minHeight: '100vh', background: '#f7f7f5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif' }}>
+        <div style={{ background: '#fff', borderRadius: 20, border: '1px solid #ebebeb', padding: '48px 40px', maxWidth: 440, width: '100%', textAlign: 'center' }}>
+          <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#f0f7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+            <svg width='28' height='28' fill='none' viewBox='0 0 24 24' stroke='#7dde3c' strokeWidth='2.5'>
+              <path d='M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z'/>
+              <polyline points='22,6 12,13 2,6'/>
+            </svg>
+          </div>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: '#111', marginBottom: 10 }}>Check your email</h2>
+          <p style={{ fontSize: 14, color: '#666', marginBottom: 8, lineHeight: 1.6 }}>
+            We sent a confirmation link to <strong>{email}</strong>. Click it to activate your account and start scanning.
+          </p>
+          <p style={{ fontSize: 12, color: '#bbb', marginTop: 12 }}>Did not get it? Check your spam folder.</p>
+        </div>
+      </div>
+    ) : (
     <section className="max-w-lg mx-auto border border-[#dce8d0] rounded-2xl bg-white/90 p-5 md:p-6 shadow-sm">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
@@ -255,6 +268,7 @@ function SignupForm({
         </button>
       </p>
     </section>
+    )
   );
 }
 
