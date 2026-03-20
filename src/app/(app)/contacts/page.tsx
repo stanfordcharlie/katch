@@ -323,6 +323,8 @@ export default function ContactsPage() {
     <div
       className='max-w-2xl mx-auto'
       style={{
+        overflowX: 'hidden',
+        maxWidth: '100vw',
         padding: isMobile ? '20px 16px 100px' : '32px 36px',
         fontFamily: 'Inter, -apple-system, sans-serif',
         backgroundColor: '#f7f7f5',

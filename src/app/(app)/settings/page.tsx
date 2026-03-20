@@ -253,6 +253,8 @@ export default function SettingsPage() {
       style={{
         minHeight: "100vh",
         backgroundColor: "#f7f7f5",
+        overflowX: "hidden",
+        maxWidth: "100vw",
         fontFamily: "Inter, -apple-system, sans-serif",
       }}
     >

@@ -201,6 +201,8 @@ export default function DashboardPage() {
         minHeight: "100vh",
         backgroundColor: "#f4f4f2",
         padding: isMobile ? "20px 16px 100px" : "40px 44px 44px 260px",
+        overflowX: "hidden",
+        maxWidth: "100vw",
         boxSizing: "border-box",
       }}
     >

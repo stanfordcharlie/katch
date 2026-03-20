@@ -178,6 +178,8 @@ export default function EventsPage() {
       style={{
         background: "#f7f7f5",
         padding: isMobile ? "20px 16px 100px" : "36px",
+        overflowX: "hidden",
+        maxWidth: "100vw",
         fontFamily: "Inter, -apple-system, sans-serif",
       }}
     >

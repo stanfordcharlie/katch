@@ -31,7 +31,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return <div style={{ backgroundColor: "#f7f7f5", minHeight: "100dvh" }} />;
 
   return (
-    <div style={{ display: "flex", minHeight: "100dvh", backgroundColor: "#f7f7f5" }}>
+    <div
+      style={{
+        display: "flex",
+        minHeight: "100dvh",
+        backgroundColor: "#f7f7f5",
+        overflowX: "hidden",
+        maxWidth: "100vw",
+        position: "relative",
+      }}
+    >
       {isMobile && (
         <div
           style={{

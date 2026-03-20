@@ -319,6 +319,8 @@ export default function ScanPage() {
       className="min-h-screen"
       style={{
         background: "#f7f7f5",
+        overflowX: "hidden",
+        maxWidth: "100vw",
         fontFamily: "Inter, sans-serif",
       }}
     >

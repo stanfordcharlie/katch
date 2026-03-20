@@ -154,6 +154,8 @@ export default function HomePage() {
       style={{
         minHeight: "100vh",
         padding: isMobile ? "20px 16px 100px" : "24px 32px 32px",
+        overflowX: "hidden",
+        maxWidth: "100vw",
         fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         color: "#111111",
       }}
