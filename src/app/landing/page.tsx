@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 export default function LandingPageV2() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -40,8 +41,15 @@ export default function LandingPageV2() {
     });
   }, []);
 
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
   return (
-    <div style={{ backgroundColor: "#0a0a0a" }}>
+    <div style={{ backgroundColor: '#0a0a0a', overflowX: 'hidden' }}>
       <style>{`html, body { background: #0a0a0a !important; }`}</style>
       <link
         rel="stylesheet"
@@ -513,11 +521,77 @@ footer {
 }
 
 @media (max-width: 768px) {
-  nav.landing2-nav { padding: 14px 20px; }
+  nav.landing2-nav {
+    padding: 14px 16px;
+    max-width: 95vw;
+    width: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
   .nav-links { display: none; }
-  .hero2 { padding: 110px 18px 60px; }
-  .hero2-title { font-size: 52px; letter-spacing: -2px; }
-  .section-shell, .cta-section { padding: 64px 20px; }
+  .hero2 {
+    padding: 110px 16px 60px;
+    text-align: center;
+    justify-content: center;
+    align-items: center;
+    box-sizing: border-box;
+  }
+  .hero2-inner {
+    max-width: 100%;
+    width: 100%;
+    padding: 0 16px;
+    box-sizing: border-box;
+    align-items: center;
+    text-align: center;
+  }
+  .hero2-title { font-size: clamp(28px, 8vw, 56px); letter-spacing: -1px; }
+  .hero2-form {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .section-inner {
+    max-width: 100%;
+    width: 100%;
+    padding: 0 16px;
+    box-sizing: border-box;
+  }
+  .section-shell, .cta-section {
+    padding: 64px 16px;
+    box-sizing: border-box;
+    max-width: 100%;
+    width: 100%;
+  }
+  .cta-title { max-width: 100%; box-sizing: border-box; }
+  .cta-form {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    max-width: 100%;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 12px 16px;
+    border-radius: 16px;
+    box-sizing: border-box;
+  }
+  .cta-form input { width: 100%; min-height: 44px; }
+  .cta-form .btn-solid, .cta-form button { width: 100%; }
+  footer {
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+    text-align: center;
+    padding: 26px 16px;
+    box-sizing: border-box;
+    max-width: 100%;
+    width: 100%;
+  }
   .roi-grid { grid-template-columns: 1fr; gap: 40px; }
   .roi-stats { grid-template-columns: 1fr 1fr; }
   .steps-grid { grid-template-columns: 1fr; }
@@ -527,7 +601,21 @@ footer {
         }}
       />
 
-      <nav className="landing2-nav">
+      <nav
+        className="landing2-nav"
+        style={
+          isMobile
+            ? {
+                maxWidth: '95vw',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: 'auto',
+                overflowX: 'hidden',
+                boxSizing: 'border-box',
+              }
+            : undefined
+        }
+      >
         <a href="#" className="nav-logo">
           <img src="/logo.svg" width={36} height={36} alt="Katch" style={{ borderRadius: 10 }} />
           <span className="logo-name">
@@ -582,29 +670,60 @@ footer {
       </nav>
 
       {/* HERO */}
-      <section className="hero2">
+      <section
+        className="hero2"
+        style={
+          isMobile
+            ? {
+                padding: '0 16px',
+                paddingTop: '110px',
+                paddingBottom: '60px',
+                textAlign: 'center',
+                justifyContent: 'center',
+                alignItems: 'center',
+                boxSizing: 'border-box',
+              }
+            : undefined
+        }
+      >
         <div className="hero2-bg" />
         <div className="hero2-overlay" />
         <div
           className="hero2-inner"
-          style={{
-            textAlign: "left",
-            alignItems: "flex-start",
-            paddingLeft: "80px",
-            paddingBottom: "100px",
-            maxWidth: "750px",
-          }}
+          style={
+            isMobile
+              ? {
+                  textAlign: 'center',
+                  alignItems: 'center',
+                  paddingLeft: 0,
+                  paddingBottom: '60px',
+                  maxWidth: '100%',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  padding: '0 16px',
+                }
+              : {
+                  textAlign: 'left',
+                  alignItems: 'flex-start',
+                  paddingLeft: '80px',
+                  paddingBottom: '100px',
+                  maxWidth: '750px',
+                }
+          }
         >
           <h1
             className="hero2-title"
             style={{
-              color: "#7dde3c",
-              fontFamily: "Syne, sans-serif",
+              color: '#7dde3c',
+              fontFamily: 'Syne, sans-serif',
               fontWeight: 800,
-              fontSize: "clamp(40px, 6vw, 72px)",
+              fontSize: isMobile ? 'clamp(28px, 8vw, 56px)' : 'clamp(40px, 6vw, 72px)',
               lineHeight: 1.0,
-              letterSpacing: "-3px",
-              marginBottom: "20px",
+              letterSpacing: isMobile ? '-1px' : '-3px',
+              marginBottom: '20px',
+              textAlign: isMobile ? 'center' : undefined,
+              padding: isMobile ? '0 16px' : undefined,
+              boxSizing: 'border-box',
             }}
           >
             <span
@@ -635,17 +754,21 @@ footer {
               shouldn&apos;t be empty.
             </span>
           </h1>
-          <p className="hero2-sub" style={{ textAlign: "left" }}>
+          <p className="hero2-sub" style={{ textAlign: isMobile ? 'center' : 'left' }}>
             Scan badges. Score leads. Close more.
           </p>
           <form
             className="hero2-form"
             onSubmit={handleSubmit}
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              justifyContent: "flex-start",
+              display: 'flex',
+              flexDirection: isMobile ? 'column' : 'row',
+              alignItems: isMobile ? 'stretch' : 'center',
+              gap: isMobile ? 10 : 12,
+              justifyContent: isMobile ? 'center' : 'flex-start',
+              width: isMobile ? '100%' : undefined,
+              maxWidth: isMobile ? '100%' : undefined,
+              boxSizing: 'border-box',
             }}
           >
             <input
@@ -653,36 +776,41 @@ footer {
               placeholder="Work email address"
               required
               style={{
-                height: "48px",
-                width: "280px",
-                borderRadius: "8px",
-                border: "none",
-                background: "#ffffff",
-                color: "#0a0a0a",
-                padding: "0 16px",
-                fontSize: "15px",
-                outline: "none",
+                height: '48px',
+                width: isMobile ? '100%' : '280px',
+                maxWidth: isMobile ? '100%' : undefined,
+                borderRadius: '8px',
+                border: 'none',
+                background: '#ffffff',
+                color: '#0a0a0a',
+                padding: '0 16px',
+                fontSize: '15px',
+                outline: 'none',
+                boxSizing: 'border-box',
               }}
             />
             <button
               type="submit"
               style={{
-                height: "48px",
-                padding: "0 24px",
-                background: "#7dde3c",
-                color: "#ffffff",
-                border: "none",
-                borderRadius: "8px",
-                fontSize: "15px",
+                height: '48px',
+                minHeight: isMobile ? 44 : undefined,
+                width: isMobile ? '100%' : undefined,
+                padding: '0 24px',
+                background: '#7dde3c',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '15px',
                 fontWeight: 700,
-                cursor: "pointer",
-                whiteSpace: "nowrap",
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                boxSizing: 'border-box',
               }}
             >
               Get started free →
             </button>
           </form>
-          <div className="hero2-footnote" style={{ textAlign: "left" }}>
+          <div className="hero2-footnote" style={{ textAlign: isMobile ? 'center' : 'left' }}>
             Free to start. No credit card required.
           </div>
         </div>
