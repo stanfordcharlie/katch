@@ -521,16 +521,6 @@ footer {
 }
 
 @media (max-width: 768px) {
-  nav.landing2-nav {
-    padding: 14px 16px;
-    max-width: 95vw;
-    width: auto;
-    left: 50%;
-    transform: translateX(-50%);
-    overflow-x: hidden;
-    box-sizing: border-box;
-  }
-  .nav-links { display: none; }
   .hero2 {
     padding: 110px 16px 60px;
     text-align: center;
@@ -601,76 +591,150 @@ footer {
         }}
       />
 
-      <nav
-        className="landing2-nav"
-        style={
-          isMobile
-            ? {
-                maxWidth: '95vw',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: 'auto',
-                overflow: 'hidden',
-                boxSizing: 'border-box',
-                alignItems: 'center',
-                gap: 8,
-              }
-            : undefined
-        }
-      >
-        <a href="#" className="nav-logo">
-          <img src="/logo.svg" width={36} height={36} alt="Katch" style={{ borderRadius: 10 }} />
-          <span className="logo-name">
-            Katch
-            {isLoggedIn && (
-              <span
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: "50%",
-                  background: "#7dde3c",
-                  display: "inline-block",
-                  marginLeft: 6,
-                }}
-              />
-            )}
-          </span>
-        </a>
-        <div className="nav-links">
-          <a href="#how">How it works</a>
-          <a href="#roi">Event ROI</a>
-          <a href="/pricing">Pricing</a>
-        </div>
-        <div className="nav-actions">
+      {isMobile ? (
+        <nav
+          style={{
+            position: 'fixed',
+            top: 16,
+            left: 16,
+            right: 16,
+            zIndex: 100,
+            background: 'rgba(255,255,255,0.15)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255,255,255,0.2)',
+            borderRadius: 999,
+            padding: '10px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxSizing: 'border-box',
+          }}
+        >
+          <a
+            href="#"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              textDecoration: 'none',
+              color: '#ffffff',
+              minWidth: 0,
+            }}
+          >
+            <img src="/logo.svg" width={36} height={36} alt="Katch" style={{ borderRadius: 10, flexShrink: 0 }} />
+            <span style={{ color: '#ffffff', fontSize: 16, fontWeight: 700, whiteSpace: 'nowrap' }}>
+              Katch
+              {isLoggedIn && (
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: '#7dde3c',
+                    display: 'inline-block',
+                    marginLeft: 6,
+                  }}
+                />
+              )}
+            </span>
+          </a>
           {isLoggedIn ? (
             <button
+              type="button"
               onClick={() => router.push('/home')}
               style={{
                 background: '#7dde3c',
                 color: '#0a1a0a',
-                borderRadius: 999,
-                padding: '7px 14px',
-                fontSize: 13,
-                fontWeight: 700,
                 border: 'none',
-                cursor: 'pointer',
                 whiteSpace: 'nowrap',
+                fontSize: 13,
+                padding: '7px 16px',
+                borderRadius: 999,
+                fontWeight: 700,
+                cursor: 'pointer',
+                flexShrink: 0,
               }}
             >
               Go to app
             </button>
           ) : (
-            <>
-              <button className="btn-ghost" onClick={() => router.push("/login")}>
-                Sign in
-              </button>
-              <button className="btn-solid" onClick={() => router.push("/signup")}>
-                Get started
-              </button>
-            </>
+            <button
+              type="button"
+              onClick={() => router.push('/signup')}
+              style={{
+                background: '#7dde3c',
+                color: '#0a1a0a',
+                border: 'none',
+                whiteSpace: 'nowrap',
+                fontSize: 13,
+                padding: '7px 16px',
+                borderRadius: 999,
+                fontWeight: 700,
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+            >
+              Get started
+            </button>
           )}
-        </div>
-      </nav>
+        </nav>
+      ) : (
+        <nav className="landing2-nav">
+          <a href="#" className="nav-logo">
+            <img src="/logo.svg" width={36} height={36} alt="Katch" style={{ borderRadius: 10 }} />
+            <span className="logo-name" style={{ whiteSpace: 'nowrap' }}>
+              Katch
+              {isLoggedIn && (
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background: "#7dde3c",
+                    display: "inline-block",
+                    marginLeft: 6,
+                  }}
+                />
+              )}
+            </span>
+          </a>
+          <div className="nav-links">
+            <a href="#how">How it works</a>
+            <a href="#roi">Event ROI</a>
+            <a href="/pricing">Pricing</a>
+          </div>
+          <div className="nav-actions">
+            {isLoggedIn ? (
+              <button
+                onClick={() => router.push('/home')}
+                style={{
+                  background: '#7dde3c',
+                  color: '#0a1a0a',
+                  borderRadius: 999,
+                  padding: '7px 14px',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  border: 'none',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Go to app
+              </button>
+            ) : (
+              <>
+                <button className="btn-ghost" onClick={() => router.push("/login")}>
+                  Sign in
+                </button>
+                <button className="btn-solid" onClick={() => router.push("/signup")}>
+                  Get started
+                </button>
+              </>
+            )}
+          </div>
+        </nav>
+      )}
 
       {/* HERO */}
       <section
