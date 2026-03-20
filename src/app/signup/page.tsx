@@ -46,6 +46,7 @@ function SignupForm({
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,7 +69,11 @@ function SignupForm({
             screen_name: screenName,
           });
         }
-        onSuccess();
+        if (!data.session || data.user?.identities?.length === 0) {
+          setShowConfirmation(true);
+        } else {
+          onSuccess();
+        }
       }
     } catch {
       setError("Something went wrong. Please try again.");
@@ -112,6 +117,24 @@ function SignupForm({
         )}
       </div>
 
+      {showConfirmation ? (
+        <div style={{ textAlign: "center", padding: "12px 4px" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
+            <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="#7dde3c" strokeWidth="2.2">
+              <path d="M20 7 10 17l-6-6" />
+            </svg>
+          </div>
+          <div style={{ fontSize: 22, fontWeight: 700, color: "#111", marginBottom: 8 }}>
+            Check your email
+          </div>
+          <div style={{ fontSize: 14, color: "#999" }}>
+            We sent a confirmation link to {email}. Click it to activate your account.
+          </div>
+          <div style={{ fontSize: 12, color: "#bbb", marginTop: 8 }}>
+            Didn&apos;t get it? Check your spam folder.
+          </div>
+        </div>
+      ) : (
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label
@@ -218,6 +241,7 @@ function SignupForm({
           {loading ? "Creating your account..." : "Create account"}
         </button>
       </form>
+      )}
 
       <p className="mt-4 text-[11px] text-[#7a7067]">
         Already have a Katch account?{" "}
@@ -412,7 +436,7 @@ html, body {
             initialEmail={emailParam ?? ""}
             selectedPlan={selectedPlan}
             onBack={() => setSelectedPlan(null)}
-            onSuccess={() => router.push("/scan")}
+            onSuccess={() => router.push("/home")}
             onLogin={() => router.push("/login")}
           />
         )}
