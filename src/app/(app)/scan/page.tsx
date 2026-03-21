@@ -238,7 +238,13 @@ export default function ScanPage() {
   const handleOpenCamera = async () => {
     setScanMode("camera");
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: "environment",
+          width: { ideal: 3840 },
+          height: { ideal: 2160 },
+        },
+      });
       streamRef.current = stream;
       if (videoRef.current) videoRef.current.srcObject = stream;
     } catch {
@@ -284,10 +290,16 @@ export default function ScanPage() {
     if (!videoRef.current) return;
     if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop());
     const canvas = document.createElement("canvas");
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-    canvas.getContext("2d")?.drawImage(videoRef.current, 0, 0);
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+    const video = videoRef.current;
+    const pixelRatio = window.devicePixelRatio || 1;
+    canvas.width = video.videoWidth * pixelRatio;
+    canvas.height = video.videoHeight * pixelRatio;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.scale(pixelRatio, pixelRatio);
+      ctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+    }
+    const dataUrl = canvas.toDataURL("image/jpeg", 1.0);
     const base64 = dataUrl.split(",")[1];
     setUploadedImage(dataUrl);
     await scanWithClaude(base64, "image/jpeg");
@@ -851,7 +863,14 @@ export default function ScanPage() {
 
           {scanMode === "camera" && (
             <div className="relative rounded-2xl overflow-hidden aspect-video bg-slate-900">
-              <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+                style={{ width: "100%", height: "100%", objectFit: "cover", imageRendering: "crisp-edges" }}
+              />
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="w-56 h-32 border-2 border-white rounded-lg opacity-60 relative">
                   {[
