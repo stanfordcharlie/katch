@@ -38,6 +38,7 @@ export default function ScanPage() {
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [bulkProgress, setBulkProgress] = useState(0);
   const [showBulkDiscard, setShowBulkDiscard] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -719,9 +720,16 @@ export default function ScanPage() {
       <input
         type="file"
         accept="image/*"
+        style={{ display: "none" }}
+        id="scan-photo-input"
+        onChange={handleFileUpload}
+      />
+      <input
+        type="file"
+        accept="image/*"
         multiple
         style={{ display: "none" }}
-        id="bulk-upload-input"
+        id="bulk-input"
         onChange={handleBulkSelect}
       />
       <div style={{ maxWidth: isMobile ? "100%" : "1100px", margin: "0 auto", padding: isMobile ? "20px 16px 0" : "36px 36px 0" }}>
@@ -772,40 +780,73 @@ export default function ScanPage() {
         {/* Left column — Scan area */}
         <div style={{ flex: isMobile ? "none" : 1, width: isMobile ? "100%" : "auto", minWidth: 0 }}>
           {scanMode === "idle" && (
-            <>
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragging(true);
+              }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDragging(false);
+                const file = e.dataTransfer.files?.[0];
+                if (!file || !file.type.startsWith("image/")) return;
+                const reader = new FileReader();
+                reader.onload = async (ev) => {
+                  const dataUrl = ev.target?.result as string;
+                  const base64 = dataUrl.split(",")[1];
+                  const mediaType = file.type;
+                  setUploadedImage(dataUrl);
+                  await scanWithClaude(base64, mediaType);
+                };
+                reader.readAsDataURL(file);
+              }}
+              style={{
+                background: isDragging ? "#f0f7eb" : "#fff",
+                border: isDragging ? "2px dashed #7dde3c" : "2px dashed #e0e0e0",
+                borderRadius: 20,
+                padding: "48px 32px",
+                width: "100%",
+                boxSizing: "border-box",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                textAlign: "center",
+                transition: "all 0.2s",
+              }}
+            >
               <div
                 style={{
-                  background: "#fff",
-                  border: "1px solid #ebebeb",
+                  width: 64,
+                  height: 64,
                   borderRadius: 16,
-                  padding: isMobile ? "24px 16px" : "40px 24px",
-                  width: "100%",
-                  boxSizing: "border-box",
+                  background: "#f0f7eb",
                   display: "flex",
-                  flexDirection: "column",
                   alignItems: "center",
-                  textAlign: "center",
+                  justifyContent: "center",
+                  marginBottom: 20,
                 }}
               >
-                <div
-                  style={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: "50%",
-                    background: "#f0f7eb",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginBottom: 16,
-                  }}
-                >
-                  <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#2d6a1f" strokeWidth="1.5">
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                    <circle cx="12" cy="13" r="4" />
-                  </svg>
-                </div>
-                <p style={{ fontSize: 16, fontWeight: 600, color: "#111", marginBottom: 4 }}>Open Camera</p>
-                <p style={{ fontSize: 13, color: "#999", marginBottom: 16 }}>Point at a badge or business card</p>
+                <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#7ab648" strokeWidth="1.5">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+              </div>
+              <p style={{ fontSize: 18, fontWeight: 700, color: "#111", marginBottom: 8, marginTop: 0 }}>
+                Drop a badge or card here
+              </p>
+              <p style={{ fontSize: 13, color: "#bbb", marginBottom: 16, marginTop: 0 }}>or</p>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  gap: 10,
+                }}
+              >
                 <button
                   type="button"
                   onClick={handleOpenCamera}
@@ -814,51 +855,54 @@ export default function ScanPage() {
                     color: "#0a1a0a",
                     fontWeight: 700,
                     borderRadius: 10,
-                    padding: "12px 28px",
-                    fontSize: 15,
+                    height: 42,
+                    padding: "0 20px",
+                    fontSize: 14,
                     border: "none",
                     cursor: "pointer",
-                    width: isMobile ? "100%" : "auto",
                   }}
                 >
                   Open Camera
                 </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const input = document.getElementById("scan-photo-input") as HTMLInputElement | null;
+                    input?.click();
+                  }}
+                  style={{
+                    background: "#fff",
+                    border: "1px solid #e8e8e8",
+                    color: "#444",
+                    borderRadius: 10,
+                    height: 42,
+                    padding: "0 20px",
+                    fontSize: 14,
+                    cursor: "pointer",
+                  }}
+                >
+                  Upload photo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    document.getElementById("bulk-input")?.click();
+                  }}
+                  style={{
+                    background: "#fff",
+                    border: "1px solid #e8e8e8",
+                    color: "#444",
+                    borderRadius: 10,
+                    height: 42,
+                    padding: "0 20px",
+                    fontSize: 14,
+                    cursor: "pointer",
+                  }}
+                >
+                  Bulk upload
+                </button>
               </div>
-              <label
-                style={{
-                  display: "block",
-                  textAlign: "center",
-                  marginTop: 12,
-                  color: "#7ab648",
-                  fontSize: 13,
-                  cursor: "pointer",
-                }}
-              >
-                <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleFileUpload} />
-                Or upload a photo
-              </label>
-              <button
-                type="button"
-                onClick={() => {
-                  const input = document.getElementById("bulk-upload-input") as HTMLInputElement | null;
-                  input?.click();
-                }}
-                style={{
-                  display: "block",
-                  textAlign: "center",
-                  marginTop: 8,
-                  color: "#7ab648",
-                  fontSize: 13,
-                  cursor: "pointer",
-                  background: "transparent",
-                  border: "none",
-                  padding: 0,
-                  width: "100%",
-                }}
-              >
-                Bulk upload
-              </button>
-            </>
+            </div>
           )}
 
           {scanMode === "camera" && (
