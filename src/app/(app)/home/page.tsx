@@ -161,6 +161,17 @@ export default function HomePage() {
       }}
     >
       {/* Hero card */}
+      {loading ? (
+        <div
+          className="skeleton"
+          style={{
+            borderRadius: 20,
+            height: 200,
+            marginBottom: 16,
+            margin: "20px 20px 16px",
+          }}
+        />
+      ) : (
       <section
         style={{
           background: "linear-gradient(135deg, #e8f5d8 0%, #c8e8a0 40%, #a8d870 70%, #d4edb8 100%)",
@@ -220,10 +231,10 @@ export default function HomePage() {
           }}
         >
           {[
-            { label: "Total scanned", value: loading ? "…" : totalContacts.toString() },
-            { label: "Hot / Fire leads", value: loading ? "…" : hotLeads.toString() },
+            { label: "Total scanned", value: totalContacts.toString() },
+            { label: "Hot / Fire leads", value: hotLeads.toString() },
             { label: "Sequences sent", value: "—" },
-            { label: "Events attended", value: loading ? "…" : eventsAttended.toString() },
+            { label: "Events attended", value: eventsAttended.toString() },
           ].map((stat) => (
             <div
               key={stat.label}
@@ -263,8 +274,32 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+      )}
 
       {/* Quick actions */}
+      {loading ? (
+        <section
+          style={{
+            margin: "20px 20px 0",
+            display: isMobile ? "flex" : "grid",
+            gridTemplateColumns: isMobile ? undefined : "repeat(3, minmax(0, 1fr))",
+            flexDirection: isMobile ? "column" : undefined,
+            gap: isMobile ? 10 : 16,
+          }}
+        >
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="skeleton"
+              style={{
+                borderRadius: 14,
+                height: 120,
+                width: "100%",
+              }}
+            />
+          ))}
+        </section>
+      ) : (
       <section
         style={{
           margin: "20px 20px 0",
@@ -359,7 +394,36 @@ export default function HomePage() {
           </button>
         ))}
       </section>
+      )}
 
+      {loading ? (
+        <section
+          style={{
+            margin: "22px 20px 0",
+            display: "grid",
+            gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 3fr) minmax(0, 2fr)",
+            gap: 16,
+            alignItems: "flex-start",
+          }}
+        >
+          <div
+            className="skeleton"
+            style={{
+              borderRadius: 12,
+              minHeight: 180,
+              border: "1px solid #ebebeb",
+            }}
+          />
+          <div
+            className="skeleton"
+            style={{
+              borderRadius: 12,
+              minHeight: 180,
+              border: "1px solid #ebebeb",
+            }}
+          />
+        </section>
+      ) : (
       <section
         style={{
           margin: "22px 20px 0",
@@ -612,6 +676,7 @@ export default function HomePage() {
           )}
         </div>
       </section>
+      )}
     </div>
   );
 }

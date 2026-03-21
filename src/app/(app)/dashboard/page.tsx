@@ -1,4 +1,4 @@
- "use client";
+"use client";
 
 import { useState, useEffect } from "react";
 import type { User } from "@supabase/supabase-js";
@@ -27,6 +27,7 @@ export default function DashboardPage() {
   });
   const [barHeights, setBarHeights] = useState<number[]>([]);
   const [isMobile, setIsMobile] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -43,11 +44,15 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       const {
         data: { session },
       } = await supabase.auth.getSession();
       const userId = session?.user?.id;
-      if (!userId) return;
+      if (!userId) {
+        setLoading(false);
+        return;
+      }
       const { data: contactsData } = await supabase
         .from("contacts")
         .select("*")
@@ -60,6 +65,7 @@ export default function DashboardPage() {
         .order("created_at", { ascending: false });
       if (contactsData) setContacts((contactsData as any[]) || []);
       if (eventsData) setEvents((eventsData as any[]) || []);
+      setLoading(false);
     };
     fetchData();
   }, [user?.id]);
@@ -273,7 +279,43 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {contacts.length === 0 ? (
+        {loading ? (
+          <>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, minmax(0, 1fr))",
+                gap: isMobile ? 12 : 14,
+                marginBottom: 24,
+              }}
+            >
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="skeleton"
+                  style={{
+                    border: "1px solid #ebebeb",
+                    borderRadius: 16,
+                    height: 120,
+                  }}
+                />
+              ))}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {[0, 1].map((i) => (
+                <div
+                  key={i}
+                  className="skeleton"
+                  style={{
+                    border: "1px solid #ebebeb",
+                    borderRadius: 16,
+                    height: 200,
+                  }}
+                />
+              ))}
+            </div>
+          </>
+        ) : contacts.length === 0 ? (
           <div
             style={{
               marginTop: 32,

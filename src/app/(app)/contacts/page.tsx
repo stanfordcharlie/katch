@@ -562,12 +562,56 @@ export default function ContactsPage() {
       </div>
 
       {loading && (
-        <div className='text-center py-20 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50'>
-          <div className='animate-pulse flex flex-col items-center gap-3'>
-            <div className='w-12 h-12 bg-slate-200 rounded-full' />
-            <div className='h-4 w-32 bg-slate-200 rounded' />
-            <div className='h-3 w-48 bg-slate-100 rounded' />
-          </div>
+        <div>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div
+              key={i}
+              style={{
+                background: '#fff',
+                border: '1px solid #ebebeb',
+                borderRadius: 14,
+                padding: 16,
+                marginBottom: 10,
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 12,
+                  alignItems: 'center',
+                }}
+              >
+                <div
+                  className='skeleton'
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 8,
+                    flexShrink: 0,
+                  }}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    className='skeleton'
+                    style={{
+                      width: 140,
+                      height: 14,
+                      borderRadius: 4,
+                      marginBottom: 8,
+                    }}
+                  />
+                  <div
+                    className='skeleton'
+                    style={{
+                      width: 100,
+                      height: 12,
+                      borderRadius: 4,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -602,6 +646,7 @@ export default function ContactsPage() {
         </div>
       )}
 
+      {!loading && (
       <div style={{ marginTop: 8 }}>
         {filteredContacts.map((contact) => {
           const rawScore =
@@ -1244,6 +1289,7 @@ export default function ContactsPage() {
           );
         })}
       </div>
+      )}
 
       {selectedIds.length > 0 && (
         <div

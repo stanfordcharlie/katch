@@ -25,6 +25,7 @@ export default function EventsPage() {
   const [allContacts, setAllContacts] = useState<any[]>([]);
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -41,11 +42,15 @@ export default function EventsPage() {
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       const {
         data: { session },
       } = await supabase.auth.getSession();
       const userId = session?.user?.id;
-      if (!userId) return;
+      if (!userId) {
+        setLoading(false);
+        return;
+      }
       const { data: contactsData } = await supabase
         .from("contacts")
         .select("*")
@@ -72,6 +77,7 @@ export default function EventsPage() {
         );
       }
       if (eventsData) setEvents((eventsData as any[]) || []);
+      setLoading(false);
     };
     fetchData();
   }, [user?.id]);
@@ -349,7 +355,33 @@ export default function EventsPage() {
         </div>
       )}
 
-      {events.length === 0 && !showEventForm && (
+      {loading && !showEventForm && (
+        <div>
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              style={{
+                background: "#fff",
+                border: "1px solid #ebebeb",
+                borderRadius: 14,
+                padding: 20,
+                marginBottom: 12,
+              }}
+            >
+              <div
+                className="skeleton"
+                style={{ width: 180, height: 16, borderRadius: 4 }}
+              />
+              <div
+                className="skeleton"
+                style={{ width: 120, height: 12, borderRadius: 4, marginTop: 8 }}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!loading && events.length === 0 && !showEventForm && (
         <div
           style={{
             background: "#fff",
@@ -386,6 +418,7 @@ export default function EventsPage() {
         </div>
       )}
 
+      {!loading && (
       <div>
         {events.map((ev) => {
           const evContacts = contacts.filter((c) => c.event === ev.name);
@@ -681,6 +714,7 @@ export default function EventsPage() {
           );
         })}
       </div>
+      )}
 
       {selectedIds.length > 0 && (
         <div
