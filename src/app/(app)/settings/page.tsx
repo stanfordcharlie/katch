@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 type Signal = { id: string; name: string; enabled: boolean };
@@ -30,6 +30,7 @@ type SectionId =
   | "contact-fields"
   | "email-tone"
   | "sequence-templates"
+  | "integrations"
   | "profile"
   | "notifications"
   | "billing";
@@ -78,6 +79,7 @@ const Toggle = ({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 
 export default function SettingsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [displayNameInput, setDisplayNameInput] = useState("");
@@ -93,12 +95,96 @@ export default function SettingsPage() {
   const [notifEmailSequence, setNotifEmailSequence] = useState(true);
   const [notifWeeklySummary, setNotifWeeklySummary] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [hubspotConnected, setHubspotConnected] = useState(false);
+  const [hubId, setHubId] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const [toastVariant, setToastVariant] = useState<"success" | "error">("success");
+  const oauthParamsHandled = useRef(false);
+
+  const showToast = useCallback((msg: string, variant: "success" | "error" = "success") => {
+    setToast(msg);
+    setToastVariant(variant);
+    setTimeout(() => setToast(null), 3000);
+  }, []);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
+  }, []);
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "integrations") {
+      setActiveSection("integrations");
+    }
+    const connected = searchParams.get("connected");
+    const err = searchParams.get("error");
+    if (connected === "hubspot") {
+      if (!oauthParamsHandled.current) {
+        oauthParamsHandled.current = true;
+        showToast("HubSpot connected successfully!", "success");
+        router.replace("/settings?tab=integrations");
+        void (async () => {
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+          const user = session?.user;
+          if (!user) return;
+          const { data } = await supabase
+            .from("hubspot_tokens")
+            .select("hub_id")
+            .eq("user_id", user.id)
+            .maybeSingle();
+          if (data) {
+            setHubspotConnected(true);
+            setHubId((data as { hub_id: string | null }).hub_id ?? null);
+          }
+        })();
+      }
+    } else if (err === "hubspot_denied") {
+      if (!oauthParamsHandled.current) {
+        oauthParamsHandled.current = true;
+        showToast("HubSpot connection was cancelled.", "error");
+        router.replace("/settings?tab=integrations");
+      }
+    } else if (err === "hubspot_failed") {
+      if (!oauthParamsHandled.current) {
+        oauthParamsHandled.current = true;
+        showToast("HubSpot connection failed. Please try again.", "error");
+        router.replace("/settings?tab=integrations");
+      }
+    } else {
+      oauthParamsHandled.current = false;
+    }
+  }, [searchParams, router, showToast]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const user = session?.user;
+      if (!user || !mounted) return;
+      const { data } = await supabase
+        .from("hubspot_tokens")
+        .select("hub_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!mounted) return;
+      if (data) {
+        setHubspotConnected(true);
+        setHubId((data as { hub_id: string | null }).hub_id ?? null);
+      } else {
+        setHubspotConnected(false);
+        setHubId(null);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -262,6 +348,7 @@ export default function SettingsPage() {
     {
       title: "Preferences",
       items: [
+        { id: "integrations", label: "Integrations" },
         { id: "profile", label: "Profile" },
         { id: "notifications", label: "Notifications" },
         { id: "billing", label: "Billing" },
@@ -274,6 +361,7 @@ export default function SettingsPage() {
     { id: "contact-fields", label: "Contact Fields" },
     { id: "email-tone", label: "Email Tone" },
     { id: "sequence-templates", label: "Sequence Templates" },
+    { id: "integrations", label: "Integrations" },
     { id: "profile", label: "Profile" },
     { id: "notifications", label: "Notifications" },
     { id: "billing", label: "Billing" },
@@ -289,6 +377,28 @@ export default function SettingsPage() {
         fontFamily: "Inter, -apple-system, sans-serif",
       }}
     >
+      {toast && (
+        <div
+          style={{
+            position: "fixed",
+            top: 16,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 100,
+            padding: "10px 16px",
+            borderRadius: 10,
+            fontSize: 14,
+            fontWeight: 500,
+            boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+            background: toastVariant === "success" ? "#f0f7eb" : "#fde8e8",
+            color: toastVariant === "success" ? "#2d6a1f" : "#c53030",
+            maxWidth: "min(90vw, 400px)",
+            textAlign: "center",
+          }}
+        >
+          {toast}
+        </div>
+      )}
       <style>{`
         .tabs-scroll::-webkit-scrollbar{display:none}
         @media (max-width: 767px) {
@@ -801,6 +911,142 @@ export default function SettingsPage() {
                     You&apos;ll be able to define your own multi-touch follow-up templates and reuse them
                     across events.
                   </p>
+                </div>
+              </section>
+            )}
+
+            {activeSection === "integrations" && (
+              <section>
+                <h2
+                  style={{
+                    fontSize: 20,
+                    fontWeight: 600,
+                    letterSpacing: "-0.02em",
+                    marginBottom: 4,
+                    color: "#111",
+                    marginTop: 0,
+                  }}
+                >
+                  Integrations
+                </h2>
+                <p style={{ fontSize: 14, color: "#999", marginBottom: 24, marginTop: 0 }}>
+                  Connect Katch to your other tools.
+                </p>
+                <div
+                  style={{
+                    background: "#fff",
+                    border: "1px solid #ebebeb",
+                    borderRadius: 14,
+                    padding: "20px 24px",
+                    display: "flex",
+                    flexDirection: isMobile ? "column" : "row",
+                    alignItems: isMobile ? "stretch" : "center",
+                    justifyContent: "space-between",
+                    gap: isMobile ? 16 : 0,
+                  }}
+                >
+                  <div style={{ display: "flex", flexDirection: "row", gap: 14, alignItems: "center", minWidth: 0 }}>
+                    <div
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 10,
+                        background: "#ff7a59",
+                        color: "#fff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 20,
+                        fontWeight: 700,
+                        flexShrink: 0,
+                      }}
+                    >
+                      H
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: "#111" }}>HubSpot CRM</div>
+                      <div style={{ fontSize: 13, color: "#999", marginTop: 2 }}>
+                        Sync contacts directly to your HubSpot account.
+                      </div>
+                      {hubspotConnected && hubId != null && hubId !== "" && (
+                        <div style={{ fontSize: 11, color: "#bbb", marginTop: 2 }}>{hubId}</div>
+                      )}
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: isMobile ? "column" : "row",
+                      alignItems: isMobile ? "stretch" : "center",
+                      justifyContent: "flex-end",
+                      gap: 10,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {hubspotConnected ? (
+                      <>
+                        <span
+                          style={{
+                            background: "#f0f7eb",
+                            color: "#2d6a1f",
+                            fontSize: 12,
+                            fontWeight: 600,
+                            borderRadius: 999,
+                            padding: "4px 12px",
+                            marginRight: isMobile ? 0 : 10,
+                            alignSelf: isMobile ? "center" : undefined,
+                          }}
+                        >
+                          ● Connected
+                        </span>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const {
+                              data: { session },
+                            } = await supabase.auth.getSession();
+                            const user = session?.user;
+                            if (!user) return;
+                            await supabase.from("hubspot_tokens").delete().eq("user_id", user.id);
+                            setHubspotConnected(false);
+                            setHubId(null);
+                            showToast("HubSpot disconnected.", "success");
+                          }}
+                          style={{
+                            background: "#fff",
+                            border: "1px solid #fde8e8",
+                            color: "#e55a5a",
+                            fontSize: 13,
+                            fontWeight: 600,
+                            borderRadius: 999,
+                            padding: "8px 16px",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Disconnect
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          window.location.href = "/api/hubspot/connect";
+                        }}
+                        style={{
+                          background: "#ff7a59",
+                          color: "#fff",
+                          fontSize: 13,
+                          fontWeight: 600,
+                          borderRadius: 999,
+                          padding: "8px 20px",
+                          border: "none",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Connect HubSpot
+                      </button>
+                    )}
+                  </div>
                 </div>
               </section>
             )}
