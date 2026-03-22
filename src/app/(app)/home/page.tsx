@@ -363,9 +363,7 @@ export default function HomePage() {
                 marginBottom: 12,
                 color: "#2d6a1f",
               }}
-            >
-              <span style={{ fontSize: "16px" }}>↗</span>
-            </div>
+            />
             <div>
               <div
                 style={{
@@ -388,18 +386,6 @@ export default function HomePage() {
               >
                 {qa.desc}
               </div>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "flex-end",
-                marginTop: 12,
-                fontSize: "16px",
-                color: "#7ab648",
-              }}
-            >
-              →
             </div>
           </button>
         ))}
