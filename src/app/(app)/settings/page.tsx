@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 
 type Signal = { id: string; name: string; enabled: boolean };
@@ -80,6 +81,7 @@ const Toggle = ({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 export default function SettingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [user, setUser] = useState<User | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [displayNameInput, setDisplayNameInput] = useState("");
@@ -195,9 +197,12 @@ export default function SettingsPage() {
       } = await supabase.auth.getSession();
       const user = session?.user;
       if (!user || !mounted) {
+        setUser(null);
         setLoadingSettings(false);
         return;
       }
+
+      setUser(user);
 
       const meta = (user.user_metadata || {}) as Record<string, unknown>;
       const metaDisplay = (meta.display_name as string) || (meta.full_name as string) || (meta.name as string) || "";
@@ -1030,7 +1035,8 @@ export default function SettingsPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          window.location.href = "/api/hubspot/connect";
+                          if (!user) return;
+                          window.location.href = `/api/hubspot/connect?userId=${user.id}`;
                         }}
                         style={{
                           background: "#ff7a59",

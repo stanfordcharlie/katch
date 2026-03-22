@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
-import { createServerClient } from "@supabase/ssr";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -43,31 +41,22 @@ export async function GET(req: NextRequest) {
     const info = await infoRes.json();
     const hubId = info.hub_id?.toString();
 
-    const cookieStore = await cookies();
+    const stateParam = req.nextUrl.searchParams.get("state");
+    let userId: string | null = null;
 
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
-        },
+    if (stateParam) {
+      try {
+        const decoded = JSON.parse(Buffer.from(decodeURIComponent(stateParam), "base64").toString());
+        userId = decoded.userId || null;
+      } catch (e) {
+        userId = null;
       }
-    );
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      console.error("User identification failed:", userError);
-      return NextResponse.redirect(`${baseUrl}/settings?tab=integrations&error=hubspot_failed`);
     }
 
-    const userId = user.id;
+    if (!userId) {
+      console.error("Could not identify user from state param");
+      return NextResponse.redirect(`${baseUrl}/settings?tab=integrations&error=hubspot_failed`);
+    }
 
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
 
