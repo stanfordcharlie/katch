@@ -41,13 +41,7 @@ export async function GET(req: NextRequest) {
     const info = await infoRes.json();
     const hubId = info.hub_id?.toString();
 
-    const authHeader = req.headers.get("authorization") || "";
     const cookieHeader = req.headers.get("cookie") || "";
-
-    const supabaseCookie = cookieHeader
-      .split(";")
-      .map((c) => c.trim())
-      .find((c) => c.startsWith("sb-") && c.includes("-auth-token="));
 
     let userId: string | null = null;
 
