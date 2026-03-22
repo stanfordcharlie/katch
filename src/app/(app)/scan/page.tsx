@@ -39,6 +39,8 @@ export default function ScanPage() {
   const [bulkProgress, setBulkProgress] = useState(0);
   const [showBulkDiscard, setShowBulkDiscard] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [stagedFiles, setStagedFiles] = useState<Array<{ id: string; dataUrl: string; file: File }>>([]);
+  const [showStaged, setShowStaged] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -124,32 +126,8 @@ export default function ScanPage() {
     try {
       localStorage.removeItem("katch_scan_draft");
     } catch (e) {}
-  };
-
-  const handleBulkSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []).slice(0, 20);
-    if (!files.length) return;
-    e.target.value = "";
-    Promise.all(
-      files.map(
-        (file) =>
-          new Promise<(typeof bulkFiles)[0]>((resolve) => {
-            const reader = new FileReader();
-            reader.onload = (ev) =>
-              resolve({
-                id: Math.random().toString(36).slice(2),
-                dataUrl: ev.target?.result as string,
-                status: 'pending',
-                contact: null,
-              });
-            reader.readAsDataURL(file);
-          })
-      )
-    ).then((images) => {
-      setBulkFiles(images);
-      setBulkMode(true);
-      setBulkProgress(0);
-    });
+    setStagedFiles([]);
+    setShowStaged(false);
   };
 
   const handleBulkProcess = async () => {
@@ -319,6 +297,68 @@ export default function ScanPage() {
       await scanWithClaude(base64, mediaType);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleSmartUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []).filter((f) => f.type.startsWith("image/"));
+    if (!files.length) return;
+    e.target.value = "";
+    if (files.length === 1) {
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        const dataUrl = ev.target?.result as string;
+        const base64 = dataUrl.split(",")[1];
+        const mediaType = files[0].type;
+        setUploadedImage(dataUrl);
+        await scanWithClaude(base64, mediaType);
+      };
+      reader.readAsDataURL(files[0]);
+    } else {
+      Promise.all(
+        files.slice(0, 20).map(
+          (file) =>
+            new Promise<{ id: string; dataUrl: string; file: File }>((resolve) => {
+              const reader = new FileReader();
+              reader.onload = (ev) =>
+                resolve({
+                  id: Math.random().toString(36).slice(2),
+                  dataUrl: ev.target?.result as string,
+                  file,
+                });
+              reader.readAsDataURL(file);
+            })
+        )
+      ).then((staged) => {
+        setStagedFiles(staged);
+        setShowStaged(true);
+      });
+    }
+  };
+
+  const handleStagedAddMore = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []).filter((f) => f.type.startsWith("image/"));
+    e.target.value = "";
+    if (!files.length) return;
+    const room = 20 - stagedFiles.length;
+    if (room <= 0) return;
+    const toAdd = files.slice(0, room);
+    Promise.all(
+      toAdd.map(
+        (file) =>
+          new Promise<{ id: string; dataUrl: string; file: File }>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (ev) =>
+              resolve({
+                id: Math.random().toString(36).slice(2),
+                dataUrl: ev.target?.result as string,
+                file,
+              });
+            reader.readAsDataURL(file);
+          })
+      )
+    ).then((more) => {
+      setStagedFiles((prev) => [...prev, ...more]);
+    });
   };
 
   const handleEnrich = () => {
@@ -720,17 +760,18 @@ export default function ScanPage() {
       <input
         type="file"
         accept="image/*"
+        multiple
         style={{ display: "none" }}
-        id="scan-photo-input"
-        onChange={handleFileUpload}
+        id="single-upload-input"
+        onChange={handleSmartUpload}
       />
       <input
         type="file"
         accept="image/*"
         multiple
         style={{ display: "none" }}
-        id="bulk-input"
-        onChange={handleBulkSelect}
+        id="staged-add-input"
+        onChange={handleStagedAddMore}
       />
       <div style={{ maxWidth: isMobile ? "100%" : "1100px", margin: "0 auto", padding: isMobile ? "20px 16px 0" : "36px 36px 0" }}>
         <h1
@@ -780,129 +821,331 @@ export default function ScanPage() {
         {/* Left column — Scan area */}
         <div style={{ flex: isMobile ? "none" : 1, width: isMobile ? "100%" : "auto", minWidth: 0 }}>
           {scanMode === "idle" && (
-            <div
-              onDragOver={(e) => {
-                e.preventDefault();
-                setIsDragging(true);
-              }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={(e) => {
-                e.preventDefault();
-                setIsDragging(false);
-                const file = e.dataTransfer.files?.[0];
-                if (!file || !file.type.startsWith("image/")) return;
-                const reader = new FileReader();
-                reader.onload = async (ev) => {
-                  const dataUrl = ev.target?.result as string;
-                  const base64 = dataUrl.split(",")[1];
-                  const mediaType = file.type;
-                  setUploadedImage(dataUrl);
-                  await scanWithClaude(base64, mediaType);
-                };
-                reader.readAsDataURL(file);
-              }}
-              style={{
-                background: isDragging ? "#f0f7eb" : "#fff",
-                border: isDragging ? "2px dashed #7dde3c" : "2px dashed #e0e0e0",
-                borderRadius: 20,
-                padding: "48px 32px",
-                width: "100%",
-                boxSizing: "border-box",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                textAlign: "center",
-                transition: "all 0.2s",
-              }}
-            >
+            <>
+              {showStaged && (
+                <div
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    marginBottom: 16,
+                    background: "#fff",
+                    border: "1px solid #ebebeb",
+                    borderRadius: 16,
+                    padding: "20px 16px",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginBottom: 12,
+                      gap: 12,
+                    }}
+                  >
+                    <span style={{ fontSize: 16, fontWeight: 700, color: "#111" }}>
+                      {stagedFiles.length} photos ready
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStagedFiles([]);
+                        setShowStaged(false);
+                      }}
+                      style={{
+                        color: "#999",
+                        fontSize: 13,
+                        cursor: "pointer",
+                        background: "none",
+                        border: "none",
+                        padding: 0,
+                      }}
+                    >
+                      Clear all
+                    </button>
+                  </div>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))",
+                      gap: 8,
+                      marginBottom: 16,
+                    }}
+                  >
+                    {stagedFiles.map((s) => (
+                      <div key={s.id} style={{ position: "relative" }}>
+                        <img
+                          src={s.dataUrl}
+                          alt=""
+                          style={{
+                            width: "100%",
+                            aspectRatio: "1",
+                            objectFit: "cover",
+                            borderRadius: 10,
+                            display: "block",
+                          }}
+                        />
+                        <button
+                          type="button"
+                          aria-label="Remove"
+                          onClick={() => {
+                            setStagedFiles((prev) => {
+                              const next = prev.filter((x) => x.id !== s.id);
+                              if (next.length === 0) setShowStaged(false);
+                              return next;
+                            });
+                          }}
+                          style={{
+                            position: "absolute",
+                            top: -6,
+                            right: -6,
+                            width: 20,
+                            height: 20,
+                            borderRadius: "50%",
+                            background: "#e55a5a",
+                            color: "white",
+                            fontSize: 12,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            cursor: "pointer",
+                            border: "none",
+                            padding: 0,
+                            lineHeight: 1,
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                    {stagedFiles.length < 20 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          document.getElementById("staged-add-input")?.click();
+                        }}
+                        style={{
+                          aspectRatio: "1",
+                          border: "2px dashed #e0e0e0",
+                          borderRadius: 10,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          cursor: "pointer",
+                          color: "#bbb",
+                          fontSize: 24,
+                          background: "transparent",
+                          padding: 0,
+                          minHeight: 0,
+                        }}
+                      >
+                        +
+                      </button>
+                    )}
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: 10,
+                      alignItems: "center",
+                    }}
+                  >
+                    {stagedFiles.length === 1 ? (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const s = stagedFiles[0];
+                          setUploadedImage(s.dataUrl);
+                          await scanWithClaude(s.dataUrl.split(",")[1], s.file.type);
+                          setShowStaged(false);
+                          setStagedFiles([]);
+                        }}
+                        style={{
+                          background: "#7dde3c",
+                          color: "#0a1a0a",
+                          fontWeight: 700,
+                          borderRadius: 10,
+                          height: 44,
+                          padding: "0 24px",
+                          fontSize: 15,
+                          border: "none",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Scan photo
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBulkFiles(
+                            stagedFiles.map((s) => ({
+                              id: s.id,
+                              dataUrl: s.dataUrl,
+                              status: "pending" as const,
+                              contact: null,
+                            }))
+                          );
+                          setBulkMode(true);
+                          setBulkProgress(0);
+                          setShowStaged(false);
+                          setStagedFiles([]);
+                        }}
+                        style={{
+                          background: "#7dde3c",
+                          color: "#0a1a0a",
+                          fontWeight: 700,
+                          borderRadius: 10,
+                          height: 44,
+                          padding: "0 24px",
+                          fontSize: 15,
+                          border: "none",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Scan {stagedFiles.length} photos
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStagedFiles([]);
+                        setShowStaged(false);
+                      }}
+                      style={{
+                        background: "#fff",
+                        border: "1px solid #e8e8e8",
+                        color: "#666",
+                        borderRadius: 10,
+                        height: 44,
+                        padding: "0 16px",
+                        fontSize: 14,
+                        cursor: "pointer",
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
               <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragging(true);
+                }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragging(false);
+                  const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/"));
+                  if (!files.length) return;
+                  Promise.all(
+                    files.slice(0, 20).map(
+                      (file) =>
+                        new Promise<{ id: string; dataUrl: string; file: File }>((resolve) => {
+                          const reader = new FileReader();
+                          reader.onload = (ev) =>
+                            resolve({
+                              id: Math.random().toString(36).slice(2),
+                              dataUrl: ev.target?.result as string,
+                              file,
+                            });
+                          reader.readAsDataURL(file);
+                        })
+                    )
+                  ).then((staged) => {
+                    setStagedFiles(staged);
+                    setShowStaged(true);
+                  });
+                }}
                 style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: 16,
-                  background: "#f0f7eb",
+                  background: isDragging ? "#f0f7eb" : "#fff",
+                  border: isDragging ? "2px dashed #7dde3c" : "2px dashed #e0e0e0",
+                  borderRadius: 20,
+                  padding: "48px 32px",
+                  width: "100%",
+                  boxSizing: "border-box",
                   display: "flex",
+                  flexDirection: "column",
                   alignItems: "center",
-                  justifyContent: "center",
-                  marginBottom: 20,
+                  textAlign: "center",
+                  transition: "all 0.2s",
                 }}
               >
-                <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#7ab648" strokeWidth="1.5">
-                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                  <polyline points="17 8 12 3 7 8" />
-                  <line x1="12" y1="3" x2="12" y2="15" />
-                </svg>
+                <div
+                  style={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: 16,
+                    background: "#f0f7eb",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: 20,
+                  }}
+                >
+                  <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#7ab648" strokeWidth="1.5">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                </div>
+                <p style={{ fontSize: 18, fontWeight: 700, color: "#111", marginBottom: 8, marginTop: 0 }}>
+                  Drop a badge or card here
+                </p>
+                <p style={{ fontSize: 13, color: "#bbb", marginBottom: 16, marginTop: 0 }}>
+                  Drag one photo to scan, or drop multiple to bulk upload
+                </p>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    gap: 10,
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={handleOpenCamera}
+                    style={{
+                      background: "#7dde3c",
+                      color: "#0a1a0a",
+                      fontWeight: 700,
+                      borderRadius: 10,
+                      height: 42,
+                      padding: "0 20px",
+                      fontSize: 14,
+                      border: "none",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Open Camera
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const input = document.getElementById("single-upload-input") as HTMLInputElement | null;
+                      input?.click();
+                    }}
+                    style={{
+                      background: "#fff",
+                      border: "1px solid #e8e8e8",
+                      color: "#444",
+                      borderRadius: 10,
+                      height: 42,
+                      padding: "0 20px",
+                      fontSize: 14,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Upload photo
+                  </button>
+                </div>
               </div>
-              <p style={{ fontSize: 18, fontWeight: 700, color: "#111", marginBottom: 8, marginTop: 0 }}>
-                Drop a badge or card here
-              </p>
-              <p style={{ fontSize: 13, color: "#bbb", marginBottom: 16, marginTop: 0 }}>or</p>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "row",
-                  flexWrap: "wrap",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  gap: 10,
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={handleOpenCamera}
-                  style={{
-                    background: "#7dde3c",
-                    color: "#0a1a0a",
-                    fontWeight: 700,
-                    borderRadius: 10,
-                    height: 42,
-                    padding: "0 20px",
-                    fontSize: 14,
-                    border: "none",
-                    cursor: "pointer",
-                  }}
-                >
-                  Open Camera
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const input = document.getElementById("scan-photo-input") as HTMLInputElement | null;
-                    input?.click();
-                  }}
-                  style={{
-                    background: "#fff",
-                    border: "1px solid #e8e8e8",
-                    color: "#444",
-                    borderRadius: 10,
-                    height: 42,
-                    padding: "0 20px",
-                    fontSize: 14,
-                    cursor: "pointer",
-                  }}
-                >
-                  Upload photo
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    document.getElementById("bulk-input")?.click();
-                  }}
-                  style={{
-                    background: "#fff",
-                    border: "1px solid #e8e8e8",
-                    color: "#444",
-                    borderRadius: 10,
-                    height: 42,
-                    padding: "0 20px",
-                    fontSize: 14,
-                    cursor: "pointer",
-                  }}
-                >
-                  Bulk upload
-                </button>
-              </div>
-            </div>
+            </>
           )}
 
           {scanMode === "camera" && (

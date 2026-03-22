@@ -126,24 +126,41 @@ export default function SequencesPage() {
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: "@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=DM+Sans:wght@400;500;600&display=swap');" }} />
       <div
         className="min-h-screen bg-[#f0f0ec] px-5 py-7"
-        style={{ fontFamily: "'DM Sans', system-ui, sans-serif", color: "#1a2e1a" }}
+        style={{ color: "#1a2e1a" }}
       >
         <div className={selectedContact ? "max-w-5xl mx-auto flex gap-8" : "max-w-2xl mx-auto"}>
           <div className={selectedContact ? "flex-1 min-w-0" : "w-full"}>
             <div className="mb-5">
-              <h1 className="text-2xl font-bold" style={{ fontFamily: "'Cormorant Garamond', serif", letterSpacing: "-0.03em", color: "#1a2e1a" }}>
+              <h1
+                style={{
+                  fontSize: "24px",
+                  fontWeight: 600,
+                  letterSpacing: "-0.02em",
+                  lineHeight: 1.2,
+                  color: "#1a2e1a",
+                  margin: 0,
+                }}
+              >
                 Sequences
               </h1>
-              <p className="text-sm mt-0.5" style={{ color: "#6b6560" }}>AI-generated follow-up emails by event</p>
+              <p
+                className="mt-0.5"
+                style={{ fontSize: "13px", fontWeight: 400, color: "#999" }}
+              >
+                AI-generated follow-up emails by event
+              </p>
             </div>
 
             {contacts.length === 0 ? (
-              <div className="text-center py-16 border-2 border-dashed rounded-2xl" style={{ borderColor: "#e5e0db", color: "#6b6560" }}>
-                <p className="text-sm mb-1">No contacts yet</p>
-                <p className="text-xs">Scan a contact first, then come back here</p>
+              <div className="text-center py-16 border-2 border-dashed rounded-2xl" style={{ borderColor: "#e5e0db" }}>
+                <p className="mb-1" style={{ fontSize: "14px", fontWeight: 400, lineHeight: 1.5, color: "#1a2e1a" }}>
+                  No contacts yet
+                </p>
+                <p style={{ fontSize: "13px", fontWeight: 400, color: "#999" }}>
+                  Scan a contact first, then come back here
+                </p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -161,10 +178,25 @@ export default function SequencesPage() {
                         onClick={() => toggleEvent(key)}
                         className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-[#f0f0ec] transition-colors"
                       >
-                        <span className="font-semibold text-sm" style={{ fontFamily: "'Cormorant Garamond', serif", color: "#1a2e1a" }}>
+                        <span
+                          style={{
+                            fontSize: "17px",
+                            fontWeight: 600,
+                            letterSpacing: "-0.01em",
+                            color: "#1a2e1a",
+                          }}
+                        >
                           {eventName}
                         </span>
-                        <span className="text-xs px-2 py-0.5 rounded-full border" style={{ borderColor: "#c4855a", color: "#c4855a" }}>
+                        <span
+                          className="px-2 py-0.5 rounded-full border"
+                          style={{
+                            fontSize: "13px",
+                            fontWeight: 400,
+                            borderColor: "#c4855a",
+                            color: "#c4855a",
+                          }}
+                        >
                           {list.length}
                         </span>
                       </button>
@@ -181,8 +213,20 @@ export default function SequencesPage() {
                             >
                               <Avatar name={c.name} size="sm" />
                               <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm truncate" style={{ color: "#1a2e1a" }}>{c.name}</p>
-                                <p className="text-xs truncate" style={{ color: "#6b6560" }}>{c.title} · {c.company}</p>
+                                <p
+                                  className="truncate"
+                                  style={{
+                                    fontSize: "15px",
+                                    fontWeight: 600,
+                                    letterSpacing: "-0.01em",
+                                    color: "#1a2e1a",
+                                  }}
+                                >
+                                  {c.name}
+                                </p>
+                                <p className="truncate" style={{ fontSize: "13px", fontWeight: 400, color: "#999" }}>
+                                  {c.title} · {c.company}
+                                </p>
                               </div>
                               <ScoreBadge score={score(c)} />
                             </button>
@@ -203,10 +247,25 @@ export default function SequencesPage() {
                       onClick={() => toggleEvent("unassigned")}
                       className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-[#f0f0ec] transition-colors"
                     >
-                      <span className="font-semibold text-sm" style={{ fontFamily: "'Cormorant Garamond', serif", color: "#1a2e1a" }}>
+                      <span
+                        style={{
+                          fontSize: "17px",
+                          fontWeight: 600,
+                          letterSpacing: "-0.01em",
+                          color: "#1a2e1a",
+                        }}
+                      >
                         Unassigned
                       </span>
-                      <span className="text-xs px-2 py-0.5 rounded-full border" style={{ borderColor: "#c4855a", color: "#c4855a" }}>
+                      <span
+                        className="px-2 py-0.5 rounded-full border"
+                        style={{
+                          fontSize: "13px",
+                          fontWeight: 400,
+                          borderColor: "#c4855a",
+                          color: "#c4855a",
+                        }}
+                      >
                         {unassigned.length}
                       </span>
                     </button>
@@ -223,8 +282,20 @@ export default function SequencesPage() {
                           >
                             <Avatar name={c.name} size="sm" />
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm truncate" style={{ color: "#1a2e1a" }}>{c.name}</p>
-                              <p className="text-xs truncate" style={{ color: "#6b6560" }}>{c.title ?? ""} · {c.company ?? ""}</p>
+                              <p
+                                className="truncate"
+                                style={{
+                                  fontSize: "15px",
+                                  fontWeight: 600,
+                                  letterSpacing: "-0.01em",
+                                  color: "#1a2e1a",
+                                }}
+                              >
+                                {c.name}
+                              </p>
+                              <p className="truncate" style={{ fontSize: "13px", fontWeight: 400, color: "#999" }}>
+                                {c.title ?? ""} · {c.company ?? ""}
+                              </p>
                             </div>
                             <ScoreBadge score={score(c)} />
                           </button>
@@ -243,10 +314,19 @@ export default function SequencesPage() {
                 <Avatar name={selectedContact.name} size="lg" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-semibold text-sm" style={{ color: "#1a2e1a" }}>{selectedContact.name}</p>
+                    <p
+                      style={{
+                        fontSize: "15px",
+                        fontWeight: 600,
+                        letterSpacing: "-0.01em",
+                        color: "#1a2e1a",
+                      }}
+                    >
+                      {selectedContact.name}
+                    </p>
                     <ScoreBadge score={score(selectedContact)} />
                   </div>
-                  <p className="text-xs mt-0.5" style={{ color: "#6b6560" }}>
+                  <p className="mt-0.5" style={{ fontSize: "13px", fontWeight: 400, color: "#999" }}>
                     {selectedContact.title} · {selectedContact.company}
                   </p>
                 </div>
@@ -255,8 +335,13 @@ export default function SequencesPage() {
               <button
                 type="button"
                 onClick={backToContacts}
-                className="text-xs hover:underline"
-                style={{ color: "#c4855a" }}
+                className="hover:underline"
+                style={{
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  letterSpacing: "-0.01em",
+                  color: "#c4855a",
+                }}
               >
                 ← Back to contacts
               </button>
@@ -264,19 +349,33 @@ export default function SequencesPage() {
               {seqEmails.length === 0 && (
                 <>
                   <div>
-                    <p className="text-xs font-medium mb-2" style={{ color: "#1a2e1a" }}>Tone</p>
+                    <p
+                      className="mb-2"
+                      style={{
+                        fontSize: "11px",
+                        fontWeight: 600,
+                        letterSpacing: "0.04em",
+                        textTransform: "uppercase",
+                        color: "#1a2e1a",
+                      }}
+                    >
+                      Tone
+                    </p>
                     <div className="flex flex-wrap gap-2">
                       {(["professional", "casual", "friendly", "bold", "funny"] as const).map((t) => (
                         <button
                           key={t}
                           type="button"
                           onClick={() => setTone(t)}
-                          className="px-3 py-1.5 rounded-full text-xs font-medium transition-colors"
-                          style={
-                            tone === t
+                          className="px-3 py-1.5 rounded-full transition-colors"
+                          style={{
+                            fontSize: "13px",
+                            fontWeight: 600,
+                            letterSpacing: "-0.01em",
+                            ...(tone === t
                               ? { backgroundColor: "#1a3a2a", color: "#a8d878" }
-                              : { border: "1px solid #dce8d0", color: "#5b534c" }
-                          }
+                              : { border: "1px solid #dce8d0", color: "#5b534c" }),
+                          }}
                         >
                           {t.charAt(0).toUpperCase() + t.slice(1)}
                         </button>
@@ -284,23 +383,48 @@ export default function SequencesPage() {
                     </div>
                   </div>
                   <div>
-                    <p className="text-xs font-medium mb-1.5" style={{ color: "#1a2e1a" }}>Any specific instructions?</p>
+                    <p
+                      className="mb-1.5"
+                      style={{
+                        fontSize: "11px",
+                        fontWeight: 600,
+                        letterSpacing: "0.04em",
+                        textTransform: "uppercase",
+                        color: "#1a2e1a",
+                      }}
+                    >
+                      Any specific instructions?
+                    </p>
                     <input
                       type="text"
                       placeholder="e.g. mention we met at the networking dinner, reference their product launch..."
                       value={extraInstructions}
                       onChange={(e) => setExtraInstructions(e.target.value)}
-                      className="w-full px-3 py-2 text-sm border rounded-xl outline-none focus:border-[#7ab648]"
-                      style={{ borderColor: "#dce8d0", color: "#1a2e1a", backgroundColor: "#fff" }}
+                      className="w-full px-3 py-2 border rounded-xl outline-none focus:border-[#7ab648]"
+                      style={{
+                        fontSize: "14px",
+                        fontWeight: 400,
+                        lineHeight: 1.5,
+                        borderColor: "#dce8d0",
+                        color: "#1a2e1a",
+                        backgroundColor: "#fff",
+                      }}
                     />
                   </div>
                   <button
                     type="button"
                     onClick={() => selectedContact && handleGenerateSequence(selectedContact)}
                     disabled={seqLoading}
-                  className="flex w-full items-center justify-center gap-2 rounded-full border py-3 text-sm font-medium transition-colors"
-                  style={{ borderColor: "#1a3a2a", backgroundColor: "#f0f0ec", color: "#1a2e1a" }}
-                >
+                    className="flex w-full items-center justify-center gap-2 rounded-full border py-3 transition-colors"
+                    style={{
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      letterSpacing: "-0.01em",
+                      borderColor: "#1a3a2a",
+                      backgroundColor: "#f0f0ec",
+                      color: "#1a2e1a",
+                    }}
+                  >
                   {seqLoading ? (
                     <>
                       <div className="w-4 h-4 border-2 border-[#1a3a2a] border-t-transparent rounded-full animate-spin" />
@@ -319,26 +443,77 @@ export default function SequencesPage() {
                     <div key={i} className="border rounded-2xl overflow-hidden" style={{ borderColor: "#e5e0db", backgroundColor: "#fff" }}>
                       <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: "#e5e0db", backgroundColor: "#f0f0ec" }}>
                         <div className="flex items-center gap-2">
-                          <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: "#e5e0db", color: "#1a2e1a" }}>
+                          <span
+                            className="w-5 h-5 rounded-full flex items-center justify-center"
+                            style={{
+                              fontSize: "13px",
+                              fontWeight: 600,
+                              letterSpacing: "-0.01em",
+                              backgroundColor: "#e5e0db",
+                              color: "#1a2e1a",
+                            }}
+                          >
                             {i + 1}
                           </span>
-                          <span className="text-xs font-medium" style={{ color: "#1a2e1a" }}>{email.day}</span>
+                          <span
+                            style={{
+                              fontSize: "15px",
+                              fontWeight: 600,
+                              letterSpacing: "-0.01em",
+                              color: "#1a2e1a",
+                            }}
+                          >
+                            {email.day}
+                          </span>
                         </div>
                         <button
                           type="button"
                           onClick={() => handleCopy(`Subject: ${email.subject}\n\n${email.body}`, i)}
-                          className="text-xs px-2.5 py-1 border rounded-lg transition-colors"
-                          style={{ borderColor: "#e5e0db", color: "#1a2e1a" }}
+                          className="px-2.5 py-1 border rounded-lg transition-colors"
+                          style={{
+                            fontSize: "13px",
+                            fontWeight: 600,
+                            letterSpacing: "-0.01em",
+                            borderColor: "#e5e0db",
+                            color: "#1a2e1a",
+                          }}
                         >
                           {copiedIdx === i ? "✓ Copied" : "Copy"}
                         </button>
                       </div>
                       <div className="p-4">
                         <div className="mb-3 pb-3 border-b" style={{ borderColor: "#e5e0db" }}>
-                          <span className="text-xs" style={{ color: "#6b6560" }}>Subject: </span>
-                          <span className="text-sm font-medium" style={{ color: "#1a2e1a" }}>{email.subject}</span>
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              fontWeight: 600,
+                              letterSpacing: "0.04em",
+                              textTransform: "uppercase",
+                              color: "#1a2e1a",
+                            }}
+                          >
+                            Subject:{" "}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: "15px",
+                              fontWeight: 600,
+                              letterSpacing: "-0.01em",
+                              color: "#1a2e1a",
+                            }}
+                          >
+                            {email.subject}
+                          </span>
                         </div>
-                        <pre className="text-sm whitespace-pre-wrap leading-relaxed" style={{ color: "#1a2e1a", fontFamily: "'DM Sans', sans-serif" }}>
+                        <pre
+                          className="whitespace-pre-wrap"
+                          style={{
+                            fontSize: "14px",
+                            fontWeight: 400,
+                            lineHeight: 1.5,
+                            color: "#1a2e1a",
+                          }}
+                        >
                           {email.body}
                         </pre>
                       </div>
@@ -347,8 +522,13 @@ export default function SequencesPage() {
                   <button
                     type="button"
                     onClick={() => setSeqEmails([])}
-                    className="w-full py-2 text-xs hover:underline"
-                    style={{ color: "#6b6560" }}
+                    className="w-full py-2 hover:underline"
+                    style={{
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      letterSpacing: "-0.01em",
+                      color: "#999",
+                    }}
                   >
                     Regenerate
                   </button>

@@ -212,9 +212,6 @@ export default function DashboardPage() {
         boxSizing: "border-box",
       }}
     >
-      <style>
-        {`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;600&display=swap');`}
-      </style>
       <main style={{ maxWidth: 1120 }}>
         <div
           style={{
@@ -229,11 +226,11 @@ export default function DashboardPage() {
           <div>
             <h1
               style={{
-                fontFamily: "DM Sans, system-ui, sans-serif",
-                fontSize: isMobile ? 22 : 24,
-                fontWeight: 700,
-                color: "#0d1f0d",
-                letterSpacing: "-0.3px",
+                fontSize: "24px",
+                fontWeight: 600,
+                letterSpacing: "-0.02em",
+                lineHeight: 1.2,
+                color: "#111",
                 margin: 0,
               }}
             >
@@ -241,9 +238,9 @@ export default function DashboardPage() {
             </h1>
             <p
               style={{
-                fontFamily: "DM Sans, system-ui, sans-serif",
-                fontSize: 13,
-                color: "#999999",
+                fontSize: "13px",
+                fontWeight: 400,
+                color: "#999",
                 marginTop: 3,
                 marginBottom: 0,
               }}
@@ -256,8 +253,9 @@ export default function DashboardPage() {
               value={dashEvent}
               onChange={(e) => setDashEvent(e.target.value)}
               style={{
-                fontFamily: "DM Sans, system-ui, sans-serif",
-                fontSize: 12,
+                fontSize: "14px",
+                fontWeight: 400,
+                lineHeight: 1.5,
                 padding: "7px 14px",
                 borderRadius: 999,
                 border: "1px solid #d8ddd0",
@@ -324,7 +322,6 @@ export default function DashboardPage() {
               background: "#f7f7f3",
               padding: "52px 32px",
               textAlign: "center",
-              fontFamily: "DM Sans, system-ui, sans-serif",
             }}
           >
             <div
@@ -353,8 +350,10 @@ export default function DashboardPage() {
             </div>
             <p
               style={{
-                fontSize: 14,
+                fontSize: "17px",
                 fontWeight: 600,
+                letterSpacing: "-0.01em",
+                lineHeight: 1.35,
                 color: "#111111",
                 margin: 0,
                 marginBottom: 4,
@@ -364,8 +363,9 @@ export default function DashboardPage() {
             </p>
             <p
               style={{
-                fontSize: 12,
-                color: "#999999",
+                fontSize: "13px",
+                fontWeight: 400,
+                color: "#999",
                 margin: 0,
                 marginBottom: 18,
               }}
@@ -382,11 +382,11 @@ export default function DashboardPage() {
                 borderRadius: 999,
                 border: "1px solid #0d1f0d",
                 background: "#ffffff",
-                fontSize: 12,
-                fontWeight: 600,
+                fontSize: "14px",
+                fontWeight: 400,
+                lineHeight: 1.5,
                 color: "#0d1f0d",
                 textDecoration: "none",
-                fontFamily: "DM Sans, system-ui, sans-serif",
                 cursor: "pointer",
               }}
             >
@@ -411,7 +411,6 @@ export default function DashboardPage() {
                   padding: isMobile ? 16 : 22,
                   position: "relative",
                   overflow: "hidden",
-                  fontFamily: "DM Sans, system-ui, sans-serif",
                   opacity: 1,
                   transform: "translateY(0)",
                   animation: "dashStatIn 0.4s ease-out 0s forwards",
@@ -444,12 +443,11 @@ export default function DashboardPage() {
                 </div>
                 <div
                   style={{
-                    fontFamily: "Playfair Display, serif",
-                    fontSize: isMobile ? 28 : 40,
-                    fontWeight: 900,
-                    letterSpacing: "-2px",
+                    fontSize: "24px",
+                    fontWeight: 700,
+                    letterSpacing: "-0.03em",
+                    lineHeight: 1.2,
                     color: "#111111",
-                    lineHeight: 1,
                     marginBottom: 8,
                   }}
                 >
@@ -457,8 +455,11 @@ export default function DashboardPage() {
                 </div>
                 <div
                   style={{
-                    fontSize: isMobile ? 11 : 12,
-                    color: "#aaaaaa",
+                    fontSize: 11,
+                    fontWeight: 600,
+                    letterSpacing: "0.04em",
+                    textTransform: "uppercase",
+                    color: "#999",
                     marginBottom: 8,
                   }}
                 >
@@ -489,7 +490,6 @@ export default function DashboardPage() {
                   padding: isMobile ? 16 : 22,
                   position: "relative",
                   overflow: "hidden",
-                  fontFamily: "DM Sans, system-ui, sans-serif",
                   color: "#ffffff",
                   opacity: 1,
                   transform: "translateY(0)",
@@ -521,12 +521,11 @@ export default function DashboardPage() {
                 </div>
                 <div
                   style={{
-                    fontFamily: "Playfair Display, serif",
-                    fontSize: isMobile ? 28 : 40,
-                    fontWeight: 900,
-                    letterSpacing: "-2px",
+                    fontSize: "24px",
+                    fontWeight: 700,
+                    letterSpacing: "-0.03em",
+                    lineHeight: 1.2,
                     color: "#7dde3c",
-                    lineHeight: 1,
                     marginBottom: 8,
                   }}
                 >
@@ -534,7 +533,10 @@ export default function DashboardPage() {
                 </div>
                 <div
                   style={{
-                    fontSize: isMobile ? 11 : 12,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    letterSpacing: "0.04em",
+                    textTransform: "uppercase",
                     color: "rgba(255,255,255,0.4)",
                     marginBottom: 8,
                   }}
@@ -565,7 +567,6 @@ export default function DashboardPage() {
                   padding: isMobile ? 16 : 22,
                   position: "relative",
                   overflow: "hidden",
-                  fontFamily: "DM Sans, system-ui, sans-serif",
                   opacity: 1,
                   transform: "translateY(0)",
                   animation: "dashStatIn 0.4s ease-out 0.12s forwards",
@@ -596,12 +597,11 @@ export default function DashboardPage() {
                 </div>
                 <div
                   style={{
-                    fontFamily: "Playfair Display, serif",
-                    fontSize: isMobile ? 28 : 40,
-                    fontWeight: 900,
-                    letterSpacing: "-2px",
+                    fontSize: "24px",
+                    fontWeight: 700,
+                    letterSpacing: "-0.03em",
+                    lineHeight: 1.2,
                     color: "#111111",
-                    lineHeight: 1,
                     marginBottom: 8,
                   }}
                 >
@@ -609,8 +609,11 @@ export default function DashboardPage() {
                 </div>
                 <div
                   style={{
-                    fontSize: isMobile ? 11 : 12,
-                    color: "#aaaaaa",
+                    fontSize: 11,
+                    fontWeight: 600,
+                    letterSpacing: "0.04em",
+                    textTransform: "uppercase",
+                    color: "#999",
                     marginBottom: 8,
                   }}
                 >
@@ -640,7 +643,6 @@ export default function DashboardPage() {
                   padding: isMobile ? 16 : 22,
                   position: "relative",
                   overflow: "hidden",
-                  fontFamily: "DM Sans, system-ui, sans-serif",
                   opacity: 1,
                   transform: "translateY(0)",
                   animation: "dashStatIn 0.4s ease-out 0.18s forwards",
@@ -671,12 +673,11 @@ export default function DashboardPage() {
                 </div>
                 <div
                   style={{
-                    fontFamily: "Playfair Display, serif",
-                    fontSize: isMobile ? 28 : 40,
-                    fontWeight: 900,
-                    letterSpacing: "-2px",
+                    fontSize: "24px",
+                    fontWeight: 700,
+                    letterSpacing: "-0.03em",
+                    lineHeight: 1.2,
                     color: "#111111",
-                    lineHeight: 1,
                     marginBottom: 8,
                   }}
                 >
@@ -686,8 +687,11 @@ export default function DashboardPage() {
                 </div>
                 <div
                   style={{
-                    fontSize: isMobile ? 11 : 12,
-                    color: "#aaaaaa",
+                    fontSize: 11,
+                    fontWeight: 600,
+                    letterSpacing: "0.04em",
+                    textTransform: "uppercase",
+                    color: "#999",
                     marginBottom: 8,
                   }}
                 >
@@ -732,11 +736,10 @@ export default function DashboardPage() {
                 >
                   <p
                     style={{
-                      fontFamily: "DM Sans, system-ui, sans-serif",
-                      fontSize: 10,
+                      fontSize: "17px",
                       fontWeight: 600,
-                      letterSpacing: "2px",
-                      textTransform: "uppercase",
+                      letterSpacing: "-0.01em",
+                      lineHeight: 1.35,
                       color: "#bbbbbb",
                       margin: 0,
                       marginBottom: 20,
@@ -798,9 +801,9 @@ export default function DashboardPage() {
                           >
                             <div
                               style={{
-                                fontFamily: "DM Sans, system-ui, sans-serif",
-                                fontSize: isMobile ? 11 : 13,
-                                fontWeight: 600,
+                                fontSize: "14px",
+                                fontWeight: 400,
+                                lineHeight: 1.5,
                                 color: "#111111",
                                 marginBottom: 6,
                               }}
@@ -822,9 +825,9 @@ export default function DashboardPage() {
                               style={{
                                 position: "absolute",
                                 bottom: -22,
-                                fontFamily: "DM Sans, system-ui, sans-serif",
-                                fontSize: isMobile ? 9 : 10,
-                                color: "#bbbbbb",
+                                fontSize: "13px",
+                                fontWeight: 400,
+                                color: "#999",
                               }}
                             >
                               {b.label}
@@ -846,11 +849,10 @@ export default function DashboardPage() {
                 >
                   <p
                     style={{
-                      fontFamily: "DM Sans, system-ui, sans-serif",
-                      fontSize: 10,
+                      fontSize: "17px",
                       fontWeight: 600,
-                      letterSpacing: "2px",
-                      textTransform: "uppercase",
+                      letterSpacing: "-0.01em",
+                      lineHeight: 1.35,
                       color: "#bbbbbb",
                       margin: 0,
                       marginBottom: 18,
@@ -871,13 +873,13 @@ export default function DashboardPage() {
                             display: "flex",
                             alignItems: "center",
                             gap: 12,
-                            fontFamily: "DM Sans, system-ui, sans-serif",
                           }}
                         >
                           <span
                             style={{
-                              fontSize: 12,
-                              fontWeight: 500,
+                              fontSize: "14px",
+                              fontWeight: 400,
+                              lineHeight: 1.5,
                               color: "#444444",
                               width: isMobile ? 110 : 140,
                               flexShrink: 0,
@@ -905,8 +907,9 @@ export default function DashboardPage() {
                           </div>
                           <span
                             style={{
-                              fontSize: isMobile ? 10 : 11,
-                              color: "#bbbbbb",
+                              fontSize: "13px",
+                              fontWeight: 400,
+                              color: "#999",
                               minWidth: 32,
                               textAlign: "right",
                             }}
@@ -930,11 +933,10 @@ export default function DashboardPage() {
                   >
                     <p
                       style={{
-                        fontFamily: "DM Sans, system-ui, sans-serif",
-                        fontSize: 10,
+                        fontSize: "17px",
                         fontWeight: 600,
-                        letterSpacing: "2px",
-                        textTransform: "uppercase",
+                        letterSpacing: "-0.01em",
+                        lineHeight: 1.35,
                         color: "#bbbbbb",
                         margin: 0,
                         marginBottom: 16,
@@ -965,9 +967,9 @@ export default function DashboardPage() {
                           <div>
                             <div
                               style={{
-                                fontFamily: "DM Sans, system-ui, sans-serif",
-                                fontSize: isMobile ? 13 : 13,
-                                fontWeight: 600,
+                                fontSize: "14px",
+                                fontWeight: 400,
+                                lineHeight: 1.5,
                                 color: "#111111",
                                 marginBottom: 4,
                               }}
@@ -978,7 +980,6 @@ export default function DashboardPage() {
                               style={{
                                 display: "flex",
                                 gap: 6,
-                                fontFamily: "DM Sans, system-ui, sans-serif",
                               }}
                             >
                               <span
@@ -1008,20 +1009,22 @@ export default function DashboardPage() {
                           <div style={{ textAlign: "right" }}>
                             <div
                               style={{
-                                fontFamily: "Syne, system-ui, sans-serif",
-                                fontSize: isMobile ? 24 : 28,
-                                fontWeight: 800,
+                                fontSize: "24px",
+                                fontWeight: 700,
+                                letterSpacing: "-0.03em",
+                                lineHeight: 1.2,
                                 color: "#111111",
-                                lineHeight: 1,
                               }}
                             >
                               {ev.avgScore.toFixed(1)}
                             </div>
                             <div
                               style={{
-                                fontFamily: "DM Sans, system-ui, sans-serif",
-                                fontSize: 10,
-                                color: "#bbbbbb",
+                                fontSize: 11,
+                                fontWeight: 600,
+                                letterSpacing: "0.04em",
+                                textTransform: "uppercase",
+                                color: "#999",
                                 marginTop: 4,
                               }}
                             >
@@ -1046,11 +1049,10 @@ export default function DashboardPage() {
                 >
                   <p
                     style={{
-                      fontFamily: "DM Sans, system-ui, sans-serif",
-                      fontSize: 10,
+                      fontSize: "17px",
                       fontWeight: 600,
-                      letterSpacing: "2px",
-                      textTransform: "uppercase",
+                      letterSpacing: "-0.01em",
+                      lineHeight: 1.35,
                       color: "#bbbbbb",
                       margin: 0,
                       marginBottom: 16,
@@ -1104,9 +1106,8 @@ export default function DashboardPage() {
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
-                              fontFamily: "Syne, system-ui, sans-serif",
                               fontSize: 10,
-                              fontWeight: 800,
+                              fontWeight: 700,
                             }}
                           >
                             {c.image ? (
@@ -1126,9 +1127,9 @@ export default function DashboardPage() {
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div
                               style={{
-                                fontFamily: "DM Sans, system-ui, sans-serif",
-                                fontSize: isMobile ? 13 : 13,
-                                fontWeight: 600,
+                                fontSize: "14px",
+                                fontWeight: 400,
+                                lineHeight: 1.5,
                                 color: "#111111",
                                 marginBottom: 2,
                               }}
@@ -1137,9 +1138,9 @@ export default function DashboardPage() {
                             </div>
                             <div
                               style={{
-                                fontFamily: "DM Sans, system-ui, sans-serif",
-                                fontSize: isMobile ? 11 : 11,
-                                color: "#bbbbbb",
+                                fontSize: "13px",
+                                fontWeight: 400,
+                                color: "#999",
                               }}
                             >
                               {(c.company as string) || "No company"} ·{" "}
@@ -1148,8 +1149,9 @@ export default function DashboardPage() {
                           </div>
                           <div
                             style={{
-                              fontFamily: "DM Sans, system-ui, sans-serif",
-                              fontSize: isMobile ? 10 : 11,
+                              fontSize: "13px",
+                              fontWeight: 400,
+                              lineHeight: 1.5,
                               padding: isMobile ? "2px 6px" : "4px 8px",
                               borderRadius: 999,
                               ...badgeStyle,

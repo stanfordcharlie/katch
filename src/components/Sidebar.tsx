@@ -41,7 +41,12 @@ export function Sidebar({ user }: { user: User }) {
   const pathname = usePathname();
   const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('katch_sidebar_collapsed') === 'true'
+    }
+    return false
+  });
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState(() => getDisplayName(user));
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -68,11 +73,6 @@ export function Sidebar({ user }: { user: User }) {
   }, []);
 
   useEffect(() => {
-    const stored = localStorage.getItem("katch_sidebar_collapsed");
-    if (stored === "true") setCollapsed(true);
-  }, []);
-
-  useEffect(() => {
     localStorage.setItem("katch_sidebar_collapsed", collapsed ? "true" : "false");
   }, [collapsed]);
 
@@ -80,7 +80,7 @@ export function Sidebar({ user }: { user: User }) {
 
   if (isMobile) {
     return (
-      <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 1000, background: "#ffffff", borderTop: "1px solid #ebebeb", height: 64, display: "flex", alignItems: "center", justifyContent: "space-evenly", paddingBottom: "env(safe-area-inset-bottom)", fontFamily: "Inter, -apple-system, sans-serif" }}>
+      <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 1000, background: "#ffffff", borderTop: "1px solid #ebebeb", height: 64, display: "flex", alignItems: "center", justifyContent: "space-evenly", paddingBottom: "env(safe-area-inset-bottom)" }}>
         {MOBILE_NAV.map(({ label, href, icon }) => {
           const isActive = pathname === href || (href === "/settings" && pathname.startsWith("/settings"));
           return (
@@ -95,7 +95,7 @@ export function Sidebar({ user }: { user: User }) {
   }
 
   return (
-    <aside style={{ width: collapsed ? 64 : 230, flexShrink: 0, position: "fixed", left: 0, top: 0, bottom: 0, backgroundColor: "#ffffff", borderRight: "1px solid #ebebeb", display: "flex", flexDirection: "column", zIndex: 30, fontFamily: "Inter, -apple-system, sans-serif", transition: "width 0.2s ease" }}>
+    <aside style={{ width: collapsed ? 64 : 230, flexShrink: 0, position: "fixed", left: 0, top: 0, bottom: 0, backgroundColor: "#ffffff", borderRight: "1px solid #ebebeb", display: "flex", flexDirection: "column", zIndex: 30, transition: "width 0.2s ease" }}>
       <button
         type="button"
         title={collapsed ? "Expand navigation" : "Collapse navigation"}
@@ -128,18 +128,17 @@ export function Sidebar({ user }: { user: User }) {
         <div style={{ width: 36, height: 36, background: "#ffffff", borderRadius: 10, border: "1px solid #e8e8e8", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b6fd4" strokeWidth="2.5"><path d="M3 9V5a2 2 0 012-2h4M3 15v4a2 2 0 002 2h4M21 9V5a2 2 0 00-2-2h-4M21 15v4a2 2 0 01-2 2h-4"/></svg>
         </div>
-        {!collapsed && <span style={{ fontSize: 17, fontWeight: 700, color: "#111" }}>Katch</span>}
       </Link>
 
       <nav style={{ flex: 1, padding: 8, marginTop: 4 }}>
         {DESKTOP_NAV.slice(0, 4).map(({ label, href, icon }) => {
           const isActive = pathname === href;
           return (
-            <Link key={label} href={href} onMouseEnter={() => collapsed && setHoveredItem(label)} onMouseLeave={() => setHoveredItem(null)} style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 12, padding: collapsed ? "10px 0" : "10px 14px", borderRadius: 8, cursor: "pointer", fontSize: 15, marginBottom: 2, textDecoration: "none", backgroundColor: isActive ? "#f0f7eb" : "transparent", color: isActive ? "#2d6a1f" : "#666666", fontWeight: isActive ? 500 : 400 }}>
+            <Link key={label} href={href} onMouseEnter={() => collapsed && setHoveredItem(label)} onMouseLeave={() => setHoveredItem(null)} style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 12, padding: collapsed ? "10px 0" : "10px 14px", borderRadius: 8, cursor: "pointer", marginBottom: 2, textDecoration: "none", backgroundColor: isActive ? "#f0f7eb" : "transparent", color: isActive ? "#2d6a1f" : "#666666" }}>
               <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, color: isActive ? "#2d6a1f" : "#666666" }}>{icon}</span>
-              <span style={{ transition: "opacity 0.15s ease", opacity: collapsed ? 0 : 1, overflow: "hidden", whiteSpace: "nowrap", width: collapsed ? 0 : "auto" }}>{label}</span>
+              <span style={{ transition: "opacity 0.15s ease", opacity: collapsed ? 0 : 1, overflow: "hidden", whiteSpace: "nowrap", width: collapsed ? 0 : "auto", fontSize: "13px", fontWeight: 500, letterSpacing: "0", lineHeight: 1 }}>{label}</span>
               {collapsed && hoveredItem === label && (
-                <div style={{ position: "absolute", left: 72, top: "50%", transform: "translateY(-50%)", background: "#1a2332", color: "#fff", fontSize: 12, fontWeight: 500, padding: "5px 10px", borderRadius: 6, whiteSpace: "nowrap", zIndex: 50, pointerEvents: "none" }}>
+                <div style={{ position: "absolute", left: 72, top: "50%", transform: "translateY(-50%)", background: "#1a2332", color: "#fff", fontSize: "12px", fontWeight: 500, padding: "5px 10px", borderRadius: 6, whiteSpace: "nowrap", zIndex: 50, pointerEvents: "none" }}>
                   {label}
                 </div>
               )}
@@ -152,11 +151,11 @@ export function Sidebar({ user }: { user: User }) {
         {DESKTOP_NAV.slice(4, 6).map(({ label, href, icon }) => {
           const isActive = pathname === href;
           return (
-            <Link key={label} href={href} onMouseEnter={() => collapsed && setHoveredItem(label)} onMouseLeave={() => setHoveredItem(null)} style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 12, padding: collapsed ? "10px 0" : "10px 14px", borderRadius: 8, cursor: "pointer", fontSize: 15, marginBottom: 2, textDecoration: "none", backgroundColor: isActive ? "#f0f7eb" : "transparent", color: isActive ? "#2d6a1f" : "#666666", fontWeight: isActive ? 500 : 400 }}>
+            <Link key={label} href={href} onMouseEnter={() => collapsed && setHoveredItem(label)} onMouseLeave={() => setHoveredItem(null)} style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 12, padding: collapsed ? "10px 0" : "10px 14px", borderRadius: 8, cursor: "pointer", marginBottom: 2, textDecoration: "none", backgroundColor: isActive ? "#f0f7eb" : "transparent", color: isActive ? "#2d6a1f" : "#666666" }}>
               <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, color: isActive ? "#2d6a1f" : "#666666" }}>{icon}</span>
-              <span style={{ transition: "opacity 0.15s ease", opacity: collapsed ? 0 : 1, overflow: "hidden", whiteSpace: "nowrap", width: collapsed ? 0 : "auto" }}>{label}</span>
+              <span style={{ transition: "opacity 0.15s ease", opacity: collapsed ? 0 : 1, overflow: "hidden", whiteSpace: "nowrap", width: collapsed ? 0 : "auto", fontSize: "13px", fontWeight: 500, letterSpacing: "0", lineHeight: 1 }}>{label}</span>
               {collapsed && hoveredItem === label && (
-                <div style={{ position: "absolute", left: 72, top: "50%", transform: "translateY(-50%)", background: "#1a2332", color: "#fff", fontSize: 12, fontWeight: 500, padding: "5px 10px", borderRadius: 6, whiteSpace: "nowrap", zIndex: 50, pointerEvents: "none" }}>
+                <div style={{ position: "absolute", left: 72, top: "50%", transform: "translateY(-50%)", background: "#1a2332", color: "#fff", fontSize: "12px", fontWeight: 500, padding: "5px 10px", borderRadius: 6, whiteSpace: "nowrap", zIndex: 50, pointerEvents: "none" }}>
                   {label}
                 </div>
               )}
@@ -170,11 +169,11 @@ export function Sidebar({ user }: { user: User }) {
           const { label, href, icon } = DESKTOP_NAV[6];
           const isActive = pathname.startsWith("/settings");
           return (
-            <Link key={label} href={href} onMouseEnter={() => collapsed && setHoveredItem(label)} onMouseLeave={() => setHoveredItem(null)} style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 12, padding: collapsed ? "10px 0" : "10px 14px", borderRadius: 8, cursor: "pointer", fontSize: 15, marginBottom: 2, textDecoration: "none", backgroundColor: isActive ? "#f0f7eb" : "transparent", color: isActive ? "#2d6a1f" : "#666666", fontWeight: isActive ? 500 : 400 }}>
+            <Link key={label} href={href} onMouseEnter={() => collapsed && setHoveredItem(label)} onMouseLeave={() => setHoveredItem(null)} style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 12, padding: collapsed ? "10px 0" : "10px 14px", borderRadius: 8, cursor: "pointer", marginBottom: 2, textDecoration: "none", backgroundColor: isActive ? "#f0f7eb" : "transparent", color: isActive ? "#2d6a1f" : "#666666" }}>
               <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, color: isActive ? "#2d6a1f" : "#666666" }}>{icon}</span>
-              <span style={{ transition: "opacity 0.15s ease", opacity: collapsed ? 0 : 1, overflow: "hidden", whiteSpace: "nowrap", width: collapsed ? 0 : "auto" }}>{label}</span>
+              <span style={{ transition: "opacity 0.15s ease", opacity: collapsed ? 0 : 1, overflow: "hidden", whiteSpace: "nowrap", width: collapsed ? 0 : "auto", fontSize: "13px", fontWeight: 500, letterSpacing: "0", lineHeight: 1 }}>{label}</span>
               {collapsed && hoveredItem === label && (
-                <div style={{ position: "absolute", left: 72, top: "50%", transform: "translateY(-50%)", background: "#1a2332", color: "#fff", fontSize: 12, fontWeight: 500, padding: "5px 10px", borderRadius: 6, whiteSpace: "nowrap", zIndex: 50, pointerEvents: "none" }}>
+                <div style={{ position: "absolute", left: 72, top: "50%", transform: "translateY(-50%)", background: "#1a2332", color: "#fff", fontSize: "12px", fontWeight: 500, padding: "5px 10px", borderRadius: 6, whiteSpace: "nowrap", zIndex: 50, pointerEvents: "none" }}>
                   {label}
                 </div>
               )}
@@ -188,14 +187,14 @@ export function Sidebar({ user }: { user: User }) {
           {avatarUrl ? (
             <img src={avatarUrl} alt={displayName} width={32} height={32} style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
           ) : (
-            <span style={{ width: 32, height: 32, borderRadius: "50%", backgroundColor: "#7ab648", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 500, flexShrink: 0 }}>{initial}</span>
+            <span style={{ width: 32, height: 32, borderRadius: "50%", backgroundColor: "#7ab648", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", fontWeight: 500, flexShrink: 0 }}>{initial}</span>
           )}
           <div style={{ display: "flex", flexDirection: "column", gap: 1, transition: "opacity 0.15s ease", opacity: collapsed ? 0 : 1, overflow: "hidden", whiteSpace: "nowrap", width: collapsed ? 0 : "auto" }}>
-            <span style={{ fontSize: 14, fontWeight: 500, color: "#333", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 120 }}>{displayName || "Account"}</span>
-            <span style={{ fontSize: 12, color: "#888" }}>Account</span>
+            <span style={{ fontSize: "13px", fontWeight: 600, letterSpacing: "-0.01em", color: "#333", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 120 }}>{displayName || "Account"}</span>
+            <span style={{ fontSize: "11px", fontWeight: 400, color: "#999" }}>Account</span>
           </div>
           {collapsed && hoveredItem === "account-user" && (
-            <div style={{ position: "absolute", left: 72, top: "50%", transform: "translateY(-50%)", background: "#1a2332", color: "#fff", fontSize: 12, fontWeight: 500, padding: "5px 10px", borderRadius: 6, whiteSpace: "nowrap", zIndex: 50, pointerEvents: "none" }}>
+            <div style={{ position: "absolute", left: 72, top: "50%", transform: "translateY(-50%)", background: "#1a2332", color: "#fff", fontSize: "12px", fontWeight: 500, padding: "5px 10px", borderRadius: 6, whiteSpace: "nowrap", zIndex: 50, pointerEvents: "none" }}>
               {displayName}
             </div>
           )}

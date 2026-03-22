@@ -141,7 +141,9 @@ export default function HomePage() {
           alignItems: "center",
           justifyContent: "center",
           color: "#999",
-          fontSize: 14,
+          fontSize: "14px",
+          fontWeight: 400,
+          lineHeight: 1.5,
         }}
       >
         Loading…
@@ -156,7 +158,6 @@ export default function HomePage() {
         padding: isMobile ? "20px 16px 100px" : "24px 32px 32px",
         overflowX: "hidden",
         maxWidth: "100vw",
-        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
         color: "#111111",
       }}
     >
@@ -190,11 +191,11 @@ export default function HomePage() {
         <div style={{ maxWidth: isMobile ? "100%" : "40%", width: isMobile ? "100%" : "auto" }}>
           <p
             style={{
-              fontSize: 13,
-              letterSpacing: "0.16em",
+              fontSize: "11px",
+              fontWeight: 600,
+              letterSpacing: "0.04em",
               textTransform: "uppercase",
               color: "#2d6a1f",
-              fontWeight: 500,
               marginBottom: 6,
             }}
           >
@@ -202,10 +203,11 @@ export default function HomePage() {
           </p>
           <h1
             style={{
-              fontSize: isMobile ? 20 : 32,
-              fontWeight: 800,
+              fontSize: "clamp(28px, 4vw, 38px)",
+              fontWeight: 700,
+              letterSpacing: "-0.03em",
+              lineHeight: 1.2,
               color: "#1a3a0a",
-              letterSpacing: "-0.5px",
               marginBottom: 4,
             }}
           >
@@ -213,7 +215,9 @@ export default function HomePage() {
           </h1>
           <p
             style={{
-              fontSize: isMobile ? 13 : 14,
+              fontSize: "16px",
+              fontWeight: 400,
+              lineHeight: 1.5,
               color: "rgba(26,58,10,0.6)",
               marginBottom: 0,
             }}
@@ -252,9 +256,10 @@ export default function HomePage() {
             >
               <span
                 style={{
-                  fontSize: 11,
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  letterSpacing: "0.04em",
                   textTransform: "uppercase",
-                  letterSpacing: "0.5px",
                   color: "rgba(26,58,10,0.55)",
                   marginBottom: 4,
                 }}
@@ -263,8 +268,10 @@ export default function HomePage() {
               </span>
               <span
                 style={{
-                  fontSize: 28,
+                  fontSize: "24px",
                   fontWeight: 700,
+                  letterSpacing: "-0.03em",
+                  lineHeight: 1.2,
                   color: "#1a3a0a",
                 }}
               >
@@ -357,13 +364,14 @@ export default function HomePage() {
                 color: "#2d6a1f",
               }}
             >
-              <span style={{ fontSize: 16 }}>↗</span>
+              <span style={{ fontSize: "16px" }}>↗</span>
             </div>
             <div>
               <div
                 style={{
-                  fontSize: 15,
+                  fontSize: "15px",
                   fontWeight: 600,
+                  letterSpacing: "-0.01em",
                   color: "#111111",
                   marginBottom: 4,
                 }}
@@ -372,7 +380,9 @@ export default function HomePage() {
               </div>
               <div
                 style={{
-                  fontSize: isMobile ? 13 : 13,
+                  fontSize: "14px",
+                  fontWeight: 400,
+                  lineHeight: 1.5,
                   color: "#888888",
                 }}
               >
@@ -385,7 +395,7 @@ export default function HomePage() {
                 alignItems: "center",
                 justifyContent: "flex-end",
                 marginTop: 12,
-                fontSize: 16,
+                fontSize: "16px",
                 color: "#7ab648",
               }}
             >
@@ -452,8 +462,9 @@ export default function HomePage() {
           >
             <h2
               style={{
-                fontSize: isMobile ? 15 : 15,
+                fontSize: "15px",
                 fontWeight: 600,
+                letterSpacing: "-0.01em",
                 color: "#111111",
               }}
             >
@@ -466,7 +477,9 @@ export default function HomePage() {
                 border: "none",
                 background: "transparent",
                 color: "#4b5563",
-                fontSize: 12,
+                fontSize: "13px",
+                fontWeight: 600,
+                letterSpacing: "-0.01em",
                 cursor: "pointer",
                 minHeight: isMobile ? 44 : undefined,
               }}
@@ -477,7 +490,8 @@ export default function HomePage() {
           {recentEvents.length === 0 ? (
             <p
               style={{
-                fontSize: 13,
+                fontSize: "13px",
+                fontWeight: 400,
                 color: "#6b7280",
               }}
             >
@@ -511,8 +525,9 @@ export default function HomePage() {
                     <div>
                       <div
                         style={{
-                          fontSize: 15,
+                          fontSize: "15px",
                           fontWeight: 600,
+                          letterSpacing: "-0.01em",
                           color: "#111111",
                         }}
                       >
@@ -520,7 +535,8 @@ export default function HomePage() {
                       </div>
                       <div
                         style={{
-                          fontSize: 13,
+                          fontSize: "13px",
+                          fontWeight: 400,
                           color: "#888888",
                         }}
                       >
@@ -537,9 +553,10 @@ export default function HomePage() {
                     >
                       <span
                         style={{
-                          fontSize: 13,
+                          fontSize: "14px",
+                          fontWeight: 400,
+                          lineHeight: 1.5,
                           color: "#4b5563",
-                          fontWeight: 500,
                         }}
                       >
                         {eventContacts.length} contacts
@@ -547,12 +564,13 @@ export default function HomePage() {
                       {highest > 0 && (
                         <span
                           style={{
-                            fontSize: 12,
+                            fontSize: "14px",
+                            fontWeight: 400,
+                            lineHeight: 1.5,
                             padding: "4px 10px",
                             borderRadius: 999,
                             backgroundColor: badge.bg,
                             color: badge.color,
-                            fontWeight: 500,
                           }}
                         >
                           Max score {highest} · {badge.label}
@@ -585,8 +603,9 @@ export default function HomePage() {
           >
             <h2
               style={{
-                fontSize: 15,
+                fontSize: "15px",
                 fontWeight: 600,
+                letterSpacing: "-0.01em",
                 color: "#111111",
               }}
             >
@@ -599,7 +618,9 @@ export default function HomePage() {
                 border: "none",
                 background: "transparent",
                 color: "#4b5563",
-                fontSize: 12,
+                fontSize: "13px",
+                fontWeight: 600,
+                letterSpacing: "-0.01em",
                 cursor: "pointer",
                 minHeight: isMobile ? 44 : undefined,
               }}
@@ -610,7 +631,8 @@ export default function HomePage() {
           {needsFollowUp.length === 0 ? (
             <p
               style={{
-                fontSize: 13,
+                fontSize: "13px",
+                fontWeight: 400,
                 color: "#6b7280",
               }}
             >
@@ -642,8 +664,9 @@ export default function HomePage() {
                     <div>
                       <div
                         style={{
-                          fontSize: isMobile ? 14 : 14,
-                          fontWeight: 500,
+                          fontSize: "15px",
+                          fontWeight: 600,
+                          letterSpacing: "-0.01em",
                           color: "#111111",
                         }}
                       >
@@ -651,7 +674,8 @@ export default function HomePage() {
                       </div>
                       <div
                         style={{
-                          fontSize: isMobile ? 12 : 12,
+                          fontSize: "13px",
+                          fontWeight: 400,
                           color: "#6b7280",
                         }}
                       >
@@ -660,7 +684,9 @@ export default function HomePage() {
                     </div>
                     <span
                       style={{
-                        fontSize: 11,
+                        fontSize: "14px",
+                        fontWeight: 400,
+                        lineHeight: 1.5,
                         padding: "3px 8px",
                         borderRadius: 999,
                         backgroundColor: badge.bg,
