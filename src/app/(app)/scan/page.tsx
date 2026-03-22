@@ -4,7 +4,38 @@ import { useState, useRef, useEffect } from "react";
 import type { User } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { findDuplicateContact } from "@/lib/duplicates";
 import { DEFAULT_SIGNAL_LABELS } from "@/lib/katch-constants";
+
+type DuplicateExistingContact = {
+  id: string;
+  name?: string | null;
+  title?: string | null;
+  company?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  linkedin?: string | null;
+  lead_score?: number | null;
+  checks?: string[] | null;
+  free_note?: string | null;
+  event?: string | null;
+  image?: string | null;
+  enriched?: boolean | null;
+};
+
+type DuplicateNewContact = {
+  name?: string;
+  title?: string;
+  company?: string;
+  email?: string;
+  phone?: string;
+  linkedin?: string;
+  lead_score?: number;
+  checks?: string[];
+  free_note?: string;
+  event?: string;
+  enriched?: boolean;
+};
 
 export default function ScanPage() {
   const router = useRouter();
@@ -41,6 +72,12 @@ export default function ScanPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [stagedFiles, setStagedFiles] = useState<Array<{ id: string; dataUrl: string; file: File }>>([]);
   const [showStaged, setShowStaged] = useState(false);
+  const [duplicateModal, setDuplicateModal] = useState<{
+    show: boolean;
+    existingContact: DuplicateExistingContact | null;
+    newContact: DuplicateNewContact | null;
+    imageFile: File | null;
+  }>({ show: false, existingContact: null, newContact: null, imageFile: null });
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -401,15 +438,7 @@ export default function ScanPage() {
     setNewEventName("");
   };
 
-  const handleSaveContact = async () => {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const sessionUser = sessionData.session?.user;
-    if (!sessionUser?.id) {
-      console.error("Save contact: no session user");
-      showToast("Failed to save contact");
-      return;
-    }
-
+  const persistScannedContact = async (sessionUser: User) => {
     const activeChecks = signalLabels.filter((label) => checks[label]);
 
     let imageUrl: string | null = null;
@@ -487,6 +516,161 @@ export default function ScanPage() {
       console.error("Full error:", err);
       showToast("Failed to save contact");
     }
+  };
+
+  const handleSaveContact = async () => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const sessionUser = sessionData.session?.user;
+    if (!sessionUser?.id) {
+      console.error("Save contact: no session user");
+      showToast("Failed to save contact");
+      return;
+    }
+
+    const activeChecks = signalLabels.filter((label) => checks[label]);
+    const dup = await findDuplicateContact(
+      extracted?.name ?? "",
+      extracted?.email ?? "",
+      sessionUser.id
+    );
+    if (dup) {
+      let imageFile: File | null = null;
+      if (uploadedImage && uploadedImage.startsWith("data:")) {
+        try {
+          const arr = uploadedImage.split(",");
+          if (arr.length === 2) {
+            const mimeMatch = arr[0].match(/data:(.*?);base64/);
+            const mime = mimeMatch ? mimeMatch[1] : "image/jpeg";
+            const bstr = atob(arr[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) {
+              u8arr[n] = bstr.charCodeAt(n);
+            }
+            imageFile = new File([u8arr], "contact-image.jpg", { type: mime });
+          }
+        } catch {
+          imageFile = null;
+        }
+      }
+      setDuplicateModal({
+        show: true,
+        existingContact: dup,
+        newContact: {
+          name: extracted?.name ?? "",
+          title: extracted?.title ?? "",
+          company: extracted?.company ?? "",
+          email: extracted?.email ?? "",
+          phone: extracted?.phone ?? "",
+          linkedin: extracted?.linkedin ?? "",
+          lead_score: leadScore,
+          checks: activeChecks,
+          free_note: freeNote,
+          event: eventTag || "Untagged",
+          enriched: enriched,
+        },
+        imageFile,
+      });
+      return;
+    }
+
+    await persistScannedContact(sessionUser);
+  };
+
+  const handleDuplicateMerge = async () => {
+    const { existingContact, newContact, imageFile } = duplicateModal;
+    if (!existingContact?.id || !newContact) return;
+
+    const { data: sessionData } = await supabase.auth.getSession();
+    const sessionUser = sessionData.session?.user;
+    if (!sessionUser?.id) {
+      showToast("Failed to merge contact");
+      return;
+    }
+
+    const pick = (newVal: unknown, oldVal: unknown) => {
+      if (newVal != null && String(newVal).trim() !== "") return String(newVal).trim();
+      if (oldVal == null) return "";
+      return String(oldVal);
+    };
+
+    const pickNullable = (newVal: unknown, oldVal: unknown) => {
+      if (newVal != null && String(newVal).trim() !== "") return String(newVal).trim();
+      if (oldVal != null && String(oldVal).trim() !== "") return String(oldVal).trim();
+      return null;
+    };
+
+    const ex = existingContact;
+    const nw = newContact;
+
+    let imageUrl: string | null = ex.image ?? null;
+    if (imageFile) {
+      try {
+        const filePath = `contacts/${sessionUser.id}/${Date.now()}-merge.jpg`;
+        const { error: uploadError } = await supabase.storage.from("avatars").upload(filePath, imageFile, {
+          upsert: false,
+        });
+        if (!uploadError) {
+          const { data: publicData } = supabase.storage.from("avatars").getPublicUrl(filePath);
+          if (publicData?.publicUrl) imageUrl = publicData.publicUrl;
+        }
+      } catch {
+        // keep existing imageUrl
+      }
+    }
+
+    const existingChecks = Array.isArray(ex.checks) ? ex.checks : [];
+    const newChecks = Array.isArray(nw.checks) ? nw.checks : [];
+    const mergedChecks = [...new Set([...existingChecks, ...newChecks])];
+
+    const merged: Record<string, unknown> = {
+      name: pick(nw.name, ex.name),
+      title: pick(nw.title, ex.title),
+      company: pick(nw.company, ex.company),
+      email: pickNullable(nw.email, ex.email),
+      phone: pickNullable(nw.phone, ex.phone),
+      linkedin: pickNullable(nw.linkedin, ex.linkedin),
+      lead_score: Math.max(Number(ex.lead_score) || 0, Number(nw.lead_score) || 0),
+      checks: mergedChecks,
+      free_note:
+        typeof nw.free_note === "string" && nw.free_note.trim()
+          ? nw.free_note
+          : (ex.free_note ?? "") || "",
+      event:
+        typeof nw.event === "string" && nw.event.trim()
+          ? nw.event
+          : (ex.event || "Untagged") as string,
+      enriched: !!(ex.enriched || nw.enriched),
+    };
+    if (imageUrl) merged.image = imageUrl;
+
+    const { error } = await supabase.from("contacts").update(merged).eq("id", ex.id);
+    if (error) {
+      console.error("Merge error:", error);
+      showToast("Failed to merge contact");
+      return;
+    }
+
+    setDuplicateModal({ show: false, existingContact: null, newContact: null, imageFile: null });
+    resetScan();
+    showToast("Contact merged successfully");
+    router.push("/contacts");
+  };
+
+  const handleDuplicateSaveAsNew = async () => {
+    setDuplicateModal({ show: false, existingContact: null, newContact: null, imageFile: null });
+    const { data: sessionData } = await supabase.auth.getSession();
+    const sessionUser = sessionData.session?.user;
+    if (!sessionUser?.id) {
+      showToast("Failed to save contact");
+      return;
+    }
+    await persistScannedContact(sessionUser);
+  };
+
+  const handleDuplicateCancel = () => {
+    setDuplicateModal({ show: false, existingContact: null, newContact: null, imageFile: null });
+    resetScan();
   };
 
   if (!user) return <div className="min-h-screen bg-[#f7f7f5]" />;
@@ -763,6 +947,159 @@ export default function ScanPage() {
           style={{ background: "#1a3a2a", color: "#fff" }}
         >
           {toast}
+        </div>
+      )}
+      {duplicateModal.show && duplicateModal.existingContact && duplicateModal.newContact && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.4)",
+            backdropFilter: "blur(4px)",
+            zIndex: 1000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 16,
+              padding: 28,
+              width: "100%",
+              maxWidth: 480,
+              margin: 20,
+            }}
+          >
+            <h2
+              style={{
+                fontSize: 17,
+                fontWeight: 600,
+                letterSpacing: "-0.01em",
+                margin: 0,
+                marginBottom: 4,
+              }}
+            >
+              Duplicate contact found
+            </h2>
+            <p style={{ fontSize: 14, color: "#999", margin: 0, marginBottom: 20 }}>
+              A contact with this name or email already exists. What would you like to do?
+            </p>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: isMobile ? "column" : "row",
+                gap: 12,
+                marginBottom: 24,
+              }}
+            >
+              <div
+                style={{
+                  flex: 1,
+                  background: "#f5f5f5",
+                  borderRadius: 10,
+                  padding: 12,
+                  fontSize: 13,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 11,
+                    textTransform: "uppercase",
+                    color: "#999",
+                    marginBottom: 8,
+                    letterSpacing: "0.04em",
+                  }}
+                >
+                  Existing
+                </div>
+                <div style={{ color: "#111" }}>
+                  <div>{duplicateModal.existingContact.name || "—"}</div>
+                  <div>{duplicateModal.existingContact.title || "—"}</div>
+                  <div>{duplicateModal.existingContact.company || "—"}</div>
+                  <div>{duplicateModal.existingContact.email || "—"}</div>
+                </div>
+              </div>
+              <div
+                style={{
+                  flex: 1,
+                  background: "#f5f5f5",
+                  borderRadius: 10,
+                  padding: 12,
+                  fontSize: 13,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 11,
+                    textTransform: "uppercase",
+                    color: "#999",
+                    marginBottom: 8,
+                    letterSpacing: "0.04em",
+                  }}
+                >
+                  New scan
+                </div>
+                <div style={{ color: "#111" }}>
+                  <div>{duplicateModal.newContact.name || "—"}</div>
+                  <div>{duplicateModal.newContact.title || "—"}</div>
+                  <div>{duplicateModal.newContact.company || "—"}</div>
+                  <div>{duplicateModal.newContact.email || "—"}</div>
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => void handleDuplicateMerge()}
+                style={{
+                  background: "#7dde3c",
+                  color: "#0a1a0a",
+                  fontWeight: 600,
+                  fontSize: 14,
+                  borderRadius: 999,
+                  padding: 12,
+                  width: "100%",
+                  cursor: "pointer",
+                  border: "none",
+                }}
+              >
+                Merge — keep best fields
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleDuplicateSaveAsNew()}
+                style={{
+                  background: "#fff",
+                  border: "1px solid #e8e8e8",
+                  color: "#111",
+                  fontWeight: 600,
+                  fontSize: 14,
+                  borderRadius: 999,
+                  padding: 12,
+                  width: "100%",
+                  cursor: "pointer",
+                }}
+              >
+                Save as new contact
+              </button>
+              <button
+                type="button"
+                onClick={handleDuplicateCancel}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#999",
+                  fontSize: 13,
+                  cursor: "pointer",
+                  padding: 8,
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
       <input
@@ -1046,22 +1383,26 @@ export default function ScanPage() {
                             });
                           }}
                           style={{
-                            position: "absolute",
-                            top: -6,
-                            right: -6,
-                            width: 20,
-                            height: 20,
+                            width: "20px",
+                            height: "20px",
+                            minWidth: "20px",
+                            minHeight: "20px",
                             borderRadius: "50%",
-                            background: "#e55a5a",
-                            color: "white",
-                            fontSize: 12,
+                            flexShrink: 0,
+                            background: "rgba(0,0,0,0.55)",
+                            border: "1.5px solid rgba(255,255,255,0.25)",
+                            color: "#ffffff",
+                            fontSize: "11px",
+                            fontWeight: 600,
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
                             cursor: "pointer",
-                            border: "none",
-                            padding: 0,
+                            position: "absolute",
+                            top: "6px",
+                            right: "6px",
                             lineHeight: 1,
+                            zIndex: 10,
                           }}
                         >
                           ×
