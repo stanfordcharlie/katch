@@ -160,22 +160,6 @@ nav.landing2-nav {
   color: #ffffff;
 }
 
-.hero2-bg {
-  position: absolute;
-  inset: 0;
-  background-image: url('/images/crowd.jpg');
-  background-size: cover;
-  background-position: center top;
-  filter: grayscale(100%);
-  opacity: 0.9;
-}
-
-.hero2-overlay {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at top, rgba(0,0,0,0.2), rgba(0,0,0,0.65));
-}
-
 .hero2-inner {
   position: relative;
   max-width: 650px;
@@ -743,22 +727,24 @@ footer {
       {/* HERO */}
       <section
         className="hero2"
-        style={
-          isMobile
+        style={{
+          backgroundColor: "#000000",
+          backgroundImage:
+            "linear-gradient(rgba(255,255,255,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.07) 1px, transparent 1px)",
+          backgroundSize: "60px 60px",
+          ...(isMobile
             ? {
-                padding: '0 16px',
-                paddingTop: '110px',
-                paddingBottom: '60px',
-                textAlign: 'center',
-                justifyContent: 'center',
-                alignItems: 'center',
-                boxSizing: 'border-box',
+                padding: "0 16px",
+                paddingTop: "110px",
+                paddingBottom: "60px",
+                textAlign: "center",
+                justifyContent: "center",
+                alignItems: "center",
+                boxSizing: "border-box",
               }
-            : undefined
-        }
+            : {}),
+        }}
       >
-        <div className="hero2-bg" />
-        <div className="hero2-overlay" />
         <div
           className="hero2-inner"
           style={
@@ -804,25 +790,7 @@ footer {
                 display: "block",
               }}
             >
-              The room is full.
-            </span>
-            <span
-              style={{
-                color: "#ffffff",
-                WebkitTextFillColor: "#ffffff",
-                display: "block",
-              }}
-            >
-              Your pipeline
-            </span>
-            <span
-              style={{
-                color: "#ffffff",
-                WebkitTextFillColor: "#ffffff",
-                display: "block",
-              }}
-            >
-              shouldn&apos;t be empty.
+              Increase event ROI by doing nadaaa
             </span>
           </h1>
           <p className="hero2-sub" style={{ textAlign: isMobile ? 'center' : 'left' }}>

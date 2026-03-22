@@ -28,18 +28,12 @@ export default function PricingPage() {
   return (
     <div style={{ backgroundColor: '#0a0a0a', minHeight: '100vh' }}>
       <style>{`html, body { background: #0a0a0a !important; }`}</style>
-      <link rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Syne:wght@700;800&display=swap' />
-      <link
-        rel='stylesheet'
-        href='https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,800;1,600;1,800&family=Geist:wght@300;400;500&display=swap'
-      />
       <style
         dangerouslySetInnerHTML={{
           __html: `
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
  body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: #0a0a0a;
   color: #ffffff;
   overflow-x: hidden;
@@ -74,7 +68,6 @@ nav.landing2-nav {
 }
 
 .logo-name {
-  font-family: 'Syne', sans-serif;
   font-size: 22px;
   letter-spacing: -0.04em;
   color: #ffffff;
@@ -98,7 +91,6 @@ nav.landing2-nav {
   background: transparent;
   color: rgba(255,255,255,0.72);
   cursor: pointer;
-  font-family: 'Geist', sans-serif;
   transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 .btn-ghost:hover {
@@ -114,7 +106,6 @@ nav.landing2-nav {
   background: #7dde3c;
   color: #0a0a0a;
   cursor: pointer;
-  font-family: 'Geist', sans-serif;
   font-weight: 500;
   transition: transform 0.1s ease, box-shadow 0.2s ease, background 0.2s ease;
   box-shadow: 0 14px 40px rgba(125,222,60,0.35);
@@ -151,17 +142,7 @@ nav.landing2-nav {
 }
 
 .pricing-title {
-  font-family: 'Playfair Display', serif;
-  font-size: clamp(32px, 4vw, 48px);
-  line-height: 1.1;
-  letter-spacing: -0.03em;
-  color: #ffffff;
   margin-bottom: 12px;
-}
-
-.pricing-subtitle {
-  font-size: 16px;
-  color: rgba(255,255,255,0.7);
 }
 
 .toggle-row {
@@ -224,23 +205,14 @@ nav.landing2-nav {
 }
 
 .pricing-plan-name {
-  font-size: 14px;
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
-  color: rgba(255,255,255,0.9);
   margin-bottom: 8px;
 }
 
 .pricing-price {
-  font-family: 'Playfair Display', serif;
-  font-size: 32px;
-  color: #ffffff;
   margin-bottom: 4px;
 }
 
 .pricing-meta {
-  font-size: 13px;
-  color: rgba(255,255,255,0.85);
   margin-bottom: 16px;
 }
 
@@ -270,7 +242,6 @@ nav.landing2-nav {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  font-size: 13px;
   color: #ffffff;
 }
 
@@ -309,10 +280,7 @@ nav.landing2-nav {
   border: 1px solid rgba(255,255,255,0.4);
   background: transparent;
   color: #ffffff;
-  font-size: 13px;
-  font-weight: 500;
   cursor: pointer;
-  font-family: 'Geist', sans-serif;
   transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
@@ -381,16 +349,26 @@ nav.landing2-nav {
           <h1
             className='pricing-title'
             style={{
-              fontFamily: 'Syne, sans-serif',
-              fontWeight: 800,
-              fontSize: '52px',
-              letterSpacing: '-2px',
+              fontSize: '24px',
+              fontWeight: 600,
+              letterSpacing: '-0.02em',
+              lineHeight: 1.2,
               color: '#ffffff',
             }}
           >
             Simple pricing. No surprises.
           </h1>
-          <p className='pricing-subtitle'>Start free, scale when you&apos;re ready. Cancel anytime.</p>
+          <p
+            className='pricing-subtitle'
+            style={{
+              fontSize: '15px',
+              fontWeight: 400,
+              lineHeight: 1.5,
+              color: '#999',
+            }}
+          >
+            Start free, scale when you&apos;re ready. Cancel anytime.
+          </p>
           <div className='toggle-row'>
             <div className='toggle-pill active'>
               <span>Monthly</span>
@@ -406,76 +384,234 @@ nav.landing2-nav {
           {/* Free */}
           <article className='pricing-card'>
             <div>
-              <div className='pricing-plan-name'>Free</div>
-              <div className='pricing-price'>$0</div>
-              <div className='pricing-meta'>Forever</div>
+              <div
+                className='pricing-plan-name'
+                style={{ fontSize: '17px', fontWeight: 600, letterSpacing: '-0.01em' }}
+              >
+                Free
+              </div>
+              <div
+                className='pricing-price'
+                style={{
+                  fontSize: '38px',
+                  fontWeight: 700,
+                  letterSpacing: '-0.03em',
+                  lineHeight: 1.1,
+                  color: '#ffffff',
+                }}
+              >
+                $0
+              </div>
+              <div
+                className='pricing-meta'
+                style={{ fontSize: '14px', fontWeight: 400, color: '#999' }}
+              >
+                Forever
+              </div>
               <ul className='feature-list'>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span style={{ color: '#ffffff' }}>10 scans per month</span>
+                  <span
+                    style={{
+                      color: '#ffffff',
+                      fontSize: '14px',
+                      fontWeight: 400,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    10 scans per month
+                  </span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span style={{ color: '#ffffff' }}>Basic contact export (CSV)</span>
+                  <span
+                    style={{
+                      color: '#ffffff',
+                      fontSize: '14px',
+                      fontWeight: 400,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Basic contact export (CSV)
+                  </span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span style={{ color: '#ffffff' }}>1 event</span>
+                  <span
+                    style={{
+                      color: '#ffffff',
+                      fontSize: '14px',
+                      fontWeight: 400,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    1 event
+                  </span>
                 </li>
                 <li className='feature-item feature-item-muted'>
                   <span className='feature-icon cross'>✕</span>
-                  <span style={{ color: 'rgba(255,255,255,0.35)' }}>AI email sequences</span>
+                  <span
+                    style={{
+                      color: 'rgba(255,255,255,0.35)',
+                      fontSize: '14px',
+                      fontWeight: 400,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    AI email sequences
+                  </span>
                 </li>
                 <li className='feature-item feature-item-muted'>
                   <span className='feature-icon cross'>✕</span>
-                  <span style={{ color: 'rgba(255,255,255,0.35)' }}>Lead scoring 1–10</span>
+                  <span
+                    style={{
+                      color: 'rgba(255,255,255,0.35)',
+                      fontSize: '14px',
+                      fontWeight: 400,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Lead scoring 1–10
+                  </span>
                 </li>
                 <li className='feature-item feature-item-muted'>
                   <span className='feature-icon cross'>✕</span>
-                  <span style={{ color: 'rgba(255,255,255,0.35)' }}>HubSpot import</span>
+                  <span
+                    style={{
+                      color: 'rgba(255,255,255,0.35)',
+                      fontSize: '14px',
+                      fontWeight: 400,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    HubSpot import
+                  </span>
                 </li>
               </ul>
             </div>
             <div className='pricing-cta'>
-              <button>Get started free</button>
+              <button
+                style={{ fontSize: '14px', fontWeight: 600, letterSpacing: '-0.01em' }}
+              >
+                Get started free
+              </button>
             </div>
           </article>
 
           {/* Solo */}
           <article className='pricing-card'>
             <div>
-              <div className='pricing-plan-name'>Solo</div>
-              <div className='pricing-price'>$29</div>
-              <div className='pricing-meta'>Per month</div>
+              <div
+                className='pricing-plan-name'
+                style={{ fontSize: '17px', fontWeight: 600, letterSpacing: '-0.01em' }}
+              >
+                Solo
+              </div>
+              <div
+                className='pricing-price'
+                style={{
+                  fontSize: '38px',
+                  fontWeight: 700,
+                  letterSpacing: '-0.03em',
+                  lineHeight: 1.1,
+                  color: '#ffffff',
+                }}
+              >
+                $29
+              </div>
+              <div
+                className='pricing-meta'
+                style={{ fontSize: '14px', fontWeight: 400, color: '#999' }}
+              >
+                Per month
+              </div>
               <ul className='feature-list'>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span style={{ color: '#ffffff' }}>Unlimited scans</span>
+                  <span
+                    style={{
+                      color: '#ffffff',
+                      fontSize: '14px',
+                      fontWeight: 400,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Unlimited scans
+                  </span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span style={{ color: '#ffffff' }}>AI email sequences</span>
+                  <span
+                    style={{
+                      color: '#ffffff',
+                      fontSize: '14px',
+                      fontWeight: 400,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    AI email sequences
+                  </span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span style={{ color: '#ffffff' }}>Lead scoring 1–10</span>
+                  <span
+                    style={{
+                      color: '#ffffff',
+                      fontSize: '14px',
+                      fontWeight: 400,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Lead scoring 1–10
+                  </span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span style={{ color: '#ffffff' }}>Unlimited events</span>
+                  <span
+                    style={{
+                      color: '#ffffff',
+                      fontSize: '14px',
+                      fontWeight: 400,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Unlimited events
+                  </span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span style={{ color: '#ffffff' }}>HubSpot CSV export</span>
+                  <span
+                    style={{
+                      color: '#ffffff',
+                      fontSize: '14px',
+                      fontWeight: 400,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    HubSpot CSV export
+                  </span>
                 </li>
                 <li className='feature-item feature-item-muted'>
                   <span className='feature-icon cross'>✕</span>
-                  <span style={{ color: 'rgba(255,255,255,0.35)' }}>Team collaboration</span>
+                  <span
+                    style={{
+                      color: 'rgba(255,255,255,0.35)',
+                      fontSize: '14px',
+                      fontWeight: 400,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Team collaboration
+                  </span>
                 </li>
               </ul>
             </div>
             <div className='pricing-cta'>
-              <button>Start free trial</button>
+              <button
+                style={{ fontSize: '14px', fontWeight: 600, letterSpacing: '-0.01em' }}
+              >
+                Start free trial
+              </button>
             </div>
           </article>
 
@@ -483,76 +619,236 @@ nav.landing2-nav {
           <article className='pricing-card team'>
             <div>
               <div className='badge-most-popular'>Most popular</div>
-              <div className='pricing-plan-name'>Team</div>
-              <div className='pricing-price'>$79</div>
-              <div className='pricing-meta'>Per month · up to 5 users</div>
+              <div
+                className='pricing-plan-name'
+                style={{ fontSize: '17px', fontWeight: 600, letterSpacing: '-0.01em' }}
+              >
+                Team
+              </div>
+              <div
+                className='pricing-price'
+                style={{
+                  fontSize: '38px',
+                  fontWeight: 700,
+                  letterSpacing: '-0.03em',
+                  lineHeight: 1.1,
+                  color: '#ffffff',
+                }}
+              >
+                $79
+              </div>
+              <div
+                className='pricing-meta'
+                style={{ fontSize: '14px', fontWeight: 400, color: '#999' }}
+              >
+                Per month · up to 5 users
+              </div>
               <ul className='feature-list'>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span style={{ color: '#ffffff' }}>Everything in Solo</span>
+                  <span
+                    style={{
+                      color: '#ffffff',
+                      fontSize: '14px',
+                      fontWeight: 400,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Everything in Solo
+                  </span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span style={{ color: '#ffffff' }}>Up to 5 seats</span>
+                  <span
+                    style={{
+                      color: '#ffffff',
+                      fontSize: '14px',
+                      fontWeight: 400,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Up to 5 seats
+                  </span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span style={{ color: '#ffffff' }}>Shared contact pool</span>
+                  <span
+                    style={{
+                      color: '#ffffff',
+                      fontSize: '14px',
+                      fontWeight: 400,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Shared contact pool
+                  </span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span style={{ color: '#ffffff' }}>Team dashboard & analytics</span>
+                  <span
+                    style={{
+                      color: '#ffffff',
+                      fontSize: '14px',
+                      fontWeight: 400,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Team dashboard & analytics
+                  </span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span style={{ color: '#ffffff' }}>Attendee list analysis</span>
+                  <span
+                    style={{
+                      color: '#ffffff',
+                      fontSize: '14px',
+                      fontWeight: 400,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Attendee list analysis
+                  </span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span style={{ color: '#ffffff' }}>Priority support</span>
+                  <span
+                    style={{
+                      color: '#ffffff',
+                      fontSize: '14px',
+                      fontWeight: 400,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Priority support
+                  </span>
                 </li>
               </ul>
             </div>
             <div className='pricing-cta'>
-              <button className='solid'>Start free trial</button>
+              <button
+                className='solid'
+                style={{ fontSize: '14px', fontWeight: 600, letterSpacing: '-0.01em' }}
+              >
+                Start free trial
+              </button>
             </div>
           </article>
 
           {/* Enterprise */}
           <article className='pricing-card'>
             <div>
-              <div className='pricing-plan-name'>Enterprise</div>
-              <div className='pricing-price'>Custom</div>
-              <div className='pricing-meta'>Talk to sales</div>
+              <div
+                className='pricing-plan-name'
+                style={{ fontSize: '17px', fontWeight: 600, letterSpacing: '-0.01em' }}
+              >
+                Enterprise
+              </div>
+              <div
+                className='pricing-price'
+                style={{
+                  fontSize: '38px',
+                  fontWeight: 700,
+                  letterSpacing: '-0.03em',
+                  lineHeight: 1.1,
+                  color: '#ffffff',
+                }}
+              >
+                Custom
+              </div>
+              <div
+                className='pricing-meta'
+                style={{ fontSize: '14px', fontWeight: 400, color: '#999' }}
+              >
+                Talk to sales
+              </div>
               <ul className='feature-list'>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span style={{ color: '#ffffff' }}>Everything in Team</span>
+                  <span
+                    style={{
+                      color: '#ffffff',
+                      fontSize: '14px',
+                      fontWeight: 400,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Everything in Team
+                  </span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span style={{ color: '#ffffff' }}>Unlimited seats</span>
+                  <span
+                    style={{
+                      color: '#ffffff',
+                      fontSize: '14px',
+                      fontWeight: 400,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Unlimited seats
+                  </span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span style={{ color: '#ffffff' }}>CRM integrations (Salesforce, HubSpot)</span>
+                  <span
+                    style={{
+                      color: '#ffffff',
+                      fontSize: '14px',
+                      fontWeight: 400,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    CRM integrations (Salesforce, HubSpot)
+                  </span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span style={{ color: '#ffffff' }}>SSO & admin controls</span>
+                  <span
+                    style={{
+                      color: '#ffffff',
+                      fontSize: '14px',
+                      fontWeight: 400,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    SSO & admin controls
+                  </span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span style={{ color: '#ffffff' }}>Dedicated CSM</span>
+                  <span
+                    style={{
+                      color: '#ffffff',
+                      fontSize: '14px',
+                      fontWeight: 400,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Dedicated CSM
+                  </span>
                 </li>
                 <li className='feature-item'>
                   <span className='feature-icon check'>✓</span>
-                  <span style={{ color: '#ffffff' }}>Custom onboarding</span>
+                  <span
+                    style={{
+                      color: '#ffffff',
+                      fontSize: '14px',
+                      fontWeight: 400,
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Custom onboarding
+                  </span>
                 </li>
               </ul>
             </div>
             <div className='pricing-cta'>
-              <button className='outline-green'>Talk to sales</button>
+              <button
+                className='outline-green'
+                style={{ fontSize: '14px', fontWeight: 600, letterSpacing: '-0.01em' }}
+              >
+                Talk to sales
+              </button>
             </div>
           </article>
         </section>
