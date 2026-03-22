@@ -198,6 +198,7 @@ nav.landing2-nav {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  color: #ffffff;
 }
 
 .pricing-card.team {
@@ -222,7 +223,7 @@ nav.landing2-nav {
   padding: 4px 10px;
   border-radius: 999px;
   background: rgba(125,222,60,0.16);
-  color: #7dde3c;
+  color: rgba(255,255,255,0.5);
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.14em;
@@ -246,7 +247,7 @@ nav.landing2-nav {
 }
 
 .feature-item-muted {
-  color: rgba(255,255,255,0.4);
+  color: rgba(255,255,255,0.35);
 }
 
 .feature-icon {
@@ -261,12 +262,12 @@ nav.landing2-nav {
 
 .feature-icon.check {
   background: rgba(125,222,60,0.18);
-  color: #7dde3c;
+  color: #ffffff;
 }
 
 .feature-icon.cross {
   background: transparent;
-  color: rgba(255,255,255,0.3);
+  color: rgba(255,255,255,0.35);
 }
 
 .pricing-cta {
@@ -292,7 +293,7 @@ nav.landing2-nav {
 
 .pricing-cta button.outline-green {
   border-color: #7dde3c;
-  color: #7dde3c;
+  color: #ffffff;
 }
 
 .pricing-cta button:hover {
@@ -386,7 +387,12 @@ nav.landing2-nav {
             <div>
               <div
                 className='pricing-plan-name'
-                style={{ fontSize: '17px', fontWeight: 600, letterSpacing: '-0.01em' }}
+                style={{
+                  fontSize: '17px',
+                  fontWeight: 600,
+                  letterSpacing: '-0.01em',
+                  color: '#ffffff',
+                }}
               >
                 Free
               </div>
@@ -404,7 +410,11 @@ nav.landing2-nav {
               </div>
               <div
                 className='pricing-meta'
-                style={{ fontSize: '14px', fontWeight: 400, color: '#999' }}
+                style={{
+                  fontSize: '14px',
+                  fontWeight: 400,
+                  color: 'rgba(255,255,255,0.6)',
+                }}
               >
                 Forever
               </div>
@@ -491,7 +501,12 @@ nav.landing2-nav {
             </div>
             <div className='pricing-cta'>
               <button
-                style={{ fontSize: '14px', fontWeight: 600, letterSpacing: '-0.01em' }}
+                style={{
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  letterSpacing: '-0.01em',
+                  color: '#ffffff',
+                }}
               >
                 Get started free
               </button>
@@ -503,7 +518,12 @@ nav.landing2-nav {
             <div>
               <div
                 className='pricing-plan-name'
-                style={{ fontSize: '17px', fontWeight: 600, letterSpacing: '-0.01em' }}
+                style={{
+                  fontSize: '17px',
+                  fontWeight: 600,
+                  letterSpacing: '-0.01em',
+                  color: '#ffffff',
+                }}
               >
                 Solo
               </div>
@@ -521,7 +541,11 @@ nav.landing2-nav {
               </div>
               <div
                 className='pricing-meta'
-                style={{ fontSize: '14px', fontWeight: 400, color: '#999' }}
+                style={{
+                  fontSize: '14px',
+                  fontWeight: 400,
+                  color: 'rgba(255,255,255,0.6)',
+                }}
               >
                 Per month
               </div>
@@ -608,7 +632,12 @@ nav.landing2-nav {
             </div>
             <div className='pricing-cta'>
               <button
-                style={{ fontSize: '14px', fontWeight: 600, letterSpacing: '-0.01em' }}
+                style={{
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  letterSpacing: '-0.01em',
+                  color: '#ffffff',
+                }}
               >
                 Start free trial
               </button>
@@ -621,7 +650,12 @@ nav.landing2-nav {
               <div className='badge-most-popular'>Most popular</div>
               <div
                 className='pricing-plan-name'
-                style={{ fontSize: '17px', fontWeight: 600, letterSpacing: '-0.01em' }}
+                style={{
+                  fontSize: '17px',
+                  fontWeight: 600,
+                  letterSpacing: '-0.01em',
+                  color: '#ffffff',
+                }}
               >
                 Team
               </div>
@@ -639,7 +673,11 @@ nav.landing2-nav {
               </div>
               <div
                 className='pricing-meta'
-                style={{ fontSize: '14px', fontWeight: 400, color: '#999' }}
+                style={{
+                  fontSize: '14px',
+                  fontWeight: 400,
+                  color: 'rgba(255,255,255,0.6)',
+                }}
               >
                 Per month · up to 5 users
               </div>
@@ -727,7 +765,12 @@ nav.landing2-nav {
             <div className='pricing-cta'>
               <button
                 className='solid'
-                style={{ fontSize: '14px', fontWeight: 600, letterSpacing: '-0.01em' }}
+                style={{
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  letterSpacing: '-0.01em',
+                  color: '#ffffff',
+                }}
               >
                 Start free trial
               </button>
@@ -739,7 +782,12 @@ nav.landing2-nav {
             <div>
               <div
                 className='pricing-plan-name'
-                style={{ fontSize: '17px', fontWeight: 600, letterSpacing: '-0.01em' }}
+                style={{
+                  fontSize: '17px',
+                  fontWeight: 600,
+                  letterSpacing: '-0.01em',
+                  color: '#ffffff',
+                }}
               >
                 Enterprise
               </div>
@@ -757,7 +805,11 @@ nav.landing2-nav {
               </div>
               <div
                 className='pricing-meta'
-                style={{ fontSize: '14px', fontWeight: 400, color: '#999' }}
+                style={{
+                  fontSize: '14px',
+                  fontWeight: 400,
+                  color: 'rgba(255,255,255,0.6)',
+                }}
               >
                 Talk to sales
               </div>
@@ -845,7 +897,12 @@ nav.landing2-nav {
             <div className='pricing-cta'>
               <button
                 className='outline-green'
-                style={{ fontSize: '14px', fontWeight: 600, letterSpacing: '-0.01em' }}
+                style={{
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  letterSpacing: '-0.01em',
+                  color: '#ffffff',
+                }}
               >
                 Talk to sales
               </button>
