@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
+import { createServerClient } from "@supabase/ssr";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -41,38 +43,31 @@ export async function GET(req: NextRequest) {
     const info = await infoRes.json();
     const hubId = info.hub_id?.toString();
 
-    const cookieHeader = req.headers.get("cookie") || "";
+    const cookieStore = await cookies();
 
-    let userId: string | null = null;
-
-    const allCookies = Object.fromEntries(
-      cookieHeader.split(";").map((c) => {
-        const [k, ...v] = c.trim().split("=");
-        return [k, v.join("=")];
-      })
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+        },
+      }
     );
 
-    const sbUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const projectRef = sbUrl.replace("https://", "").split(".")[0];
-    const tokenCookieKey = `sb-${projectRef}-auth-token`;
-    const rawToken = allCookies[tokenCookieKey];
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
 
-    if (rawToken) {
-      try {
-        const parsed = JSON.parse(decodeURIComponent(rawToken));
-        const accessToken = Array.isArray(parsed) ? parsed[0] : parsed?.access_token;
-        if (accessToken) {
-          const {
-            data: { user },
-          } = await supabaseAdmin.auth.getUser(accessToken);
-          userId = user?.id || null;
-        }
-      } catch {}
+    if (userError || !user) {
+      console.error("User identification failed:", userError);
+      return NextResponse.redirect(`${baseUrl}/settings?tab=integrations&error=hubspot_failed`);
     }
 
-    if (!userId) {
-      throw new Error("Could not identify authenticated user");
-    }
+    const userId = user.id;
 
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
 
