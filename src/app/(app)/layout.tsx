@@ -88,8 +88,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {!isMobile && <TopBar sidebarCollapsed={sidebarCollapsed} isMobile={isMobile} user={user} />}
       <main
         style={{
-          flex: 1,
-          paddingLeft: isMobile ? 0 : sidebarCollapsed ? 64 : 230,
+          boxSizing: "border-box",
+          ...(isMobile
+            ? {
+                marginLeft: 0,
+                width: "100%",
+                transition: "margin-left 0.2s ease, width 0.2s ease",
+              }
+            : {
+                marginLeft: sidebarCollapsed ? "64px" : "230px",
+                transition: "margin-left 0.2s ease, width 0.2s ease",
+                width: sidebarCollapsed ? "calc(100% - 64px)" : "calc(100% - 230px)",
+              }),
           paddingTop: isMobile ? 48 : 56,
           paddingBottom: isMobile ? 80 : 0,
           backgroundColor: "#f7f7f5",

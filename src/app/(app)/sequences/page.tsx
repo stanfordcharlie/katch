@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import type { User } from "@supabase/supabase-js";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Avatar, ScoreBadge } from "@/components/katch-ui";
 
@@ -16,10 +16,12 @@ function getContactEvent(contact: Contact): string | null {
 
 export default function SequencesPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const contactIdFromUrl = searchParams.get("contactId");
   const [user, setUser] = useState<User | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [events, setEvents] = useState<EventRow[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [seqEmails, setSeqEmails] = useState<{ day: string; subject: string; body: string }[]>([]);
   const [seqLoading, setSeqLoading] = useState(false);
@@ -36,35 +38,64 @@ export default function SequencesPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const userId = session?.user?.id;
-      if (!userId) return;
-      const { data: contactsData } = await supabase
-        .from("contacts")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
-      const { data: eventsData } = await supabase
-        .from("events")
-        .select("id, name")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
-      if (contactsData) setContacts((contactsData as Contact[]) || []);
-      if (eventsData) setEvents((eventsData as EventRow[]) || []);
+      setDataLoading(true);
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        const userId = session?.user?.id;
+        if (!userId) {
+          setContacts([]);
+          setEvents([]);
+          return;
+        }
+        const { data: contactsData, error: contactsError } = await supabase
+          .from("contacts")
+          .select("*")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false });
+        if (contactsError) {
+          console.error("Sequences page contacts fetch:", contactsError);
+          setContacts([]);
+        } else {
+          setContacts((contactsData as Contact[]) ?? []);
+        }
+        const { data: eventsData, error: eventsError } = await supabase
+          .from("events")
+          .select("id, name")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false });
+        if (eventsError) {
+          console.error("Sequences page events fetch:", eventsError);
+          setEvents([]);
+        } else {
+          setEvents((eventsData as EventRow[]) ?? []);
+        }
+      } catch (err) {
+        console.error("Sequences page data fetch:", err);
+        setContacts([]);
+        setEvents([]);
+      } finally {
+        setDataLoading(false);
+      }
     };
-    fetchData();
+    void fetchData();
   }, [user?.id]);
 
   const { byEvent, unassigned } = useMemo(() => {
     const byEvent: { eventName: string; eventId?: string; contacts: Contact[] }[] = [];
-    const eventNames = new Set(events.map((e) => e.name));
+    const eventNameSet = new Set(
+      events.map((e) => e.name).filter((n): n is string => n != null && String(n).trim() !== "")
+    );
     for (const ev of events) {
       const list = contacts.filter((c) => getContactEvent(c) === ev.name);
       if (list.length > 0) byEvent.push({ eventName: ev.name, eventId: ev.id, contacts: list });
     }
-    const unassigned = contacts.filter((c) => getContactEvent(c) === null);
+    const unassigned = contacts.filter((c) => {
+      const ev = getContactEvent(c);
+      if (ev === null) return true;
+      return !eventNameSet.has(ev);
+    });
     return { byEvent, unassigned };
   }, [contacts, events]);
 
@@ -120,6 +151,14 @@ export default function SequencesPage() {
     setSeqEmails([]);
   };
 
+  const handleHeaderGenerateSequence = () => {
+    if (contacts.length === 0) {
+      router.push("/scan");
+      return;
+    }
+    selectContact(contacts[0]);
+  };
+
   const score = (c: Contact) => Number(c.lead_score ?? c.leadScore) || 0;
 
   if (!user) return <div className="min-h-screen bg-[#f0f0ec]" />;
@@ -132,35 +171,86 @@ export default function SequencesPage() {
       >
         <div className={selectedContact ? "max-w-5xl mx-auto flex gap-8" : "max-w-2xl mx-auto"}>
           <div className={selectedContact ? "flex-1 min-w-0" : "w-full"}>
-            <div className="mb-5">
-              <h1
+            <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h1
+                  style={{
+                    fontSize: "24px",
+                    fontWeight: 600,
+                    letterSpacing: "-0.02em",
+                    lineHeight: 1.2,
+                    color: "#1a2e1a",
+                    margin: 0,
+                  }}
+                >
+                  Sequences
+                </h1>
+                <p
+                  className="mt-0.5"
+                  style={{ fontSize: "13px", fontWeight: 400, color: "#999" }}
+                >
+                  AI-generated follow-up emails by event
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleHeaderGenerateSequence}
                 style={{
-                  fontSize: "24px",
+                  fontSize: "13px",
                   fontWeight: 600,
-                  letterSpacing: "-0.02em",
-                  lineHeight: 1.2,
-                  color: "#1a2e1a",
-                  margin: 0,
+                  letterSpacing: "-0.01em",
+                  background: "#7dde3c",
+                  color: "#0a1a0a",
+                  cursor: "pointer",
+                  border: "none",
+                  borderRadius: 999,
+                  padding: "10px 20px",
+                  flexShrink: 0,
+                  alignSelf: "flex-start",
                 }}
               >
-                Sequences
-              </h1>
-              <p
-                className="mt-0.5"
-                style={{ fontSize: "13px", fontWeight: 400, color: "#999" }}
-              >
-                AI-generated follow-up emails by event
-              </p>
+                Generate Sequence
+              </button>
             </div>
 
-            {contacts.length === 0 ? (
-              <div className="text-center py-16 border-2 border-dashed rounded-2xl" style={{ borderColor: "#e5e0db" }}>
-                <p className="mb-1" style={{ fontSize: "14px", fontWeight: 400, lineHeight: 1.5, color: "#1a2e1a" }}>
-                  No contacts yet
+            {dataLoading ? (
+              <div className="space-y-3 rounded-2xl border p-4" style={{ borderColor: "#e5e0db", backgroundColor: "#fff" }}>
+                <div className="h-4 rounded-lg animate-pulse" style={{ backgroundColor: "#e5e0db", width: "60%" }} />
+                <div className="h-4 rounded-lg animate-pulse" style={{ backgroundColor: "#e5e0db", width: "80%" }} />
+                <div className="h-4 rounded-lg animate-pulse" style={{ backgroundColor: "#e5e0db", width: "40%" }} />
+                <div className="h-24 rounded-xl border mt-4 animate-pulse" style={{ borderColor: "#e5e0db", backgroundColor: "#f5f5f5" }} />
+              </div>
+            ) : contacts.length === 0 ? (
+              <div className="text-center py-16 px-6 border-2 border-dashed rounded-2xl" style={{ borderColor: "#e5e0db" }}>
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full" style={{ backgroundColor: "#f0f7eb" }}>
+                  <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#7ab648" strokeWidth="1.5">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                    <polyline points="22,6 12,13 2,6" />
+                  </svg>
+                </div>
+                <p className="mb-1" style={{ fontSize: "14px", fontWeight: 600, lineHeight: 1.5, color: "#1a2e1a" }}>
+                  No sequences yet
                 </p>
-                <p style={{ fontSize: "13px", fontWeight: 400, color: "#999" }}>
-                  Scan a contact first, then come back here
+                <p className="mb-6" style={{ fontSize: "13px", fontWeight: 400, color: "#999" }}>
+                  Generate an AI follow-up sequence for your contacts
                 </p>
+                <button
+                  type="button"
+                  onClick={() => router.push("/scan")}
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    letterSpacing: "-0.01em",
+                    background: "#7dde3c",
+                    color: "#0a1a0a",
+                    cursor: "pointer",
+                    border: "none",
+                    borderRadius: 999,
+                    padding: "10px 24px",
+                  }}
+                >
+                  Generate Sequence
+                </button>
               </div>
             ) : (
               <div className="space-y-2">

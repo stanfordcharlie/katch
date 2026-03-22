@@ -190,6 +190,7 @@ export function TopBar({
   if (isMobile) return null;
 
   const left = sidebarCollapsed ? "64px" : "230px";
+  const barWidth = sidebarCollapsed ? "calc(100% - 64px)" : "calc(100% - 230px)";
 
   return (
     <header
@@ -197,7 +198,7 @@ export function TopBar({
         position: "fixed",
         top: 0,
         left,
-        right: 0,
+        width: barWidth,
         height: 56,
         zIndex: 100,
         background: "#ffffff",
@@ -206,7 +207,7 @@ export function TopBar({
         alignItems: "center",
         justifyContent: "space-between",
         gap: 16,
-        transition: "left 0.2s ease",
+        transition: "left 0.2s ease, width 0.2s ease",
         boxSizing: "border-box",
       }}
     >
