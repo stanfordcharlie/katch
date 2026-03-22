@@ -234,78 +234,83 @@ export default function ScanPage() {
     }
   };
 
-  const saveAllContacts = async (
-    doneItems: Array<{
+  const saveContact = async (
+    item: {
       id: string;
       dataUrl: string;
       status: "pending" | "scanning" | "done" | "failed";
       contact: any;
       failureReason?: "scan_failed" | "other";
-    }>,
+    },
     sessionUser: User,
     eventTagVal: string
   ) => {
-    for (const item of doneItems) {
-      let imageUrl: string | null = null;
-      try {
-        const arr = item.dataUrl.split(",");
-        const mimeMatch = arr[0].match(/:(.*?);/);
-        const mime = mimeMatch ? mimeMatch[1] : "image/jpeg";
-        const bstr = atob(arr[1]);
-        let n = bstr.length;
-        const u8arr = new Uint8Array(n);
-        while (n--) {
-          u8arr[n] = bstr.charCodeAt(n);
-        }
-        const blob = new Blob([u8arr], { type: mime });
-        const filePath = `contacts/${sessionUser.id}/${Date.now()}-${item.id}.jpg`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("avatars")
-          .upload(filePath, blob, { contentType: "image/jpeg", upsert: true });
-        if (!uploadError && uploadData?.path) {
-          const { data: publicData } = supabase.storage.from("avatars").getPublicUrl(uploadData.path);
-          imageUrl = publicData?.publicUrl ?? null;
-        }
-      } catch {}
-      await supabase.from("contacts").insert({
-        user_id: sessionUser.id,
-        name: item.contact.name ?? "",
-        title: item.contact.title ?? "",
-        company: item.contact.company ?? "",
-        email: item.contact.email ?? null,
-        phone: item.contact.phone ?? null,
-        linkedin: item.contact.linkedin ?? null,
-        lead_score: 5,
-        checks: [],
-        free_note: "",
-        event: eventTagVal,
-        enriched: false,
-        image: imageUrl,
-      });
+    let imageUrl: string | null = null;
+    try {
+      const arr = item.dataUrl.split(",");
+      const mimeMatch = arr[0].match(/:(.*?);/);
+      const mime = mimeMatch ? mimeMatch[1] : "image/jpeg";
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      const blob = new Blob([u8arr], { type: mime });
+      const filePath = `contacts/${sessionUser.id}/${Date.now()}-${item.id}.jpg`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, blob, { contentType: "image/jpeg", upsert: true });
+      if (!uploadError && uploadData?.path) {
+        const { data: publicData } = supabase.storage.from("avatars").getPublicUrl(uploadData.path);
+        imageUrl = publicData?.publicUrl ?? null;
+      }
+    } catch {
+      // image optional
     }
+    const { error } = await supabase.from("contacts").insert({
+      user_id: sessionUser.id,
+      name: item.contact.name ?? "",
+      title: item.contact.title ?? "",
+      company: item.contact.company ?? "",
+      email: item.contact.email ?? null,
+      phone: item.contact.phone ?? null,
+      linkedin: item.contact.linkedin ?? null,
+      lead_score: 5,
+      checks: [],
+      free_note: "",
+      event: eventTagVal,
+      enriched: false,
+      image: imageUrl,
+    });
+    if (error) throw error;
   };
 
-  const handleBulkSaveAll = () => {
+  const handleBulkSaveAll = async () => {
     setIsSaving(true);
-    const doneItems = bulkFiles.filter((x) => x.status === "done" && x.contact);
-    const eventTagVal = eventTag || "Untagged";
-    void (async () => {
+    try {
       const { data: sessionData } = await supabase.auth.getSession();
       const sessionUser = sessionData.session?.user;
       if (!sessionUser?.id) {
         setIsSaving(false);
         return;
       }
-      void saveAllContacts(doneItems, sessionUser, eventTagVal);
-    })();
-    setTimeout(() => {
-      router.push("/contacts");
+      const doneItems = bulkFiles.filter((x) => x.status === "done" && x.contact);
+      const eventTagVal = eventTag || "Untagged";
+      await Promise.all(doneItems.map((item) => saveContact(item, sessionUser, eventTagVal)));
       setBulkMode(false);
       setBulkFiles([]);
       setBulkProgress(0);
       showToast(`${doneItems.length} contacts saved`);
       setIsSaving(false);
-    }, 400);
+      router.push("/contacts");
+    } catch {
+      setIsSaving(false);
+      showToast("Some contacts failed to save. Please try again.", {
+        background: "#e55a5a",
+        color: "#fff",
+      });
+    }
   };
 
   const handleOpenCamera = async () => {
@@ -761,6 +766,41 @@ export default function ScanPage() {
         <style>{`
           @keyframes spin { to { transform: rotate(360deg); } }
         `}</style>
+        {isSaving && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(255,255,255,0.92)",
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+              zIndex: 1000,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+              <svg
+                width="32"
+                height="32"
+                viewBox="0 0 32 32"
+                fill="none"
+                style={{ animation: "spin 0.8s linear infinite" }}
+              >
+                <circle cx="16" cy="16" r="12" stroke="#e8e8e8" strokeWidth="2.5" />
+                <path
+                  d="M16 4 A12 12 0 0 1 28 16"
+                  stroke="#7dde3c"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div style={{ fontSize: 15, fontWeight: 600, color: "#111", marginTop: 16 }}>Saving contacts...</div>
+              <div style={{ fontSize: 13, color: "#999", marginTop: 6 }}>Please wait</div>
+            </div>
+          </div>
+        )}
         {toast && (
           <div
             className="fixed top-4 left-1/2 -translate-x-1/2 z-50 text-sm px-4 py-2 rounded-lg shadow-xl"
@@ -798,6 +838,69 @@ export default function ScanPage() {
             >
               {bulkTotal} photos
             </span>
+          </div>
+
+          <div
+            style={{
+              position: "sticky",
+              bottom: isMobile ? 80 : 24,
+              background: "#fff",
+              border: "1px solid #ebebeb",
+              borderRadius: 16,
+              padding: 16,
+              marginTop: 24,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+            }}
+          >
+            <div style={{ fontSize: 13, color: "#999" }}>
+              {bulkAllProcessed
+                ? `${bulkSuccessfulCount} successful • ${bulkFailedCount} failed`
+                : bulkProcessing
+                ? `Scanning ${bulkProgress} of ${bulkTotal}...`
+                : `${bulkProcessedCount} / ${bulkTotal} scanned`}
+            </div>
+            {!bulkAllProcessed ? (
+              <button
+                type="button"
+                onClick={handleBulkProcess}
+                disabled={bulkProcessing}
+                style={{
+                  background: "#7dde3c",
+                  color: "#0a1a0a",
+                  fontWeight: 700,
+                  borderRadius: 10,
+                  height: 44,
+                  padding: "0 24px",
+                  fontSize: 15,
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                {bulkProcessing ? `Scanning ${bulkProgress} of ${bulkTotal}...` : `Scan all ${bulkTotal} photos`}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void handleBulkSaveAll()}
+                disabled={isSaving}
+                style={{
+                  background: "#7dde3c",
+                  color: "#0a1a0a",
+                  fontWeight: 700,
+                  borderRadius: 10,
+                  height: 44,
+                  padding: "0 24px",
+                  fontSize: 15,
+                  border: "none",
+                  cursor: isSaving ? "not-allowed" : "pointer",
+                }}
+              >
+                {`Save ${bulkSuccessfulCount} contacts`}
+              </button>
+            )}
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(3, 1fr)", gap: 12 }}>
@@ -847,91 +950,6 @@ export default function ScanPage() {
                 )}
               </div>
             ))}
-          </div>
-
-          <div
-            style={{
-              position: "sticky",
-              bottom: isMobile ? 80 : 24,
-              background: "#fff",
-              border: "1px solid #ebebeb",
-              borderRadius: 16,
-              padding: 16,
-              marginTop: 24,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 12,
-            }}
-          >
-            <div style={{ fontSize: 13, color: "#999" }}>
-              {bulkAllProcessed
-                ? `${bulkSuccessfulCount} successful • ${bulkFailedCount} failed`
-                : bulkProcessing
-                ? `Scanning ${bulkProgress} of ${bulkTotal}...`
-                : `${bulkProcessedCount} / ${bulkTotal} scanned`}
-            </div>
-            {!bulkAllProcessed ? (
-              <button
-                type="button"
-                onClick={handleBulkProcess}
-                disabled={bulkProcessing}
-                style={{
-                  background: "#7dde3c",
-                  color: "#0a1a0a",
-                  fontWeight: 700,
-                  borderRadius: 10,
-                  height: 44,
-                  padding: "0 24px",
-                  fontSize: 15,
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                {bulkProcessing ? `Scanning ${bulkProgress} of ${bulkTotal}...` : `Scan all ${bulkTotal} photos`}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleBulkSaveAll}
-                disabled={isSaving}
-                style={{
-                  background: "#7dde3c",
-                  color: "#0a1a0a",
-                  fontWeight: 700,
-                  borderRadius: 10,
-                  height: 44,
-                  padding: "0 24px",
-                  fontSize: 15,
-                  border: "none",
-                  cursor: isSaving ? "not-allowed" : "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                {isSaving && (
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 14 14"
-                    fill="none"
-                    style={{ animation: "spin 0.7s linear infinite", marginRight: "6px" }}
-                  >
-                    <circle
-                      cx="7"
-                      cy="7"
-                      r="5.5"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeDasharray="20 14"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                )}
-                {isSaving ? "Saving..." : `Save ${bulkSuccessfulCount} contacts`}
-              </button>
-            )}
           </div>
         </div>
         {showBulkDiscard && (

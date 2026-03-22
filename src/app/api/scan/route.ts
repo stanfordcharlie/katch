@@ -1,26 +1,54 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 
-const client = new Anthropic();
+const anthropic = new Anthropic();
 
-const VISION_PROMPT = `You are extracting contact information from a photo of a conference badge or business card.
+const MAX_ATTEMPTS = 3;
 
-Look carefully at ALL text visible in the image — including small print, logos, lanyards, name tags, printed cards, or any text overlay. Even if the image is blurry or partially obscured, extract whatever you can read.
-
-Return a JSON object with these fields:
-{
-  name: string,        // Full name — look for large text, first+last name format
-  title: string,       // Job title — look for words like Manager, Director, CEO, VP, Engineer, etc.
-  company: string,     // Company or organization name — often near a logo
-  email: string,       // Email address — look for @ symbol
-  phone: string,       // Phone number — any format
-  linkedin: string,    // LinkedIn URL or username if visible
-  confidence: number   // Your confidence score 0-100 that this is a real contact with real data
+function getPromptForAttempt(attempt: number): string {
+  switch (attempt) {
+    case 1:
+      return `You are extracting contact information from a conference badge or business card photo. Look carefully at all visible text. Return a JSON object with: name, title, company, email, phone, linkedin, confidence (0-100). Use empty string for missing fields. Return only valid JSON.`;
+    case 2:
+      return `Look extremely carefully at this image. This is a conference badge or business card. Even if the image is blurry, tilted, or partially obscured, extract every piece of text you can see. Look for: any person's name (large text), job title (below the name), company or organization (often with a logo), email (contains @), phone number, website. Return JSON only with these keys: name, title, company, email, phone, linkedin, confidence (0-100). Use empty strings for missing fields. Do not invent or guess. Return only valid JSON, no explanation.`;
+    case 3:
+      return `FINAL ATTEMPT — examine the entire image like a conference badge or business card. Read every region: corners, edges, small print, logos, lanyard text, QR areas, and overlays. Extract any visible name, title, company, email (@), phone digits, LinkedIn URL or handle. Return only valid JSON: name, title, company, email, phone, linkedin, confidence (0-100). Use empty string only when a field is truly unreadable. Do not invent. Return only JSON.`;
+    default:
+      return getPromptForAttempt(1);
+  }
 }
 
-If you cannot read a field, use an empty string. Do not invent or guess data.
-If the image does not appear to contain a badge or business card at all, set confidence to 0.
-Return only valid JSON, no explanation.`;
+type ParsedContact = {
+  name: string;
+  title: string;
+  company: string;
+  email: string;
+  phone: string;
+  linkedin: string;
+  confidence: number;
+};
+
+function parseResult(response: Anthropic.Messages.Message): Record<string, unknown> | null {
+  const raw = response.content[0]?.type === "text" ? response.content[0].text : "";
+  try {
+    const clean = raw.replace(/```json|```/g, "").trim();
+    return JSON.parse(clean) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeParsed(parsed: Record<string, unknown>): ParsedContact {
+  return {
+    name: typeof parsed.name === "string" ? parsed.name : "",
+    title: typeof parsed.title === "string" ? parsed.title : "",
+    company: typeof parsed.company === "string" ? parsed.company : "",
+    email: typeof parsed.email === "string" ? parsed.email : "",
+    phone: typeof parsed.phone === "string" ? parsed.phone : "",
+    linkedin: typeof parsed.linkedin === "string" ? parsed.linkedin : "",
+    confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0,
+  };
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -30,57 +58,65 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No image provided" }, { status: 400 });
     }
 
-    const response = await client.messages.create({
-      model: "claude-opus-4-6",
-      max_tokens: 1024,
-      messages: [
-        {
-          role: "user",
-          content: [
+    const imageMediaType = mediaType || "image/jpeg";
+
+    let result: ParsedContact | null = null;
+    let attempt = 0;
+
+    while (attempt < MAX_ATTEMPTS) {
+      attempt++;
+      const prompt = getPromptForAttempt(attempt);
+
+      try {
+        const response = await anthropic.messages.create({
+          model: "claude-opus-4-5",
+          max_tokens: 1000,
+          messages: [
             {
-              type: "image",
-              source: {
-                type: "base64",
-                media_type: mediaType || "image/jpeg",
-                data: imageBase64,
-              },
-            },
-            {
-              type: "text",
-              text: VISION_PROMPT,
+              role: "user",
+              content: [
+                {
+                  type: "image",
+                  source: {
+                    type: "base64",
+                    media_type: imageMediaType,
+                    data: imageBase64,
+                  },
+                },
+                { type: "text", text: prompt },
+              ],
             },
           ],
-        },
-      ],
-    });
+        });
 
-    const raw = response.content[0].type === "text" ? response.content[0].text : "";
-    const clean = raw.replace(/```json|```/g, "").trim();
-    const parsed = JSON.parse(clean) as Record<string, unknown>;
+        const parsedRaw = parseResult(response);
+        if (!parsedRaw) continue;
 
-    const result = {
-      name: typeof parsed.name === "string" ? parsed.name : "",
-      title: typeof parsed.title === "string" ? parsed.title : "",
-      company: typeof parsed.company === "string" ? parsed.company : "",
-      email: typeof parsed.email === "string" ? parsed.email : "",
-      phone: typeof parsed.phone === "string" ? parsed.phone : "",
-      linkedin: typeof parsed.linkedin === "string" ? parsed.linkedin : "",
-      confidence: typeof parsed.confidence === "number" ? parsed.confidence : 100,
-    };
+        const parsed = normalizeParsed(parsedRaw);
 
-    const hasName = result.name && result.name.trim().length > 1;
-    const hasAnyData =
-      hasName ||
-      (result.email && result.email.includes("@")) ||
-      (result.company && result.company.trim().length > 1);
-    const confidenceOk = (result.confidence ?? 100) >= 25;
+        const hasName = parsed.name && parsed.name.trim().length > 1;
+        const hasAnyData =
+          hasName ||
+          (parsed.email && parsed.email.includes("@")) ||
+          (parsed.company && parsed.company.trim().length > 1);
+        const confidenceOk = (parsed.confidence ?? 0) >= 25;
 
-    if (!hasAnyData || !confidenceOk) {
+        if (hasAnyData && confidenceOk) {
+          result = parsed;
+          break;
+        }
+      } catch (err) {
+        console.error(`Scan attempt ${attempt} error:`, err);
+      }
+    }
+
+    if (!result) {
       return NextResponse.json(
         {
           success: false,
           error: "scan_failed",
-          message: "Could not extract contact information from this image. Please try a clearer photo.",
+          message:
+            "Could not extract contact information from this image after multiple attempts. Please try a clearer photo.",
         },
         { status: 422 }
       );

@@ -351,6 +351,17 @@ export default function ContactsPage() {
         </div>
       )}
 
+      <style>{`
+        @keyframes shimmer {
+          from {
+            background-position: 200% 0;
+          }
+          to {
+            background-position: -200% 0;
+          }
+        }
+      `}</style>
+
       <div
         style={{
           display: 'flex',
@@ -587,59 +598,20 @@ export default function ContactsPage() {
             background: 'transparent',
             display: 'flex',
             flexDirection: 'column',
-            gap: 8,
           }}
         >
           {Array.from({ length: 5 }).map((_, i) => (
             <div
               key={i}
               style={{
-                background: 'rgba(255, 255, 255, 0.8)',
-                backdropFilter: 'blur(12px)',
-                WebkitBackdropFilter: 'blur(12px)',
-                border: '1px solid rgba(255, 255, 255, 0.9)',
-                borderRadius: 16,
-                padding: '14px 18px',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                background: 'linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%)',
+                backgroundSize: '200% 100%',
+                animation: 'shimmer 1.2s infinite',
+                borderRadius: 12,
+                height: 72,
+                marginBottom: 8,
               }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  gap: 14,
-                  alignItems: 'center',
-                }}
-              >
-                <div
-                  className='skeleton'
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 10,
-                    flexShrink: 0,
-                  }}
-                />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    className='skeleton'
-                    style={{
-                      width: 140,
-                      height: 14,
-                      borderRadius: 4,
-                      marginBottom: 8,
-                    }}
-                  />
-                  <div
-                    className='skeleton'
-                    style={{
-                      width: 100,
-                      height: 12,
-                      borderRadius: 4,
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
+            />
           ))}
         </div>
       )}
