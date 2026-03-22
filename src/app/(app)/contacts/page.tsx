@@ -65,9 +65,12 @@ export default function ContactsPage() {
 
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [toastVariant, setToastVariant] = useState<'success' | 'error' | 'warning'>('success');
 
   const [signalLabels, setSignalLabels] = useState<string[]>(DEFAULT_SIGNAL_LABELS);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ succeeded: number; failed: number } | null>(null);
   const [events, setEvents] = useState<any[]>([]);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -177,11 +180,62 @@ export default function ContactsPage() {
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [user?.id]);
 
+  const showToast = (msg: string, variant: 'success' | 'error' | 'warning' = 'success') => {
+    setToast(msg);
+    setToastVariant(variant);
+  };
+
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), 2500);
+    const t = setTimeout(() => {
+      setToast(null);
+      setToastVariant('success');
+    }, 3000);
     return () => clearTimeout(t);
   }, [toast]);
+
+  const syncToHubSpot = async () => {
+    if (selectedIds.length === 0) return;
+    setIsSyncing(true);
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const res = await fetch('/api/hubspot/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contactIds: selectedIds, userId: user.id }),
+      });
+
+      const data = await res.json();
+
+      if (res.status === 401) {
+        showToast('HubSpot not connected. Go to Settings → Integrations.', 'error');
+        return;
+      }
+
+      if (!res.ok) throw new Error('Sync failed');
+
+      setSyncResult({ succeeded: data.succeeded, failed: data.failed });
+
+      if (data.failed === 0) {
+        showToast(
+          `${data.succeeded} contact${data.succeeded !== 1 ? 's' : ''} synced to HubSpot!`,
+          'success'
+        );
+      } else {
+        showToast(`${data.succeeded} synced, ${data.failed} failed.`, 'warning');
+      }
+    } catch (err) {
+      console.error('HubSpot sync error:', err);
+      showToast('Sync failed. Please try again.', 'error');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const filteredContacts = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -285,7 +339,7 @@ export default function ContactsPage() {
     setSelected(updated);
     setEditingContactId(null);
     setEditForm(null);
-    setToast('Contact updated');
+    showToast('Contact updated', 'success');
   };
 
   const handleBulkDelete = async () => {
@@ -298,7 +352,7 @@ export default function ContactsPage() {
     }
     setContacts((prev) => prev.filter((c) => !idsToDelete.includes(c.id)));
     setSelectedIds([]);
-    setToast(`${idsToDelete.length} contacts deleted`);
+    showToast(`${idsToDelete.length} contacts deleted`, 'success');
   };
 
   const handleDeleteContact = async (contact: Contact) => {
@@ -337,14 +391,20 @@ export default function ContactsPage() {
             position: 'fixed',
             bottom: '24px',
             right: '24px',
-            background: '#7dde3c',
-            color: '#0a1a0a',
+            background:
+              toastVariant === 'success'
+                ? '#7dde3c'
+                : toastVariant === 'error'
+                  ? '#e55a5a'
+                  : '#f59e0f',
+            color: toastVariant === 'success' ? '#0a1a0a' : '#fff',
             borderRadius: '10px',
             padding: '12px 20px',
             fontSize: '13px',
             fontWeight: 600,
             letterSpacing: '-0.01em',
             zIndex: 1000,
+            maxWidth: 'min(90vw, 360px)',
           }}
         >
           {toast}
@@ -1702,7 +1762,7 @@ export default function ContactsPage() {
           <button
             type='button'
             onClick={() => {
-              setToast('Opening sequences...');
+              showToast('Opening sequences...', 'success');
               window.location.href = '/sequences';
             }}
             style={{
@@ -1721,6 +1781,32 @@ export default function ContactsPage() {
             }}
           >
             {isMobile ? 'Sequences' : 'Generate Sequences'}
+          </button>
+          <button
+            type='button'
+            onClick={() => void syncToHubSpot()}
+            disabled={isSyncing}
+            style={{
+              background: '#ff7a59',
+              color: '#ffffff',
+              fontSize: '13px',
+              fontWeight: 600,
+              borderRadius: '999px',
+              padding: '8px 16px',
+              border: 'none',
+              cursor: isSyncing ? 'not-allowed' : 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              minHeight: isMobile ? 44 : undefined,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              opacity: isSyncing ? 0.7 : 1,
+            }}
+          >
+            <span style={{ fontWeight: 700, fontSize: '13px' }}>H</span>
+            {isSyncing ? 'Syncing...' : 'Sync to HubSpot'}
           </button>
           <button
             type='button'
@@ -1769,7 +1855,7 @@ export default function ContactsPage() {
               link.click();
               document.body.removeChild(link);
               URL.revokeObjectURL(url);
-              setToast(`Exported ${selectedContacts.length} contacts`);
+              showToast(`Exported ${selectedContacts.length} contacts`, 'success');
             }}
             style={{
               background: 'rgba(255,255,255,0.1)',
