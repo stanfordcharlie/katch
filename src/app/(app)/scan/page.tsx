@@ -1282,6 +1282,16 @@ export default function ScanPage() {
           {scanMode === "idle" && (
             <>
               <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    showStaged && !isMobile ? "1fr 2fr" : "1fr",
+                  gap: showStaged ? "16px" : undefined,
+                  alignItems: "start",
+                  marginBottom: 16,
+                }}
+              >
+              <div
                 onDragEnter={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -1346,7 +1356,8 @@ export default function ScanPage() {
                   alignItems: "center",
                   textAlign: "center",
                   transition: "all 0.2s",
-                  marginBottom: 16,
+                  marginBottom: 0,
+                  minHeight: showStaged ? "200px" : undefined,
                 }}
               >
                 <div
@@ -1426,7 +1437,7 @@ export default function ScanPage() {
                   style={{
                     width: "100%",
                     boxSizing: "border-box",
-                    marginBottom: 16,
+                    marginBottom: 0,
                     background: "#fff",
                     border: "1px solid #ebebeb",
                     borderRadius: 16,
@@ -1466,8 +1477,8 @@ export default function ScanPage() {
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))",
-                      gap: 8,
+                      gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+                      gap: 10,
                       marginBottom: 16,
                     }}
                   >
@@ -1632,6 +1643,7 @@ export default function ScanPage() {
                   </div>
                 </div>
               )}
+              </div>
             </>
           )}
 
