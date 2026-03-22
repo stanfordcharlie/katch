@@ -4,11 +4,12 @@ import { Sidebar } from "@/components/Sidebar";
 import { TopBar } from "@/components/TopBar";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -39,6 +40,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       }
     });
   }, [router]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [pathname]);
 
   if (!user)
     return <div style={{ backgroundColor: "#f7f7f5", minHeight: "100dvh" }} />;
@@ -89,6 +94,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <main
         style={{
           boxSizing: "border-box",
+          overflowY: "auto",
           ...(isMobile
             ? {
                 marginLeft: 0,
