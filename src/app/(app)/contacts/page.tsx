@@ -421,14 +421,19 @@ export default function ContactsPage() {
                 }
               }}
               style={{
+                background: '#ffffff',
+                border: '1px solid #e8e8e8',
+                color: '#111111',
                 fontSize: '13px',
                 fontWeight: 600,
                 letterSpacing: '-0.01em',
-                color: '#7dde3c',
+                padding: '8px 16px',
+                borderRadius: '999px',
                 cursor: 'pointer',
-                background: 'none',
-                border: 'none',
-                padding: '0 12px',
+                lineHeight: 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                height: '36px',
               }}
             >
               {(() => {
