@@ -790,11 +790,11 @@ footer {
                 display: "block",
               }}
             >
-              Increase event ROI by doing nadaaa
+              Scan it. Score it. Close it.
             </span>
           </h1>
           <p className="hero2-sub" style={{ textAlign: isMobile ? 'center' : 'left' }}>
-            Scan badges. Score leads. Close more.
+            The GTM platform for in-person events. Because "I'll remember them" isn't a strategy.
           </p>
           <form
             className="hero2-form"
