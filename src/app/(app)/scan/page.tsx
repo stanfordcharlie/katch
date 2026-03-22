@@ -44,6 +44,10 @@ export default function ScanPage() {
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const singleUploadInputRef = useRef<HTMLInputElement>(null);
+  const stagedAddInputRef = useRef<HTMLInputElement>(null);
+  const stagedFilesRef = useRef(stagedFiles);
+  stagedFilesRef.current = stagedFiles;
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -498,6 +502,8 @@ export default function ScanPage() {
     return (
       <div
         className="min-h-screen"
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => e.preventDefault()}
         style={{
           background: "#f7f7f5",
           overflowX: "hidden",
@@ -559,12 +565,12 @@ export default function ScanPage() {
                       background: "linear-gradient(transparent, rgba(0,0,0,0.6))",
                     }}
                   >
-                    <div style={{ fontSize: 11, fontWeight: 600, color: "white", display: "flex", alignItems: "center", gap: 6 }}>
-                      {item.status === 'pending' && <span>Pending</span>}
+                    <div style={{ fontSize: 11, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+                      {item.status === 'pending' && <span style={{ color: "#ffffff" }}>Pending</span>}
                       {item.status === 'scanning' && (
                         <>
                           <span className="animate-pulse" style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "#7dde3c" }} />
-                          <span>Scanning...</span>
+                          <span style={{ color: "#ffffff" }}>Scanning...</span>
                         </>
                       )}
                       {item.status === 'done' && (
@@ -572,7 +578,7 @@ export default function ScanPage() {
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                             <polyline points="20 6 9 17 4 12" />
                           </svg>
-                          <span>Done</span>
+                          <span style={{ color: "#ffffff" }}>Done</span>
                         </>
                       )}
                       {item.status === 'failed' && <span style={{ color: "#ffd1d1" }}>Failed</span>}
@@ -716,6 +722,8 @@ export default function ScanPage() {
   return (
     <div
       className="min-h-screen"
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => e.preventDefault()}
       style={{
         background: "#f7f7f5",
         overflowX: "hidden",
@@ -758,6 +766,7 @@ export default function ScanPage() {
         </div>
       )}
       <input
+        ref={singleUploadInputRef}
         type="file"
         accept="image/*"
         multiple
@@ -766,6 +775,7 @@ export default function ScanPage() {
         onChange={handleSmartUpload}
       />
       <input
+        ref={stagedAddInputRef}
         type="file"
         accept="image/*"
         multiple
@@ -822,6 +832,146 @@ export default function ScanPage() {
         <div style={{ flex: isMobile ? "none" : 1, width: isMobile ? "100%" : "auto", minWidth: 0 }}>
           {scanMode === "idle" && (
             <>
+              <div
+                onDragEnter={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsDragging(true);
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsDragging(false);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsDragging(false);
+                  const dropped = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/"));
+                  if (!dropped.length) {
+                    if (singleUploadInputRef.current) singleUploadInputRef.current.value = "";
+                    if (stagedAddInputRef.current) stagedAddInputRef.current.value = "";
+                    return;
+                  }
+                  const room = Math.max(0, 20 - stagedFilesRef.current.length);
+                  if (room === 0) {
+                    if (singleUploadInputRef.current) singleUploadInputRef.current.value = "";
+                    if (stagedAddInputRef.current) stagedAddInputRef.current.value = "";
+                    return;
+                  }
+                  const filesToRead = dropped.slice(0, room);
+                  Promise.all(
+                    filesToRead.map(
+                      (file) =>
+                        new Promise<{ id: string; dataUrl: string; file: File }>((resolve) => {
+                          const reader = new FileReader();
+                          reader.onload = (ev) =>
+                            resolve({
+                              id: Math.random().toString(36).slice(2),
+                              dataUrl: ev.target?.result as string,
+                              file,
+                            });
+                          reader.readAsDataURL(file);
+                        })
+                    )
+                  ).then((newStaged) => {
+                    setStagedFiles((prev) => [...prev, ...newStaged]);
+                    setShowStaged(true);
+                    if (singleUploadInputRef.current) singleUploadInputRef.current.value = "";
+                    if (stagedAddInputRef.current) stagedAddInputRef.current.value = "";
+                  });
+                }}
+                style={{
+                  background: isDragging ? "#f0f7eb" : "#fff",
+                  border: isDragging ? "2px dashed #7dde3c" : "2px dashed #e0e0e0",
+                  borderRadius: 20,
+                  padding: "48px 32px",
+                  width: "100%",
+                  boxSizing: "border-box",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  textAlign: "center",
+                  transition: "all 0.2s",
+                  marginBottom: 16,
+                }}
+              >
+                <div
+                  style={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: 16,
+                    background: "#f0f7eb",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: 20,
+                  }}
+                >
+                  <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#7ab648" strokeWidth="1.5">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                </div>
+                <p style={{ fontSize: 18, fontWeight: 700, color: "#111", marginBottom: 8, marginTop: 0 }}>
+                  Drop a badge or card here
+                </p>
+                <p style={{ fontSize: 13, color: "#bbb", marginBottom: 16, marginTop: 0 }}>
+                  Drag one photo to scan, or drop multiple to bulk upload
+                </p>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    gap: 10,
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={handleOpenCamera}
+                    style={{
+                      background: "#7dde3c",
+                      color: "#0a1a0a",
+                      fontWeight: 700,
+                      borderRadius: 10,
+                      height: 42,
+                      padding: "0 20px",
+                      fontSize: 14,
+                      border: "none",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Open Camera
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const input = document.getElementById("single-upload-input") as HTMLInputElement | null;
+                      input?.click();
+                    }}
+                    style={{
+                      background: "#fff",
+                      border: "1px solid #e8e8e8",
+                      color: "#444",
+                      borderRadius: 10,
+                      height: 42,
+                      padding: "0 20px",
+                      fontSize: 14,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Upload photo
+                  </button>
+                </div>
+              </div>
               {showStaged && (
                 <div
                   style={{
@@ -1029,122 +1179,6 @@ export default function ScanPage() {
                   </div>
                 </div>
               )}
-              <div
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setIsDragging(true);
-                }}
-                onDragLeave={() => setIsDragging(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setIsDragging(false);
-                  const files = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/"));
-                  if (!files.length) return;
-                  Promise.all(
-                    files.slice(0, 20).map(
-                      (file) =>
-                        new Promise<{ id: string; dataUrl: string; file: File }>((resolve) => {
-                          const reader = new FileReader();
-                          reader.onload = (ev) =>
-                            resolve({
-                              id: Math.random().toString(36).slice(2),
-                              dataUrl: ev.target?.result as string,
-                              file,
-                            });
-                          reader.readAsDataURL(file);
-                        })
-                    )
-                  ).then((staged) => {
-                    setStagedFiles(staged);
-                    setShowStaged(true);
-                  });
-                }}
-                style={{
-                  background: isDragging ? "#f0f7eb" : "#fff",
-                  border: isDragging ? "2px dashed #7dde3c" : "2px dashed #e0e0e0",
-                  borderRadius: 20,
-                  padding: "48px 32px",
-                  width: "100%",
-                  boxSizing: "border-box",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  textAlign: "center",
-                  transition: "all 0.2s",
-                }}
-              >
-                <div
-                  style={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: 16,
-                    background: "#f0f7eb",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginBottom: 20,
-                  }}
-                >
-                  <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#7ab648" strokeWidth="1.5">
-                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                    <polyline points="17 8 12 3 7 8" />
-                    <line x1="12" y1="3" x2="12" y2="15" />
-                  </svg>
-                </div>
-                <p style={{ fontSize: 18, fontWeight: 700, color: "#111", marginBottom: 8, marginTop: 0 }}>
-                  Drop a badge or card here
-                </p>
-                <p style={{ fontSize: 13, color: "#bbb", marginBottom: 16, marginTop: 0 }}>
-                  Drag one photo to scan, or drop multiple to bulk upload
-                </p>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "row",
-                    flexWrap: "wrap",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    gap: 10,
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={handleOpenCamera}
-                    style={{
-                      background: "#7dde3c",
-                      color: "#0a1a0a",
-                      fontWeight: 700,
-                      borderRadius: 10,
-                      height: 42,
-                      padding: "0 20px",
-                      fontSize: 14,
-                      border: "none",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Open Camera
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const input = document.getElementById("single-upload-input") as HTMLInputElement | null;
-                      input?.click();
-                    }}
-                    style={{
-                      background: "#fff",
-                      border: "1px solid #e8e8e8",
-                      color: "#444",
-                      borderRadius: 10,
-                      height: 42,
-                      padding: "0 20px",
-                      fontSize: 14,
-                      cursor: "pointer",
-                    }}
-                  >
-                    Upload photo
-                  </button>
-                </div>
-              </div>
             </>
           )}
 

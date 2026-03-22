@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
@@ -37,26 +37,21 @@ const MOBILE_NAV = [
   { label: "Settings", href: "/settings", icon: <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M2 12h2M20 12h2M17.66 17.66l-1.41-1.41M6.34 17.66l1.41-1.41"/></svg> },
 ];
 
-export function Sidebar({ user }: { user: User }) {
+export function Sidebar({
+  user,
+  collapsed,
+  onCollapsedChange,
+  isMobile,
+}: {
+  user: User;
+  collapsed: boolean;
+  onCollapsedChange: (collapsed: boolean) => void;
+  isMobile: boolean;
+}) {
   const pathname = usePathname();
-  const router = useRouter();
-  const [isMobile, setIsMobile] = useState(false);
-  const [collapsed, setCollapsed] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('katch_sidebar_collapsed') === 'true'
-    }
-    return false
-  });
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState(() => getDisplayName(user));
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -72,10 +67,6 @@ export function Sidebar({ user }: { user: User }) {
     return () => { mounted = false; };
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem("katch_sidebar_collapsed", collapsed ? "true" : "false");
-  }, [collapsed]);
-
   const initial = displayName.trim().charAt(0).toUpperCase() || "U";
 
   if (isMobile) {
@@ -90,6 +81,44 @@ export function Sidebar({ user }: { user: User }) {
             </Link>
           );
         })}
+        <Link
+          href="/account"
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            color: pathname.startsWith("/account") ? "#2d6a1f" : "#999",
+            textDecoration: "none",
+            cursor: "pointer",
+            padding: "4px 0",
+          }}
+        >
+          {avatarUrl ? (
+            <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 22, height: 22 }}>
+              <img src={avatarUrl} alt="" width={22} height={22} style={{ borderRadius: "50%", objectFit: "cover" }} />
+            </span>
+          ) : (
+            <span
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: "50%",
+                backgroundColor: "#1a3a2a",
+                color: "#7dde3c",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 10,
+                fontWeight: 600,
+              }}
+            >
+              {initial}
+            </span>
+          )}
+          <span style={{ fontSize: 10, fontWeight: 500, marginTop: 3, lineHeight: 1, textAlign: "center" }}>Account</span>
+        </Link>
       </nav>
     );
   }
@@ -99,7 +128,7 @@ export function Sidebar({ user }: { user: User }) {
       <button
         type="button"
         title={collapsed ? "Expand navigation" : "Collapse navigation"}
-        onClick={() => setCollapsed((prev) => !prev)}
+        onClick={() => onCollapsedChange(!collapsed)}
         style={{
           position: "absolute",
           right: -12,
@@ -182,25 +211,6 @@ export function Sidebar({ user }: { user: User }) {
         })()}
       </nav>
 
-      <div style={{ marginTop: "auto", borderTop: "1px solid #ebebeb", padding: "12px 10px" }}>
-        <div onMouseEnter={() => collapsed && setHoveredItem("account-user")} onMouseLeave={() => setHoveredItem(null)} onClick={() => router.push("/account")} style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 10, cursor: "pointer", borderRadius: 8, padding: "4px 6px" }}>
-          {avatarUrl ? (
-            <img src={avatarUrl} alt={displayName} width={32} height={32} style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-          ) : (
-            <span style={{ width: 32, height: 32, borderRadius: "50%", backgroundColor: "#7ab648", color: "#ffffff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", fontWeight: 500, flexShrink: 0 }}>{initial}</span>
-          )}
-          <div style={{ display: "flex", flexDirection: "column", gap: 1, transition: "opacity 0.15s ease", opacity: collapsed ? 0 : 1, overflow: "hidden", whiteSpace: "nowrap", width: collapsed ? 0 : "auto" }}>
-            <span style={{ fontSize: "13px", fontWeight: 600, letterSpacing: "-0.01em", color: "#333", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 120 }}>{displayName || "Account"}</span>
-            <span style={{ fontSize: "11px", fontWeight: 400, color: "#999" }}>Account</span>
-          </div>
-          {collapsed && hoveredItem === "account-user" && (
-            <div style={{ position: "absolute", left: 72, top: "50%", transform: "translateY(-50%)", background: "#1a2332", color: "#fff", fontSize: "12px", fontWeight: 500, padding: "5px 10px", borderRadius: 6, whiteSpace: "nowrap", zIndex: 50, pointerEvents: "none" }}>
-              {displayName}
-            </div>
-          )}
-        </div>
-      </div>
     </aside>
   );
 }
-// force deploy

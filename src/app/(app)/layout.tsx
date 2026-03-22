@@ -1,14 +1,23 @@
 "use client";
 
 import { Sidebar } from "@/components/Sidebar";
+import { TopBar } from "@/components/TopBar";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import type { User } from "@supabase/supabase-js";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [user, setUser] = useState<unknown>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("katch_sidebar_collapsed");
+      return stored !== null ? stored === "true" : true;
+    }
+    return true;
+  });
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -18,11 +27,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    localStorage.setItem("katch_sidebar_collapsed", sidebarCollapsed ? "true" : "false");
+  }, [sidebarCollapsed]);
+
+  useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (!data.session) {
         router.replace("/landing");
       } else {
-        setUser(data.session.user);
+        setUser(data.session.user as User);
       }
     });
   }, [router]);
@@ -66,8 +79,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       )}
-      <Sidebar user={user as import("@supabase/supabase-js").User} />
-      <main style={{ flex: 1, paddingLeft: isMobile ? 0 : 220, paddingTop: isMobile ? 48 : 0, paddingBottom: isMobile ? 80 : 0, backgroundColor: "#f7f7f5" }}>
+      <Sidebar
+        user={user}
+        collapsed={sidebarCollapsed}
+        onCollapsedChange={setSidebarCollapsed}
+        isMobile={isMobile}
+      />
+      {!isMobile && <TopBar sidebarCollapsed={sidebarCollapsed} isMobile={isMobile} user={user} />}
+      <main
+        style={{
+          flex: 1,
+          paddingLeft: isMobile ? 0 : sidebarCollapsed ? 64 : 230,
+          paddingTop: isMobile ? 48 : 56,
+          paddingBottom: isMobile ? 80 : 0,
+          backgroundColor: "#f7f7f5",
+        }}
+      >
         {children}
       </main>
     </div>
