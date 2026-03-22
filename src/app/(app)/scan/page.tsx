@@ -61,8 +61,8 @@ export default function ScanPage() {
   const [freeNote, setFreeNote] = useState("");
   const [leadScore, setLeadScore] = useState(1);
   const [eventTag, setEventTag] = useState("");
-  const [showNewEvent, setShowNewEvent] = useState(false);
-  const [newEventName, setNewEventName] = useState("");
+  const [showReviewNewEventForm, setShowReviewNewEventForm] = useState(false);
+  const [reviewNewEventName, setReviewNewEventName] = useState("");
   const [restoredDraft, setRestoredDraft] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [bulkMode, setBulkMode] = useState(false);
@@ -86,6 +86,11 @@ export default function ScanPage() {
   const [showEventPicker, setShowEventPicker] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [eventPickerHoverKey, setEventPickerHoverKey] = useState<string | null>(null);
+  const [showCreateEvent, setShowCreateEvent] = useState(false);
+  const [newEventName, setNewEventName] = useState("");
+  const [newEventDate, setNewEventDate] = useState("");
+  const [isCreatingEvent, setIsCreatingEvent] = useState(false);
+  const [eventNameTouched, setEventNameTouched] = useState(false);
   const [showBulkDiscard, setShowBulkDiscard] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [stagedFiles, setStagedFiles] = useState<Array<{ id: string; dataUrl: string; file: File }>>([]);
@@ -179,8 +184,8 @@ export default function ScanPage() {
     setFreeNote("");
     setLeadScore(1);
     setEventTag("");
-    setShowNewEvent(false);
-    setNewEventName("");
+    setShowReviewNewEventForm(false);
+    setReviewNewEventName("");
     if (streamRef.current) streamRef.current.getTracks().forEach((t) => t.stop());
     try {
       localStorage.removeItem("katch_scan_draft");
@@ -324,6 +329,10 @@ export default function ScanPage() {
       setReviewData({});
       setShowEventPicker(false);
       setSelectedEventId(null);
+      setShowCreateEvent(false);
+      setNewEventName("");
+      setNewEventDate("");
+      setEventNameTouched(false);
       showToast(`${doneItems.length} contacts saved`);
       setIsSaving(false);
       router.push("/contacts");
@@ -502,7 +511,7 @@ export default function ScanPage() {
   };
 
   const handleSaveNewEvent = async () => {
-    const n = newEventName.trim();
+    const n = reviewNewEventName.trim();
     if (!n || !user?.id) return;
     const { data, error } = await supabase
       .from("events")
@@ -524,8 +533,46 @@ export default function ScanPage() {
     }
     setEvents((p) => [data, ...p]);
     setEventTag(n);
-    setShowNewEvent(false);
-    setNewEventName("");
+    setShowReviewNewEventForm(false);
+    setReviewNewEventName("");
+  };
+
+  const handleCreateEventFromPicker = async () => {
+    const name = newEventName.trim();
+    if (!name || !user?.id) return;
+    setIsCreatingEvent(true);
+    try {
+      const { data: created, error } = await supabase
+        .from("events")
+        .insert({
+          user_id: user.id,
+          name,
+          date: newEventDate || new Date().toISOString().split("T")[0],
+          type: "conference",
+        })
+        .select()
+        .single();
+      if (error) {
+        console.error("Create event error:", JSON.stringify(error));
+        showToast("Failed to create event");
+        return;
+      }
+      const { data: refetched } = await supabase
+        .from("events")
+        .select("id, name, date, location")
+        .eq("user_id", user.id)
+        .order("date", { ascending: false });
+      setEvents(refetched || []);
+      if (created?.id) {
+        setSelectedEventId(created.id as string);
+      }
+      setShowCreateEvent(false);
+      setNewEventName("");
+      setNewEventDate("");
+      setEventNameTouched(false);
+    } finally {
+      setIsCreatingEvent(false);
+    }
   };
 
   const persistScannedContact = async (sessionUser: User) => {
@@ -900,26 +947,6 @@ export default function ScanPage() {
                 ? `Scanning ${bulkProgress} of ${bulkTotal}...`
                 : `${bulkProcessedCount} / ${bulkTotal} scanned`}
             </div>
-            {!bulkProcessing && !bulkAllProcessed && (
-              <button
-                type="button"
-                onClick={handleBulkProcess}
-                disabled={bulkProcessing}
-                style={{
-                  background: "#7dde3c",
-                  color: "#0a1a0a",
-                  fontWeight: 700,
-                  borderRadius: 10,
-                  height: 44,
-                  padding: "0 24px",
-                  fontSize: 15,
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                {`Scan all ${bulkTotal} photos`}
-              </button>
-            )}
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(3, 1fr)", gap: 12 }}>
@@ -971,63 +998,153 @@ export default function ScanPage() {
             ))}
           </div>
 
-          {bulkAllProcessed && bulkSuccessfulCount > 0 && (
+        {bulkTotal > 0 &&
+          (bulkProcessing ||
+            !bulkAllProcessed ||
+            (bulkAllProcessed && bulkSuccessfulCount > 0)) && (
             <div
               style={{
-                marginTop: 24,
+                position: "fixed",
+                bottom: "32px",
+                left: "50%",
+                transform: "translateX(-50%)",
+                zIndex: 100,
                 display: "flex",
-                flexDirection: isMobile ? "column" : "row",
-                gap: 12,
-                justifyContent: "center",
-                flexWrap: "wrap",
-                alignItems: "stretch",
+                alignItems: "center",
+                gap: "10px",
+                background: "rgba(255,255,255,0.9)",
+                backdropFilter: "blur(12px)",
+                border: "1px solid #ebebeb",
+                borderRadius: "999px",
+                padding: "8px 8px 8px 20px",
+                boxShadow: "0 4px 24px rgba(0,0,0,0.10)",
               }}
             >
-              <button
-                type="button"
-                onClick={() => {
-                  const initial: Record<string, { lead_score: number; checks: string[]; free_note: string }> = {};
-                  bulkSuccessfulItems.forEach((x) => {
-                    initial[x.id] = { lead_score: 5, checks: [], free_note: "" };
-                  });
-                  setReviewData(initial);
-                  setReviewIndex(0);
-                  setSelectedEventId(null);
-                  setShowEventPicker(true);
-                }}
-                disabled={isSaving}
-                style={{
-                  background: "#7dde3c",
-                  color: "#0a1a0a",
-                  fontWeight: 700,
-                  fontSize: 15,
-                  borderRadius: 10,
-                  height: 44,
-                  padding: "0 24px",
-                  border: "none",
-                  cursor: isSaving ? "not-allowed" : "pointer",
-                }}
-              >
-                Review & Score
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleBulkSaveAll()}
-                disabled={isSaving}
-                style={{
-                  background: "#fff",
-                  color: "#111",
-                  fontWeight: 600,
-                  fontSize: 15,
-                  borderRadius: 10,
-                  height: 44,
-                  padding: "0 24px",
-                  border: "1px solid #e8e8e8",
-                  cursor: isSaving ? "not-allowed" : "pointer",
-                }}
-              >
-                Save all as-is
-              </button>
+              {bulkProcessing ? (
+                <>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    style={{ animation: "spin 0.8s linear infinite", flexShrink: 0 }}
+                  >
+                    <circle cx="8" cy="8" r="6" stroke="#e8e8e8" strokeWidth="2" />
+                    <path
+                      d="M8 2 A6 6 0 0 1 14 8"
+                      stroke="#7dde3c"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: "#111" }}>
+                    Scanning {bulkProgress} of {bulkTotal}...
+                  </span>
+                </>
+              ) : !bulkAllProcessed ? (
+                <>
+                  <span
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 500,
+                      color: "#111",
+                      marginRight: 8,
+                    }}
+                  >
+                    {bulkTotal} photos ready
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleBulkProcess}
+                    style={{
+                      background: "#7dde3c",
+                      color: "#0a1a0a",
+                      fontWeight: 700,
+                      fontSize: 14,
+                      borderRadius: 999,
+                      padding: "10px 22px",
+                      border: "none",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Scan {bulkTotal} photos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowBulkDiscard(true)}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "#999",
+                      fontSize: 13,
+                      fontWeight: 500,
+                      cursor: "pointer",
+                      padding: "10px 14px",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 500,
+                      color: "#111",
+                      marginRight: 8,
+                    }}
+                  >
+                    {bulkSuccessfulCount} scanned successfully
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const initial: Record<string, { lead_score: number; checks: string[]; free_note: string }> = {};
+                      bulkSuccessfulItems.forEach((x) => {
+                        initial[x.id] = { lead_score: 5, checks: [], free_note: "" };
+                      });
+                      setReviewData(initial);
+                      setReviewIndex(0);
+                      setSelectedEventId(null);
+                      setShowCreateEvent(false);
+                      setNewEventName("");
+                      setNewEventDate("");
+                      setEventNameTouched(false);
+                      setShowEventPicker(true);
+                    }}
+                    disabled={isSaving}
+                    style={{
+                      background: "#7dde3c",
+                      color: "#0a1a0a",
+                      fontWeight: 700,
+                      fontSize: 14,
+                      borderRadius: 999,
+                      padding: "10px 22px",
+                      border: "none",
+                      cursor: isSaving ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    Review & Score
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleBulkSaveAll()}
+                    disabled={isSaving}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "#999",
+                      fontSize: 13,
+                      fontWeight: 500,
+                      cursor: isSaving ? "not-allowed" : "pointer",
+                      padding: "10px 14px",
+                    }}
+                  >
+                    Save all as-is
+                  </button>
+                </>
+              )}
             </div>
           )}
 
@@ -1142,6 +1259,97 @@ export default function ScanPage() {
                   );
                 })}
               </div>
+              <div style={{ marginTop: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateEvent(true);
+                    setEventNameTouched(false);
+                  }}
+                  style={{
+                    border: "1.5px dashed #ddd",
+                    borderRadius: "12px",
+                    padding: "12px 16px",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    fontWeight: 500,
+                    color: "#999",
+                    background: "none",
+                    width: "100%",
+                    textAlign: "left",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+                    <path
+                      d="M12 5v14M5 12h14"
+                      stroke="#999"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  + Create new event
+                </button>
+                {showCreateEvent && (
+                  <div style={{ marginTop: 10 }}>
+                    <input
+                      type="text"
+                      value={newEventName}
+                      onChange={(e) => setNewEventName(e.target.value)}
+                      onBlur={() => setEventNameTouched(true)}
+                      placeholder="Event name"
+                      style={{
+                        background: "#f5f5f5",
+                        border:
+                          eventNameTouched && !newEventName.trim()
+                            ? "1px solid #e55a5a"
+                            : "1px solid transparent",
+                        borderRadius: "10px",
+                        padding: "10px 14px",
+                        fontSize: "14px",
+                        width: "100%",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                    <input
+                      type="date"
+                      value={newEventDate}
+                      onChange={(e) => setNewEventDate(e.target.value)}
+                      style={{
+                        background: "#f5f5f5",
+                        border: "none",
+                        borderRadius: "10px",
+                        padding: "10px 14px",
+                        fontSize: "14px",
+                        width: "100%",
+                        marginTop: "8px",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      disabled={!newEventName.trim() || isCreatingEvent}
+                      onClick={() => void handleCreateEventFromPicker()}
+                      style={{
+                        background: "#111",
+                        color: "#fff",
+                        fontWeight: 600,
+                        fontSize: "13px",
+                        borderRadius: "999px",
+                        padding: "8px 18px",
+                        border: "none",
+                        marginTop: "10px",
+                        opacity: !newEventName.trim() || isCreatingEvent ? 0.4 : 1,
+                        cursor: !newEventName.trim() || isCreatingEvent ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      {isCreatingEvent ? "Creating…" : "Create event"}
+                    </button>
+                  </div>
+                )}
+              </div>
               <div
                 style={{
                   display: "flex",
@@ -1159,6 +1367,10 @@ export default function ScanPage() {
                     setShowEventPicker(false);
                     setIsReviewing(true);
                     setReviewIndex(0);
+                    setShowCreateEvent(false);
+                    setNewEventName("");
+                    setNewEventDate("");
+                    setEventNameTouched(false);
                   }}
                   style={{
                     background: "none",
@@ -1176,6 +1388,10 @@ export default function ScanPage() {
                     setShowEventPicker(false);
                     setIsReviewing(true);
                     setReviewIndex(0);
+                    setShowCreateEvent(false);
+                    setNewEventName("");
+                    setNewEventDate("");
+                    setEventNameTouched(false);
                   }}
                   style={{
                     background: "#7dde3c",
@@ -1506,6 +1722,10 @@ export default function ScanPage() {
                     setReviewData({});
                     setShowEventPicker(false);
                     setSelectedEventId(null);
+                    setShowCreateEvent(false);
+                    setNewEventName("");
+                    setNewEventDate("");
+                    setEventNameTouched(false);
                   }}
                   style={{
                     background: "#fff",
@@ -1786,6 +2006,7 @@ export default function ScanPage() {
         }}
       >
         {scanMode === "idle" ? (
+          <>
           <div
             style={{
               display: "grid",
@@ -2082,73 +2303,94 @@ export default function ScanPage() {
                       </button>
                     )}
                   </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: 10,
-                      marginTop: 16,
-                      flexWrap: "wrap",
-                      alignItems: "center",
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (stagedFiles.length === 1) {
-                          const s = stagedFiles[0];
-                          setUploadedImage(s.dataUrl);
-                          await scanWithClaude(s.dataUrl.split(",")[1], s.file.type);
-                          setStagedFiles([]);
-                        } else {
-                          setBulkFiles(
-                            stagedFiles.map((s) => ({
-                              id: s.id,
-                              dataUrl: s.dataUrl,
-                              status: "pending" as const,
-                              contact: null,
-                            }))
-                          );
-                          setBulkMode(true);
-                          setBulkProgress(0);
-                          setStagedFiles([]);
-                        }
-                      }}
-                      style={{
-                        background: "#7dde3c",
-                        color: "#0a1a0a",
-                        fontWeight: 700,
-                        fontSize: 14,
-                        padding: "12px 24px",
-                        borderRadius: 999,
-                        border: "none",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Scan {stagedFiles.length} photos
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setStagedFiles([]);
-                      }}
-                      style={{
-                        background: "#fff",
-                        border: "1px solid #e8e8e8",
-                        color: "#111",
-                        fontWeight: 600,
-                        fontSize: 14,
-                        padding: "12px 24px",
-                        borderRadius: 999,
-                        cursor: "pointer",
-                      }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
                 </div>
               )}
             </div>
           </div>
+          {stagedFiles.length > 0 && (
+            <div
+              style={{
+                position: "fixed",
+                bottom: "32px",
+                left: "50%",
+                transform: "translateX(-50%)",
+                zIndex: 100,
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                background: "rgba(255,255,255,0.9)",
+                backdropFilter: "blur(12px)",
+                border: "1px solid #ebebeb",
+                borderRadius: "999px",
+                padding: "8px 8px 8px 20px",
+                boxShadow: "0 4px 24px rgba(0,0,0,0.10)",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: "#111",
+                  marginRight: 8,
+                }}
+              >
+                {stagedFiles.length} photos ready
+              </span>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (stagedFiles.length === 1) {
+                    const s = stagedFiles[0];
+                    setUploadedImage(s.dataUrl);
+                    await scanWithClaude(s.dataUrl.split(",")[1], s.file.type);
+                    setStagedFiles([]);
+                  } else {
+                    setBulkFiles(
+                      stagedFiles.map((s) => ({
+                        id: s.id,
+                        dataUrl: s.dataUrl,
+                        status: "pending" as const,
+                        contact: null,
+                      }))
+                    );
+                    setBulkMode(true);
+                    setBulkProgress(0);
+                    setStagedFiles([]);
+                  }
+                }}
+                style={{
+                  background: "#7dde3c",
+                  color: "#0a1a0a",
+                  fontWeight: 700,
+                  fontSize: 14,
+                  borderRadius: 999,
+                  padding: "10px 22px",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+              >
+                Scan {stagedFiles.length} photos
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setStagedFiles([]);
+                }}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#999",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  padding: "10px 14px",
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+          </>
         ) : (
           <div
             style={{
@@ -2527,7 +2769,7 @@ export default function ScanPage() {
                   ))}
                   <button
                     type="button"
-                    onClick={() => setShowNewEvent(true)}
+                    onClick={() => setShowReviewNewEventForm(true)}
                     style={{
                       padding: isMobile ? "10px 16px" : "8px 14px",
                       borderRadius: 20,
@@ -2541,12 +2783,12 @@ export default function ScanPage() {
                     + New event
                   </button>
                 </div>
-                {showNewEvent && (
+                {showReviewNewEventForm && (
                   <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                     <input
                       type="text"
-                      value={newEventName}
-                      onChange={(e) => setNewEventName(e.target.value)}
+                      value={reviewNewEventName}
+                      onChange={(e) => setReviewNewEventName(e.target.value)}
                       placeholder="Event name..."
                       style={{
                         flex: 1,
