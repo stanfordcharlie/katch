@@ -291,6 +291,7 @@ export default function ScanPage() {
     const checks = r?.checks ?? [];
     const free_note = r?.free_note ?? "";
 
+    // Bulk save: persist event as the selected event UUID from the picker, not a display name.
     const { error } = await supabase.from("contacts").insert({
       user_id: sessionUser.id,
       name: item.contact.name ?? "",
@@ -302,7 +303,7 @@ export default function ScanPage() {
       lead_score,
       checks,
       free_note,
-      event: eventId ?? null,
+      event: eventId,
       enriched: false,
       image: imageUrl,
     });
@@ -319,8 +320,9 @@ export default function ScanPage() {
         return;
       }
       const doneItems = bulkFiles.filter((x) => x.status === "done" && x.contact);
-      const eventVal = selectedEventId ?? null;
-      await Promise.all(doneItems.map((item) => saveContact(item, sessionUser, eventVal)));
+      await Promise.all(
+        doneItems.map((item) => saveContact(item, sessionUser, selectedEventId ?? null))
+      );
       setBulkMode(false);
       setBulkFiles([]);
       setBulkProgress(0);

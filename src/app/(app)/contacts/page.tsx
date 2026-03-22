@@ -71,7 +71,7 @@ export default function ContactsPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ succeeded: number; failed: number } | null>(null);
-  const [events, setEvents] = useState<any[]>([]);
+  const [events, setEvents] = useState<Array<{ id: string; name: string }>>([]);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -96,11 +96,14 @@ export default function ContactsPage() {
 
     const fetch = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('contacts')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+      const [{ data, error }, { data: eventsData }] = await Promise.all([
+        supabase
+          .from('contacts')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false }),
+        supabase.from('events').select('id, name').eq('user_id', user.id),
+      ]);
 
       if (error) {
         console.error('Contacts fetch error:', error);
@@ -109,22 +112,11 @@ export default function ContactsPage() {
       }
 
       setContacts(((data as unknown) as Contact[]) || []);
+      setEvents(eventsData || []);
       setLoading(false);
     };
 
     fetch();
-  }, [user?.id]);
-
-  useEffect(() => {
-    if (!user?.id) return;
-    supabase
-      .from('events')
-      .select('id, name')
-      .eq('user_id', user.id)
-      .order('date', { ascending: false })
-      .then(({ data }) => {
-        if (data) setEvents(data as any[]);
-      });
   }, [user?.id]);
 
   useEffect(() => {
@@ -193,6 +185,11 @@ export default function ContactsPage() {
     }, 3000);
     return () => clearTimeout(t);
   }, [toast]);
+
+  const getEventName = (eventId: string | null | undefined) => {
+    if (!eventId) return null;
+    return events.find((e) => e.id === eventId)?.name || null;
+  };
 
   const syncToHubSpot = async () => {
     if (selectedIds.length === 0) return;
@@ -629,28 +626,28 @@ export default function ContactsPage() {
           >
             All
           </button>
-          {allEventNames.map((name) => (
+          {allEventNames.map((eventId) => (
             <button
-              key={name}
+              key={eventId}
               type='button'
-              onClick={() => setFilterEvent(name)}
+              onClick={() => setFilterEvent(eventId)}
               style={{
-                background: filterEvent === name ? '#1a3a2a' : 'rgba(255,255,255,0.8)',
-                color: filterEvent === name ? '#fff' : '#666',
+                background: filterEvent === eventId ? '#1a3a2a' : 'rgba(255,255,255,0.8)',
+                color: filterEvent === eventId ? '#fff' : '#666',
                 border:
-                  filterEvent === name
+                  filterEvent === eventId
                     ? 'none'
                     : '1px solid rgba(0,0,0,0.08)',
                 borderRadius: 999,
                 padding: '7px 16px',
                 fontSize: 13,
-                fontWeight: filterEvent === name ? 500 : undefined,
+                fontWeight: filterEvent === eventId ? 500 : undefined,
                 cursor: 'pointer',
                 minHeight: isMobile ? 44 : undefined,
                 flexShrink: isMobile ? 0 : 1,
               }}
             >
-              {name}
+              {getEventName(eventId) || eventId}
             </button>
           ))}
         </div>
@@ -774,6 +771,8 @@ export default function ContactsPage() {
             .trim()
             .charAt(0)
             .toUpperCase();
+
+          const eventLabel = getEventName(contact.event);
 
           return (
             <div
@@ -907,7 +906,7 @@ export default function ContactsPage() {
                       marginTop: 6,
                     }}
                   >
-                    {contact.event && contact.event !== 'Untagged' && (
+                    {eventLabel ? (
                       <span
                         style={{
                           background: 'rgba(0,0,0,0.05)',
@@ -917,9 +916,9 @@ export default function ContactsPage() {
                           borderRadius: 999,
                         }}
                       >
-                        {contact.event}
+                        {eventLabel}
                       </span>
-                    )}
+                    ) : null}
                     {contact.enriched && (
                       <span
                         style={{
@@ -1442,7 +1441,7 @@ export default function ContactsPage() {
                               margin: 0,
                             }}
                           >
-                            {contact.event ?? '—'}
+                            {getEventName(contact.event) || '—'}
                           </p>
                         </div>
                         <div>
