@@ -37,6 +37,13 @@ type DuplicateNewContact = {
   enriched?: boolean;
 };
 
+const BULK_REVIEW_DEFAULT_SIGNALS = [
+  "Wants a demo",
+  "Budget approved",
+  "Active buying timeline",
+  "They asked me to follow up",
+];
+
 export default function ScanPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -71,6 +78,14 @@ export default function ScanPage() {
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [bulkProgress, setBulkProgress] = useState(0);
+  const [isReviewing, setIsReviewing] = useState(false);
+  const [reviewIndex, setReviewIndex] = useState(0);
+  const [reviewData, setReviewData] = useState<
+    Record<string, { lead_score: number; checks: string[]; free_note: string }>
+  >({});
+  const [showEventPicker, setShowEventPicker] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [eventPickerHoverKey, setEventPickerHoverKey] = useState<string | null>(null);
   const [showBulkDiscard, setShowBulkDiscard] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [stagedFiles, setStagedFiles] = useState<Array<{ id: string; dataUrl: string; file: File }>>([]);
@@ -105,7 +120,7 @@ export default function ScanPage() {
     if (!user?.id) return;
     supabase
       .from("events")
-      .select("id, name")
+      .select("id, name, date, location")
       .eq("user_id", user.id)
       .order("date", { ascending: false })
       .then(({ data }) => {
@@ -241,7 +256,7 @@ export default function ScanPage() {
       failureReason?: "scan_failed" | "other";
     },
     sessionUser: User,
-    eventTagVal: string
+    eventId: string | null
   ) => {
     let imageUrl: string | null = null;
     try {
@@ -266,6 +281,11 @@ export default function ScanPage() {
     } catch {
       // image optional
     }
+    const r = reviewData[item.id];
+    const lead_score = r?.lead_score ?? 5;
+    const checks = r?.checks ?? [];
+    const free_note = r?.free_note ?? "";
+
     const { error } = await supabase.from("contacts").insert({
       user_id: sessionUser.id,
       name: item.contact.name ?? "",
@@ -274,10 +294,10 @@ export default function ScanPage() {
       email: item.contact.email ?? null,
       phone: item.contact.phone ?? null,
       linkedin: item.contact.linkedin ?? null,
-      lead_score: 5,
-      checks: [],
-      free_note: "",
-      event: eventTagVal,
+      lead_score,
+      checks,
+      free_note,
+      event: eventId ?? null,
       enriched: false,
       image: imageUrl,
     });
@@ -294,11 +314,16 @@ export default function ScanPage() {
         return;
       }
       const doneItems = bulkFiles.filter((x) => x.status === "done" && x.contact);
-      const eventTagVal = eventTag || "Untagged";
-      await Promise.all(doneItems.map((item) => saveContact(item, sessionUser, eventTagVal)));
+      const eventVal = selectedEventId ?? null;
+      await Promise.all(doneItems.map((item) => saveContact(item, sessionUser, eventVal)));
       setBulkMode(false);
       setBulkFiles([]);
       setBulkProgress(0);
+      setIsReviewing(false);
+      setReviewIndex(0);
+      setReviewData({});
+      setShowEventPicker(false);
+      setSelectedEventId(null);
       showToast(`${doneItems.length} contacts saved`);
       setIsSaving(false);
       router.push("/contacts");
@@ -748,6 +773,22 @@ export default function ScanPage() {
   const bulkFailedCount = bulkFiles.filter((x) => x.status === 'failed').length;
 
   if (bulkMode) {
+    const bulkSuccessfulItems = bulkFiles.filter((x) => x.status === "done" && x.contact);
+    const bulkReviewTotal = bulkSuccessfulItems.length;
+    const formatEventPickerDate = (d: unknown) => {
+      if (d == null || d === "") return "—";
+      try {
+        const t = new Date(d as string).getTime();
+        if (Number.isNaN(t)) return "—";
+        return new Date(t).toLocaleDateString(undefined, {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        });
+      } catch {
+        return "—";
+      }
+    };
     return (
       <div
         className="min-h-screen"
@@ -859,7 +900,7 @@ export default function ScanPage() {
                 ? `Scanning ${bulkProgress} of ${bulkTotal}...`
                 : `${bulkProcessedCount} / ${bulkTotal} scanned`}
             </div>
-            {!bulkAllProcessed ? (
+            {!bulkProcessing && !bulkAllProcessed && (
               <button
                 type="button"
                 onClick={handleBulkProcess}
@@ -876,26 +917,7 @@ export default function ScanPage() {
                   cursor: "pointer",
                 }}
               >
-                {bulkProcessing ? `Scanning ${bulkProgress} of ${bulkTotal}...` : `Scan all ${bulkTotal} photos`}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => void handleBulkSaveAll()}
-                disabled={isSaving}
-                style={{
-                  background: "#7dde3c",
-                  color: "#0a1a0a",
-                  fontWeight: 700,
-                  borderRadius: 10,
-                  height: 44,
-                  padding: "0 24px",
-                  fontSize: 15,
-                  border: "none",
-                  cursor: isSaving ? "not-allowed" : "pointer",
-                }}
-              >
-                {`Save ${bulkSuccessfulCount} contacts`}
+                {`Scan all ${bulkTotal} photos`}
               </button>
             )}
           </div>
@@ -948,6 +970,494 @@ export default function ScanPage() {
               </div>
             ))}
           </div>
+
+          {bulkAllProcessed && bulkSuccessfulCount > 0 && (
+            <div
+              style={{
+                marginTop: 24,
+                display: "flex",
+                flexDirection: isMobile ? "column" : "row",
+                gap: 12,
+                justifyContent: "center",
+                flexWrap: "wrap",
+                alignItems: "stretch",
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  const initial: Record<string, { lead_score: number; checks: string[]; free_note: string }> = {};
+                  bulkSuccessfulItems.forEach((x) => {
+                    initial[x.id] = { lead_score: 5, checks: [], free_note: "" };
+                  });
+                  setReviewData(initial);
+                  setReviewIndex(0);
+                  setSelectedEventId(null);
+                  setShowEventPicker(true);
+                }}
+                disabled={isSaving}
+                style={{
+                  background: "#7dde3c",
+                  color: "#0a1a0a",
+                  fontWeight: 700,
+                  fontSize: 15,
+                  borderRadius: 10,
+                  height: 44,
+                  padding: "0 24px",
+                  border: "none",
+                  cursor: isSaving ? "not-allowed" : "pointer",
+                }}
+              >
+                Review & Score
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleBulkSaveAll()}
+                disabled={isSaving}
+                style={{
+                  background: "#fff",
+                  color: "#111",
+                  fontWeight: 600,
+                  fontSize: 15,
+                  borderRadius: 10,
+                  height: 44,
+                  padding: "0 24px",
+                  border: "1px solid #e8e8e8",
+                  cursor: isSaving ? "not-allowed" : "pointer",
+                }}
+              >
+                Save all as-is
+              </button>
+            </div>
+          )}
+
+        {showEventPicker && bulkReviewTotal > 0 && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.5)",
+              backdropFilter: "blur(6px)",
+              WebkitBackdropFilter: "blur(6px)",
+              zIndex: 1100,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <div
+              style={{
+                background: "#fff",
+                borderRadius: 20,
+                padding: 28,
+                width: "100%",
+                maxWidth: 440,
+                margin: 20,
+                boxSizing: "border-box",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 17,
+                  fontWeight: 600,
+                  letterSpacing: "-0.01em",
+                  marginBottom: 4,
+                }}
+              >
+                Which event are these from?
+              </div>
+              <div style={{ fontSize: 13, color: "#999", marginBottom: 20 }}>
+                This helps organize your contacts.
+              </div>
+              <div
+                style={{
+                  maxHeight: 280,
+                  overflowY: "auto",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setSelectedEventId(null)}
+                  onMouseEnter={() => setEventPickerHoverKey("no-event")}
+                  onMouseLeave={() => setEventPickerHoverKey(null)}
+                  style={{
+                    padding: "12px 16px",
+                    borderRadius: 12,
+                    border:
+                      selectedEventId === null
+                        ? "1px solid #7dde3c"
+                        : "1px dashed #ebebeb",
+                    cursor: "pointer",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    background:
+                      selectedEventId === null
+                        ? "#f0f7eb"
+                        : eventPickerHoverKey === "no-event"
+                          ? "#f5f5f5"
+                          : "#fff",
+                    color: selectedEventId === null ? "#2d6a1f" : "#111",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    textAlign: "left",
+                  }}
+                >
+                  <span>No specific event</span>
+                </button>
+                {events.map((ev: { id: string; name?: string; date?: string }) => {
+                  const sel = selectedEventId === ev.id;
+                  const hov = eventPickerHoverKey === ev.id;
+                  return (
+                    <button
+                      key={ev.id}
+                      type="button"
+                      onClick={() => setSelectedEventId(ev.id)}
+                      onMouseEnter={() => setEventPickerHoverKey(ev.id)}
+                      onMouseLeave={() => setEventPickerHoverKey(null)}
+                      style={{
+                        padding: "12px 16px",
+                        borderRadius: 12,
+                        border: sel ? "1px solid #7dde3c" : "1px solid #ebebeb",
+                        cursor: "pointer",
+                        fontSize: 14,
+                        fontWeight: 500,
+                        background: sel ? "#f0f7eb" : hov ? "#f5f5f5" : "#fff",
+                        color: sel ? "#2d6a1f" : "#111",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: 12,
+                        textAlign: "left",
+                      }}
+                    >
+                      <span style={{ flex: 1, minWidth: 0 }}>{ev.name ?? "Untitled"}</span>
+                      <span style={{ fontSize: 12, color: "#999", flexShrink: 0 }}>
+                        {formatEventPickerDate(ev.date)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  gap: 10,
+                  marginTop: 20,
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedEventId(null);
+                    setShowEventPicker(false);
+                    setIsReviewing(true);
+                    setReviewIndex(0);
+                  }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#999",
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
+                  Skip
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEventPicker(false);
+                    setIsReviewing(true);
+                    setReviewIndex(0);
+                  }}
+                  style={{
+                    background: "#7dde3c",
+                    color: "#0a1a0a",
+                    fontWeight: 700,
+                    fontSize: 14,
+                    borderRadius: 999,
+                    padding: "12px 24px",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  Continue
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {isReviewing && bulkReviewTotal > 0 && (() => {
+          const currentItem = bulkSuccessfulItems[reviewIndex];
+          const currentId = currentItem?.id;
+          const rd = currentId
+            ? reviewData[currentId] ?? { lead_score: 5, checks: [], free_note: "" }
+            : { lead_score: 5, checks: [], free_note: "" };
+          const ls = rd.lead_score;
+          const scoreNumColor = ls >= 7 ? "#2d6a1f" : ls >= 4 ? "#b07020" : "#e55a5a";
+          const isLastReview = reviewIndex >= bulkReviewTotal - 1;
+          const c = currentItem?.contact;
+
+          return (
+            <div
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(0,0,0,0.5)",
+                backdropFilter: "blur(6px)",
+                WebkitBackdropFilter: "blur(6px)",
+                zIndex: 1100,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <div
+                style={{
+                  background: "#fff",
+                  borderRadius: 20,
+                  padding: 28,
+                  width: "100%",
+                  maxWidth: 480,
+                  margin: 20,
+                  boxSizing: "border-box",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: 20,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      letterSpacing: "0.04em",
+                      textTransform: "uppercase",
+                      color: "#999",
+                    }}
+                  >
+                    Contact {reviewIndex + 1} of {bulkReviewTotal}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (reviewIndex >= bulkReviewTotal - 1) {
+                        setIsReviewing(false);
+                      } else {
+                        setReviewIndex((i) => i + 1);
+                      }
+                    }}
+                    style={{
+                      fontSize: 13,
+                      color: "#999",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Skip
+                  </button>
+                </div>
+
+                <div style={{ marginBottom: 20 }}>
+                  <div
+                    style={{
+                      fontSize: 20,
+                      fontWeight: 600,
+                      letterSpacing: "-0.02em",
+                      color: "#111",
+                    }}
+                  >
+                    {c?.name ?? "—"}
+                  </div>
+                  <div style={{ fontSize: 14, color: "#999", marginBottom: 20 }}>
+                    {[c?.title, c?.company].filter(Boolean).join(" · ") || "—"}
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: 20 }}>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      letterSpacing: "0.04em",
+                      textTransform: "uppercase",
+                      color: "#999",
+                      marginBottom: 8,
+                    }}
+                  >
+                    Lead Score
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <input
+                      type="range"
+                      min={1}
+                      max={10}
+                      step={1}
+                      value={ls}
+                      onChange={(e) => {
+                        const v = Number(e.target.value);
+                        if (!currentId) return;
+                        setReviewData((prev) => ({
+                          ...prev,
+                          [currentId]: {
+                            ...(prev[currentId] ?? { lead_score: 5, checks: [], free_note: "" }),
+                            lead_score: v,
+                          },
+                        }));
+                      }}
+                      style={{ flex: 1, touchAction: "none" }}
+                    />
+                    <span style={{ fontSize: 20, fontWeight: 700, color: scoreNumColor, minWidth: 28, textAlign: "right" }}>
+                      {ls}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: 20 }}>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      letterSpacing: "0.04em",
+                      textTransform: "uppercase",
+                      color: "#999",
+                      marginBottom: 10,
+                    }}
+                  >
+                    Conversation Signals
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {BULK_REVIEW_DEFAULT_SIGNALS.map((label) => (
+                      <label
+                        key={label}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          cursor: "pointer",
+                          fontSize: 14,
+                          color: "#111",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={rd.checks.includes(label)}
+                          onChange={() => {
+                            if (!currentId) return;
+                            setReviewData((prev) => {
+                              const cur = prev[currentId] ?? { lead_score: 5, checks: [], free_note: "" };
+                              const has = cur.checks.includes(label);
+                              const nextChecks = has
+                                ? cur.checks.filter((x) => x !== label)
+                                : [...cur.checks, label];
+                              return {
+                                ...prev,
+                                [currentId]: { ...cur, checks: nextChecks },
+                              };
+                            });
+                          }}
+                          style={{
+                            width: 16,
+                            height: 16,
+                            accentColor: "#7dde3c",
+                            cursor: "pointer",
+                          }}
+                        />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: 24 }}>
+                  <textarea
+                    value={rd.free_note}
+                    onChange={(e) => {
+                      if (!currentId) return;
+                      const v = e.target.value;
+                      setReviewData((prev) => ({
+                        ...prev,
+                        [currentId]: {
+                          ...(prev[currentId] ?? { lead_score: 5, checks: [], free_note: "" }),
+                          free_note: v,
+                        },
+                      }));
+                    }}
+                    placeholder="Anything else worth remembering..."
+                    style={{
+                      background: "#f5f5f5",
+                      border: "none",
+                      borderRadius: 10,
+                      padding: 12,
+                      fontSize: 14,
+                      width: "100%",
+                      minHeight: 80,
+                      resize: "vertical",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+
+                {!isLastReview ? (
+                  <button
+                    type="button"
+                    onClick={() => setReviewIndex((i) => i + 1)}
+                    style={{
+                      background: "#7dde3c",
+                      color: "#0a1a0a",
+                      fontWeight: 700,
+                      fontSize: 14,
+                      borderRadius: 999,
+                      padding: 14,
+                      width: "100%",
+                      border: "none",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Save & Next
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsReviewing(false);
+                      void handleBulkSaveAll();
+                    }}
+                    disabled={isSaving}
+                    style={{
+                      background: "#7dde3c",
+                      color: "#0a1a0a",
+                      fontWeight: 700,
+                      fontSize: 14,
+                      borderRadius: 999,
+                      padding: 14,
+                      width: "100%",
+                      border: "none",
+                      cursor: isSaving ? "not-allowed" : "pointer",
+                      opacity: isSaving ? 0.7 : 1,
+                    }}
+                  >
+                    Save & Finish
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+
         </div>
         {showBulkDiscard && (
           <div
@@ -991,6 +1501,11 @@ export default function ScanPage() {
                     setBulkProcessing(false);
                     setBulkProgress(0);
                     setIsSaving(false);
+                    setIsReviewing(false);
+                    setReviewIndex(0);
+                    setReviewData({});
+                    setShowEventPicker(false);
+                    setSelectedEventId(null);
                   }}
                   style={{
                     background: "#fff",
