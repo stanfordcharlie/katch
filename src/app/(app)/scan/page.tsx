@@ -74,7 +74,6 @@ export default function ScanPage() {
   const [showBulkDiscard, setShowBulkDiscard] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [stagedFiles, setStagedFiles] = useState<Array<{ id: string; dataUrl: string; file: File }>>([]);
-  const [showStaged, setShowStaged] = useState(false);
   const [duplicateModal, setDuplicateModal] = useState<{
     show: boolean;
     existingContact: DuplicateExistingContact | null;
@@ -172,7 +171,6 @@ export default function ScanPage() {
       localStorage.removeItem("katch_scan_draft");
     } catch (e) {}
     setStagedFiles([]);
-    setShowStaged(false);
   };
 
   const handleBulkProcess = async () => {
@@ -439,7 +437,6 @@ export default function ScanPage() {
         )
       ).then((staged) => {
         setStagedFiles(staged);
-        setShowStaged(true);
       });
     }
   };
@@ -1268,199 +1265,211 @@ export default function ScanPage() {
       </div>
       <div
         style={{
-          display: "flex",
-          flexDirection: isMobile ? "column" : "row",
-          gap: "24px",
-          alignItems: "flex-start",
-          padding: isMobile ? "20px 16px 0" : "36px",
           maxWidth: isMobile ? "100%" : "1100px",
           margin: "0 auto",
+          padding: isMobile ? "0 16px 36px" : "0 36px 36px",
         }}
       >
-        {/* Left column — Scan area */}
-        <div style={{ flex: isMobile ? "none" : 1, width: isMobile ? "100%" : "auto", minWidth: 0 }}>
-          {scanMode === "idle" && (
-            <>
+        {scanMode === "idle" ? (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+              gap: "20px",
+              alignItems: "start",
+              marginTop: "24px",
+            }}
+          >
+            <div
+              onDragEnter={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsDragging(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsDragging(false);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsDragging(false);
+                const dropped = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/"));
+                if (!dropped.length) {
+                  if (singleUploadInputRef.current) singleUploadInputRef.current.value = "";
+                  if (stagedAddInputRef.current) stagedAddInputRef.current.value = "";
+                  return;
+                }
+                const room = Math.max(0, 20 - stagedFilesRef.current.length);
+                if (room === 0) {
+                  if (singleUploadInputRef.current) singleUploadInputRef.current.value = "";
+                  if (stagedAddInputRef.current) stagedAddInputRef.current.value = "";
+                  return;
+                }
+                const filesToRead = dropped.slice(0, room);
+                Promise.all(
+                  filesToRead.map(
+                    (file) =>
+                      new Promise<{ id: string; dataUrl: string; file: File }>((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (ev) =>
+                          resolve({
+                            id: Math.random().toString(36).slice(2),
+                            dataUrl: ev.target?.result as string,
+                            file,
+                          });
+                        reader.readAsDataURL(file);
+                      })
+                  )
+                ).then((newStaged) => {
+                  setStagedFiles((prev) => [...prev, ...newStaged]);
+                  if (singleUploadInputRef.current) singleUploadInputRef.current.value = "";
+                  if (stagedAddInputRef.current) stagedAddInputRef.current.value = "";
+                });
+              }}
+              style={{
+                border: "2px dashed #ddd",
+                borderRadius: 16,
+                padding: "40px 32px",
+                minHeight: 420,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 16,
+                textAlign: "center",
+                background: "#fafafa",
+              }}
+            >
               <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns:
-                    showStaged && !isMobile ? "1fr 2fr" : "1fr",
-                  gap: showStaged ? "16px" : undefined,
-                  alignItems: "start",
-                  marginBottom: 16,
-                }}
-              >
-              <div
-                onDragEnter={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setIsDragging(true);
-                }}
-                onDragLeave={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setIsDragging(false);
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setIsDragging(false);
-                  const dropped = Array.from(e.dataTransfer.files).filter((f) => f.type.startsWith("image/"));
-                  if (!dropped.length) {
-                    if (singleUploadInputRef.current) singleUploadInputRef.current.value = "";
-                    if (stagedAddInputRef.current) stagedAddInputRef.current.value = "";
-                    return;
-                  }
-                  const room = Math.max(0, 20 - stagedFilesRef.current.length);
-                  if (room === 0) {
-                    if (singleUploadInputRef.current) singleUploadInputRef.current.value = "";
-                    if (stagedAddInputRef.current) stagedAddInputRef.current.value = "";
-                    return;
-                  }
-                  const filesToRead = dropped.slice(0, room);
-                  Promise.all(
-                    filesToRead.map(
-                      (file) =>
-                        new Promise<{ id: string; dataUrl: string; file: File }>((resolve) => {
-                          const reader = new FileReader();
-                          reader.onload = (ev) =>
-                            resolve({
-                              id: Math.random().toString(36).slice(2),
-                              dataUrl: ev.target?.result as string,
-                              file,
-                            });
-                          reader.readAsDataURL(file);
-                        })
-                    )
-                  ).then((newStaged) => {
-                    setStagedFiles((prev) => [...prev, ...newStaged]);
-                    setShowStaged(true);
-                    if (singleUploadInputRef.current) singleUploadInputRef.current.value = "";
-                    if (stagedAddInputRef.current) stagedAddInputRef.current.value = "";
-                  });
-                }}
-                style={{
-                  background: isDragging ? "#f0f7eb" : "#fff",
-                  border: isDragging ? "2px dashed #7dde3c" : "2px dashed #e0e0e0",
-                  borderRadius: 20,
-                  padding: "48px 32px",
-                  width: "100%",
-                  boxSizing: "border-box",
+                  width: 64,
+                  height: 64,
+                  borderRadius: 16,
+                  background: "#f0f7eb",
                   display: "flex",
-                  flexDirection: "column",
                   alignItems: "center",
-                  textAlign: "center",
-                  transition: "all 0.2s",
-                  marginBottom: 0,
-                  minHeight: showStaged ? "200px" : undefined,
+                  justifyContent: "center",
                 }}
               >
-                <div
-                  style={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: 16,
-                    background: "#f0f7eb",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginBottom: 20,
-                  }}
-                >
-                  <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#7ab648" strokeWidth="1.5">
-                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                    <polyline points="17 8 12 3 7 8" />
-                    <line x1="12" y1="3" x2="12" y2="15" />
-                  </svg>
-                </div>
-                <p style={{ fontSize: 18, fontWeight: 700, color: "#111", marginBottom: 8, marginTop: 0 }}>
-                  Drop a badge or card here
-                </p>
-                <p style={{ fontSize: 13, color: "#bbb", marginBottom: 16, marginTop: 0 }}>
-                  Drag one photo to scan, or drop multiple to bulk upload
-                </p>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "row",
-                    flexWrap: "wrap",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    gap: 10,
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={handleOpenCamera}
-                    style={{
-                      background: "#7dde3c",
-                      color: "#0a1a0a",
-                      fontWeight: 700,
-                      borderRadius: 10,
-                      height: 42,
-                      padding: "0 20px",
-                      fontSize: 14,
-                      border: "none",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Open Camera
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const input = document.getElementById("single-upload-input") as HTMLInputElement | null;
-                      input?.click();
-                    }}
-                    style={{
-                      background: "#fff",
-                      border: "1px solid #e8e8e8",
-                      color: "#444",
-                      borderRadius: 10,
-                      height: 42,
-                      padding: "0 20px",
-                      fontSize: 14,
-                      cursor: "pointer",
-                    }}
-                  >
-                    Upload photo
-                  </button>
-                </div>
+                <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#7ab648" strokeWidth="1.5">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
               </div>
-              {showStaged && (
-                <div
+              <p
+                style={{
+                  fontSize: "18px",
+                  fontWeight: 600,
+                  letterSpacing: "-0.01em",
+                  textAlign: "center",
+                  color: "#111",
+                  margin: 0,
+                }}
+              >
+                Drop a badge or card here
+              </p>
+              <p
+                style={{
+                  fontSize: "13px",
+                  color: "#999",
+                  textAlign: "center",
+                  lineHeight: 1.5,
+                  margin: 0,
+                }}
+              >
+                Drag one photo to scan, or drop multiple to bulk upload
+              </p>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  gap: 10,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={handleOpenCamera}
                   style={{
-                    width: "100%",
-                    boxSizing: "border-box",
-                    marginBottom: 0,
-                    background: "#fff",
-                    border: "1px solid #ebebeb",
-                    borderRadius: 16,
-                    padding: "20px 16px",
+                    background: "#7dde3c",
+                    color: "#0a1a0a",
+                    fontWeight: 700,
+                    borderRadius: 10,
+                    height: 42,
+                    padding: "0 20px",
+                    fontSize: 14,
+                    border: "none",
+                    cursor: "pointer",
                   }}
                 >
+                  Open Camera
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const input = document.getElementById("single-upload-input") as HTMLInputElement | null;
+                    input?.click();
+                  }}
+                  style={{
+                    background: "#fff",
+                    border: "1px solid #e8e8e8",
+                    color: "#444",
+                    borderRadius: 10,
+                    height: 42,
+                    padding: "0 20px",
+                    fontSize: 14,
+                    cursor: "pointer",
+                  }}
+                >
+                  Upload photo
+                </button>
+              </div>
+            </div>
+            <div
+              style={{
+                border: "1px solid #ebebeb",
+                borderRadius: 16,
+                minHeight: 420,
+                overflow: "hidden",
+              }}
+            >
+              {stagedFiles.length === 0 ? (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    height: 420,
+                  }}
+                >
+                  <span style={{ fontSize: 14, color: "#bbb" }}>Scan a badge to see contact details</span>
+                </div>
+              ) : (
+                <div style={{ padding: 20 }}>
                   <div
                     style={{
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "space-between",
-                      marginBottom: 12,
                       gap: 12,
                     }}
                   >
-                    <span style={{ fontSize: 16, fontWeight: 700, color: "#111" }}>
+                    <span style={{ fontSize: 15, fontWeight: 600, color: "#111" }}>
                       {stagedFiles.length} photos ready
                     </span>
                     <button
                       type="button"
                       onClick={() => {
                         setStagedFiles([]);
-                        setShowStaged(false);
                       }}
                       style={{
                         color: "#999",
@@ -1477,21 +1486,28 @@ export default function ScanPage() {
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+                      gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))",
                       gap: 10,
-                      marginBottom: 16,
+                      marginTop: 12,
                     }}
                   >
                     {stagedFiles.map((s) => (
-                      <div key={s.id} style={{ position: "relative" }}>
+                      <div
+                        key={s.id}
+                        style={{
+                          position: "relative",
+                          aspectRatio: "1",
+                          borderRadius: 10,
+                          overflow: "hidden",
+                        }}
+                      >
                         <img
                           src={s.dataUrl}
                           alt=""
                           style={{
                             width: "100%",
-                            aspectRatio: "1",
+                            height: "100%",
                             objectFit: "cover",
-                            borderRadius: 10,
                             display: "block",
                           }}
                         />
@@ -1499,33 +1515,27 @@ export default function ScanPage() {
                           type="button"
                           aria-label="Remove"
                           onClick={() => {
-                            setStagedFiles((prev) => {
-                              const next = prev.filter((x) => x.id !== s.id);
-                              if (next.length === 0) setShowStaged(false);
-                              return next;
-                            });
+                            setStagedFiles((prev) => prev.filter((x) => x.id !== s.id));
                           }}
                           style={{
-                            width: "20px",
-                            height: "20px",
-                            minWidth: "20px",
-                            minHeight: "20px",
+                            position: "absolute",
+                            top: 6,
+                            right: 6,
+                            width: 20,
+                            height: 20,
+                            minWidth: 20,
+                            minHeight: 20,
                             borderRadius: "50%",
-                            flexShrink: 0,
                             background: "rgba(0,0,0,0.55)",
                             border: "1.5px solid rgba(255,255,255,0.25)",
-                            color: "#ffffff",
-                            fontSize: "11px",
+                            color: "#fff",
+                            fontSize: 11,
                             fontWeight: 600,
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
                             cursor: "pointer",
-                            position: "absolute",
-                            top: "6px",
-                            right: "6px",
-                            lineHeight: 1,
-                            zIndex: 10,
+                            flexShrink: 0,
                           }}
                         >
                           ×
@@ -1539,9 +1549,9 @@ export default function ScanPage() {
                           document.getElementById("staged-add-input")?.click();
                         }}
                         style={{
-                          aspectRatio: "1",
-                          border: "2px dashed #e0e0e0",
+                          border: "1.5px dashed #ddd",
                           borderRadius: 10,
+                          aspectRatio: "1",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -1560,39 +1570,21 @@ export default function ScanPage() {
                   <div
                     style={{
                       display: "flex",
-                      flexWrap: "wrap",
                       gap: 10,
+                      marginTop: 16,
+                      flexWrap: "wrap",
                       alignItems: "center",
                     }}
                   >
-                    {stagedFiles.length === 1 ? (
-                      <button
-                        type="button"
-                        onClick={async () => {
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (stagedFiles.length === 1) {
                           const s = stagedFiles[0];
                           setUploadedImage(s.dataUrl);
                           await scanWithClaude(s.dataUrl.split(",")[1], s.file.type);
-                          setShowStaged(false);
                           setStagedFiles([]);
-                        }}
-                        style={{
-                          background: "#7dde3c",
-                          color: "#0a1a0a",
-                          fontWeight: 700,
-                          borderRadius: 10,
-                          height: 44,
-                          padding: "0 24px",
-                          fontSize: 15,
-                          border: "none",
-                          cursor: "pointer",
-                        }}
-                      >
-                        Scan photo
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => {
+                        } else {
                           setBulkFiles(
                             stagedFiles.map((s) => ({
                               id: s.id,
@@ -1603,38 +1595,35 @@ export default function ScanPage() {
                           );
                           setBulkMode(true);
                           setBulkProgress(0);
-                          setShowStaged(false);
                           setStagedFiles([]);
-                        }}
-                        style={{
-                          background: "#7dde3c",
-                          color: "#0a1a0a",
-                          fontWeight: 700,
-                          borderRadius: 10,
-                          height: 44,
-                          padding: "0 24px",
-                          fontSize: 15,
-                          border: "none",
-                          cursor: "pointer",
-                        }}
-                      >
-                        Scan {stagedFiles.length} photos
-                      </button>
-                    )}
+                        }
+                      }}
+                      style={{
+                        background: "#7dde3c",
+                        color: "#0a1a0a",
+                        fontWeight: 700,
+                        fontSize: 14,
+                        padding: "12px 24px",
+                        borderRadius: 999,
+                        border: "none",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Scan {stagedFiles.length} photos
+                    </button>
                     <button
                       type="button"
                       onClick={() => {
                         setStagedFiles([]);
-                        setShowStaged(false);
                       }}
                       style={{
                         background: "#fff",
                         border: "1px solid #e8e8e8",
-                        color: "#666",
-                        borderRadius: 10,
-                        height: 44,
-                        padding: "0 16px",
+                        color: "#111",
+                        fontWeight: 600,
                         fontSize: 14,
+                        padding: "12px 24px",
+                        borderRadius: 999,
                         cursor: "pointer",
                       }}
                     >
@@ -1643,10 +1632,25 @@ export default function ScanPage() {
                   </div>
                 </div>
               )}
-              </div>
-            </>
-          )}
-
+            </div>
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: isMobile ? "column" : "row",
+              gap: "24px",
+              alignItems: "flex-start",
+              marginTop: "24px",
+            }}
+          >
+            <div
+              style={{
+                flex: isMobile ? "none" : 1,
+                width: "100%",
+                minWidth: 0,
+              }}
+            >
           {scanMode === "camera" && (
             <div className="relative rounded-2xl overflow-hidden aspect-video bg-slate-900">
               <video
@@ -1801,10 +1805,18 @@ export default function ScanPage() {
               )}
             </div>
           )}
-        </div>
+            </div>
 
-        {/* Right column — Placeholder or Contact form */}
-        <div style={{ flex: isMobile ? "none" : 1, width: isMobile ? "100%" : "auto", minWidth: 0, position: isMobile ? "static" : "sticky", top: "36px" }}>
+            {/* Right column — Placeholder or Contact form */}
+            <div
+              style={{
+                flex: isMobile ? "none" : 1,
+                width: isMobile ? "100%" : "auto",
+                minWidth: 0,
+                position: isMobile ? "static" : "sticky",
+                top: "36px",
+              }}
+            >
           {!showRightForm ? (
             <div
               style={{
@@ -2094,7 +2106,9 @@ export default function ScanPage() {
               </button>
             </div>
           )}
-        </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
