@@ -45,6 +45,37 @@ function titleCaseTone(tone: string) {
   return tone;
 }
 
+const Toggle = ({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) => (
+  <div
+    onClick={() => onChange(!checked)}
+    style={{
+      width: "51px",
+      height: "31px",
+      minWidth: "51px",
+      borderRadius: "999px",
+      background: checked ? "#7dde3c" : "#e5e5ea",
+      position: "relative",
+      cursor: "pointer",
+      transition: "background 0.2s ease",
+      flexShrink: 0,
+    }}
+  >
+    <div
+      style={{
+        position: "absolute",
+        top: "2px",
+        left: checked ? "22px" : "2px",
+        width: "27px",
+        height: "27px",
+        borderRadius: "50%",
+        background: "#ffffff",
+        boxShadow: "0 2px 4px rgba(0,0,0,0.25)",
+        transition: "left 0.2s ease",
+      }}
+    />
+  </div>
+);
+
 export default function SettingsPage() {
   const router = useRouter();
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -446,39 +477,14 @@ export default function SettingsPage() {
                           }}
                         >
                           <span style={{ fontSize: 14, color: "#111", flex: 1 }}>{signal.name}</span>
-                          <div
-                            role="switch"
-                            aria-checked={signal.enabled}
-                            onClick={() =>
+                          <Toggle
+                            checked={signal.enabled}
+                            onChange={(v) =>
                               setSignals((prev) =>
-                                prev.map((s) => (s.id === signal.id ? { ...s, enabled: !s.enabled } : s))
+                                prev.map((s) => (s.id === signal.id ? { ...s, enabled: v } : s))
                               )
                             }
-                            style={{
-                              width: 44,
-                              height: 26,
-                              borderRadius: 13,
-                              background: signal.enabled ? "#7dde3c" : "#e0e0e0",
-                              cursor: "pointer",
-                              flexShrink: 0,
-                              position: "relative",
-                              transition: "background 0.2s",
-                            }}
-                          >
-                            <div
-                              style={{
-                                position: "absolute",
-                                top: 3,
-                                left: signal.enabled ? 21 : 3,
-                                width: 20,
-                                height: 20,
-                                borderRadius: "50%",
-                                background: "#fff",
-                                transition: "left 0.2s",
-                                boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-                              }}
-                            />
-                          </div>
+                          />
                         </div>
                       ) : (
                         <div
@@ -492,29 +498,14 @@ export default function SettingsPage() {
                             width: "100%",
                           }}
                         >
-                          <button
-                            type="button"
-                            role="switch"
-                            aria-checked={signal.enabled}
-                            onClick={() =>
+                          <Toggle
+                            checked={signal.enabled}
+                            onChange={(v) =>
                               setSignals((prev) =>
-                                prev.map((s) => (s.id === signal.id ? { ...s, enabled: !s.enabled } : s))
+                                prev.map((s) => (s.id === signal.id ? { ...s, enabled: v } : s))
                               )
                             }
-                            className="w-10 h-6 rounded flex items-center flex-shrink-0 transition-colors"
-                            style={{ backgroundColor: signal.enabled ? "#7ab648" : "#dce8d0" }}
-                          >
-                            <span
-                              className="w-5 h-5 rounded"
-                              style={{
-                                borderRadius: 4,
-                                backgroundColor: "#ffffff",
-                                boxShadow: "0 1px 2px rgba(0,0,0,0.12)",
-                                transform: signal.enabled ? "translateX(18px)" : "translateX(2px)",
-                                transition: "transform 150ms ease",
-                              }}
-                            />
-                          </button>
+                          />
                           <input
                             type="text"
                             value={signal.name}
@@ -630,34 +621,14 @@ export default function SettingsPage() {
                   <div className="space-y-2">
                     {fields.map((field) => (
                       <div key={field.id} className="flex items-center gap-3" style={{ width: "100%", padding: isMobile ? "12px 0" : undefined, borderBottom: isMobile ? "1px solid #f0f0f0" : undefined }}>
-                        <button
-                          type="button"
-                          role="switch"
-                          aria-checked={field.enabled}
-                          onClick={() =>
+                        <Toggle
+                          checked={field.enabled}
+                          onChange={(v) =>
                             setFields((prev) =>
-                              prev.map((f) => (f.id === field.id ? { ...f, enabled: !f.enabled } : f))
+                              prev.map((f) => (f.id === field.id ? { ...f, enabled: v } : f))
                             )
                           }
-                          className="w-10 h-6 rounded flex items-center flex-shrink-0 transition-colors"
-                          style={{
-                            backgroundColor: field.enabled ? "#7ab648" : "#dce8d0",
-                            width: isMobile ? 44 : undefined,
-                            height: isMobile ? 44 : undefined,
-                            justifyContent: "center",
-                          }}
-                        >
-                          <span
-                            className="w-5 h-5 rounded"
-                            style={{
-                              borderRadius: 4,
-                              backgroundColor: "#ffffff",
-                              boxShadow: "0 1px 2px rgba(0,0,0,0.12)",
-                              transform: field.enabled ? "translateX(18px)" : "translateX(2px)",
-                              transition: "transform 150ms ease",
-                            }}
-                          />
-                        </button>
+                        />
                         <input
                           type="text"
                           value={field.name}
@@ -951,59 +922,25 @@ export default function SettingsPage() {
                   className="rounded-2xl p-4 space-y-3"
                   style={{ border: "1px solid #dce8d0", backgroundColor: "#ffffff" }}
                 >
-                  <label className="flex items-center justify-between gap-3 text-sm" style={{ width: "100%", padding: isMobile ? "12px 0" : undefined, fontSize: isMobile ? 14 : undefined }}>
+                  <label
+                    className="flex items-center justify-between gap-3 text-sm"
+                    style={{ width: "100%", padding: isMobile ? "12px 0" : undefined, fontSize: isMobile ? 14 : undefined }}
+                    onClick={() => setNotifEmailSequence((v) => !v)}
+                  >
                     <span>Email me when a sequence is sent</span>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={notifEmailSequence}
-                      onClick={() => setNotifEmailSequence((v) => !v)}
-                      className="w-10 h-6 rounded flex items-center flex-shrink-0 transition-colors"
-                      style={{
-                        backgroundColor: notifEmailSequence ? "#7ab648" : "#dce8d0",
-                        width: isMobile ? 44 : undefined,
-                        height: isMobile ? 44 : undefined,
-                        justifyContent: "center",
-                      }}
-                    >
-                      <span
-                        className="w-5 h-5 rounded"
-                        style={{
-                          borderRadius: 4,
-                          backgroundColor: "#ffffff",
-                          boxShadow: "0 1px 2px rgba(0,0,0,0.12)",
-                          transform: notifEmailSequence ? "translateX(18px)" : "translateX(2px)",
-                          transition: "transform 150ms ease",
-                        }}
-                      />
-                    </button>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Toggle checked={notifEmailSequence} onChange={setNotifEmailSequence} />
+                    </div>
                   </label>
-                  <label className="flex items-center justify-between gap-3 text-sm" style={{ width: "100%", padding: isMobile ? "12px 0" : undefined, fontSize: isMobile ? 14 : undefined }}>
+                  <label
+                    className="flex items-center justify-between gap-3 text-sm"
+                    style={{ width: "100%", padding: isMobile ? "12px 0" : undefined, fontSize: isMobile ? 14 : undefined }}
+                    onClick={() => setNotifWeeklySummary((v) => !v)}
+                  >
                     <span>Weekly lead summary</span>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={notifWeeklySummary}
-                      onClick={() => setNotifWeeklySummary((v) => !v)}
-                      className="w-10 h-6 rounded flex items-center flex-shrink-0 transition-colors"
-                      style={{
-                        backgroundColor: notifWeeklySummary ? "#7ab648" : "#dce8d0",
-                        width: isMobile ? 44 : undefined,
-                        height: isMobile ? 44 : undefined,
-                        justifyContent: "center",
-                      }}
-                    >
-                      <span
-                        className="w-5 h-5 rounded"
-                        style={{
-                          borderRadius: 4,
-                          backgroundColor: "#ffffff",
-                          boxShadow: "0 1px 2px rgba(0,0,0,0.12)",
-                          transform: notifWeeklySummary ? "translateX(18px)" : "translateX(2px)",
-                          transition: "transform 150ms ease",
-                        }}
-                      />
-                    </button>
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Toggle checked={notifWeeklySummary} onChange={setNotifWeeklySummary} />
+                    </div>
                   </label>
                 </div>
               </section>
