@@ -42,6 +42,7 @@ export default function ScanPage() {
   const [user, setUser] = useState<User | null>(null);
   const [events, setEvents] = useState<any[]>([]);
   const [toast, setToast] = useState<string | null>(null);
+  const [toastColors, setToastColors] = useState({ background: "#1a3a2a", color: "#fff" });
   const [signalLabels, setSignalLabels] = useState<string[]>(DEFAULT_SIGNAL_LABELS);
 
   const [scanMode, setScanMode] = useState("idle");
@@ -62,11 +63,13 @@ export default function ScanPage() {
     Array<{
       id: string;
       dataUrl: string;
-      status: 'pending' | 'scanning' | 'done' | 'failed';
+      status: "pending" | "scanning" | "done" | "failed";
       contact: any | null;
+      failureReason?: "scan_failed" | "other";
     }>
   >([]);
   const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [bulkProgress, setBulkProgress] = useState(0);
   const [showBulkDiscard, setShowBulkDiscard] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -146,8 +149,9 @@ export default function ScanPage() {
     } catch (e) {}
   }, []);
 
-  const showToast = (msg: string) => {
+  const showToast = (msg: string, colors?: { background: string; color: string }) => {
     setToast(msg);
+    setToastColors(colors ?? { background: "#1a3a2a", color: "#fff" });
     setTimeout(() => setToast(null), 2500);
   };
 
@@ -173,49 +177,80 @@ export default function ScanPage() {
 
   const handleBulkProcess = async () => {
     setBulkProcessing(true);
+    let scanFailedExtractCount = 0;
     for (let i = 0; i < bulkFiles.length; i++) {
       const item = bulkFiles[i];
-      if (item.status !== 'pending') continue;
-      setBulkFiles((prev) => prev.map((x) => (x.id === item.id ? { ...x, status: 'scanning' } : x)));
+      if (item.status !== "pending") continue;
+      setBulkFiles((prev) => prev.map((x) => (x.id === item.id ? { ...x, status: "scanning" } : x)));
       setBulkProgress(i + 1);
       try {
-        const base64 = item.dataUrl.split(',')[1];
-        const mediaType = item.dataUrl.split(';')[0].split(':')[1];
-        const res = await fetch('/api/scan', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const base64 = item.dataUrl.split(",")[1];
+        const mediaType = item.dataUrl.split(";")[0].split(":")[1];
+        const res = await fetch("/api/scan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ imageBase64: base64, mediaType }),
         });
         const data = await res.json();
+        if (res.status === 422 && data.error === "scan_failed") {
+          scanFailedExtractCount += 1;
+          setBulkFiles((prev) =>
+            prev.map((x) =>
+              x.id === item.id
+                ? { ...x, status: "failed" as const, contact: null, failureReason: "scan_failed" as const }
+                : x
+            )
+          );
+          continue;
+        }
         setBulkFiles((prev) =>
           prev.map((x) =>
             x.id === item.id
               ? {
                   ...x,
-                  status: data.contact ? 'done' : 'failed',
+                  status: data.contact ? ("done" as const) : ("failed" as const),
                   contact: data.contact || null,
+                  ...(data.contact ? {} : { failureReason: "other" as const }),
                 }
               : x
           )
         );
       } catch {
-        setBulkFiles((prev) => prev.map((x) => (x.id === item.id ? { ...x, status: 'failed' } : x)));
+        setBulkFiles((prev) =>
+          prev.map((x) =>
+            x.id === item.id
+              ? { ...x, status: "failed" as const, contact: null, failureReason: "other" as const }
+              : x
+          )
+        );
       }
     }
     setBulkProcessing(false);
+    if (scanFailedExtractCount > 0) {
+      showToast(
+        `${scanFailedExtractCount} photo(s) couldn't be scanned — try clearer images`,
+        { background: "#e55a5a", color: "#fff" }
+      );
+    }
   };
 
-  const handleBulkSaveAll = async () => {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const sessionUser = sessionData.session?.user;
-    if (!sessionUser?.id) return;
-    const doneItems = bulkFiles.filter((x) => x.status === 'done' && x.contact);
+  const saveAllContacts = async (
+    doneItems: Array<{
+      id: string;
+      dataUrl: string;
+      status: "pending" | "scanning" | "done" | "failed";
+      contact: any;
+      failureReason?: "scan_failed" | "other";
+    }>,
+    sessionUser: User,
+    eventTagVal: string
+  ) => {
     for (const item of doneItems) {
       let imageUrl: string | null = null;
       try {
-        const arr = item.dataUrl.split(',');
+        const arr = item.dataUrl.split(",");
         const mimeMatch = arr[0].match(/:(.*?);/);
-        const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+        const mime = mimeMatch ? mimeMatch[1] : "image/jpeg";
         const bstr = atob(arr[1]);
         let n = bstr.length;
         const u8arr = new Uint8Array(n);
@@ -225,34 +260,52 @@ export default function ScanPage() {
         const blob = new Blob([u8arr], { type: mime });
         const filePath = `contacts/${sessionUser.id}/${Date.now()}-${item.id}.jpg`;
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(filePath, blob, { contentType: 'image/jpeg', upsert: true });
+          .from("avatars")
+          .upload(filePath, blob, { contentType: "image/jpeg", upsert: true });
         if (!uploadError && uploadData?.path) {
-          const { data: publicData } = supabase.storage.from('avatars').getPublicUrl(uploadData.path);
+          const { data: publicData } = supabase.storage.from("avatars").getPublicUrl(uploadData.path);
           imageUrl = publicData?.publicUrl ?? null;
         }
       } catch {}
-      await supabase.from('contacts').insert({
+      await supabase.from("contacts").insert({
         user_id: sessionUser.id,
-        name: item.contact.name ?? '',
-        title: item.contact.title ?? '',
-        company: item.contact.company ?? '',
+        name: item.contact.name ?? "",
+        title: item.contact.title ?? "",
+        company: item.contact.company ?? "",
         email: item.contact.email ?? null,
         phone: item.contact.phone ?? null,
         linkedin: item.contact.linkedin ?? null,
         lead_score: 5,
         checks: [],
-        free_note: '',
-        event: eventTag || 'Untagged',
+        free_note: "",
+        event: eventTagVal,
         enriched: false,
         image: imageUrl,
       });
     }
-    setBulkMode(false);
-    setBulkFiles([]);
-    setBulkProgress(0);
-    showToast(`${doneItems.length} contacts saved`);
-    router.push('/contacts');
+  };
+
+  const handleBulkSaveAll = () => {
+    setIsSaving(true);
+    const doneItems = bulkFiles.filter((x) => x.status === "done" && x.contact);
+    const eventTagVal = eventTag || "Untagged";
+    void (async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const sessionUser = sessionData.session?.user;
+      if (!sessionUser?.id) {
+        setIsSaving(false);
+        return;
+      }
+      void saveAllContacts(doneItems, sessionUser, eventTagVal);
+    })();
+    setTimeout(() => {
+      router.push("/contacts");
+      setBulkMode(false);
+      setBulkFiles([]);
+      setBulkProgress(0);
+      showToast(`${doneItems.length} contacts saved`);
+      setIsSaving(false);
+    }, 400);
   };
 
   const handleOpenCamera = async () => {
@@ -282,6 +335,16 @@ export default function ScanPage() {
         body: JSON.stringify({ imageBase64: base64, mediaType }),
       });
       const data = await res.json();
+      if (res.status === 422 && data.error === "scan_failed") {
+        showToast(
+          typeof data.message === "string"
+            ? data.message
+            : "Could not extract contact information from this image. Please try a clearer photo.",
+          { background: "#e55a5a", color: "#fff" }
+        );
+        setScanMode("idle");
+        return;
+      }
       if (data.contact) {
         setExtracted(data.contact);
         setScanMode("review");
@@ -695,10 +758,13 @@ export default function ScanPage() {
           fontFamily: "Inter, sans-serif",
         }}
       >
+        <style>{`
+          @keyframes spin { to { transform: rotate(360deg); } }
+        `}</style>
         {toast && (
           <div
             className="fixed top-4 left-1/2 -translate-x-1/2 z-50 text-sm px-4 py-2 rounded-lg shadow-xl"
-            style={{ background: "#1a3a2a", color: "#fff" }}
+            style={{ background: toastColors.background, color: toastColors.color }}
           >
             {toast}
           </div>
@@ -765,7 +831,11 @@ export default function ScanPage() {
                           <span style={{ color: "#ffffff" }}>Done</span>
                         </>
                       )}
-                      {item.status === 'failed' && <span style={{ color: "#ffd1d1" }}>Failed</span>}
+                      {item.status === "failed" && (
+                        <span style={{ color: item.failureReason === "scan_failed" ? "#e55a5a" : "#ffd1d1" }}>
+                          {item.failureReason === "scan_failed" ? "Could not scan" : "Failed"}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -824,6 +894,7 @@ export default function ScanPage() {
               <button
                 type="button"
                 onClick={handleBulkSaveAll}
+                disabled={isSaving}
                 style={{
                   background: "#7dde3c",
                   color: "#0a1a0a",
@@ -833,10 +904,32 @@ export default function ScanPage() {
                   padding: "0 24px",
                   fontSize: 15,
                   border: "none",
-                  cursor: "pointer",
+                  cursor: isSaving ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
               >
-                Save {bulkSuccessfulCount} contacts
+                {isSaving && (
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 14 14"
+                    fill="none"
+                    style={{ animation: "spin 0.7s linear infinite", marginRight: "6px" }}
+                  >
+                    <circle
+                      cx="7"
+                      cy="7"
+                      r="5.5"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeDasharray="20 14"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                )}
+                {isSaving ? "Saving..." : `Save ${bulkSuccessfulCount} contacts`}
               </button>
             )}
           </div>
@@ -882,6 +975,7 @@ export default function ScanPage() {
                     setBulkFiles([]);
                     setBulkProcessing(false);
                     setBulkProgress(0);
+                    setIsSaving(false);
                   }}
                   style={{
                     background: "#fff",
@@ -944,7 +1038,7 @@ export default function ScanPage() {
       {toast && (
         <div
           className="fixed top-4 left-1/2 -translate-x-1/2 z-50 text-sm px-4 py-2 rounded-lg shadow-xl"
-          style={{ background: "#1a3a2a", color: "#fff" }}
+          style={{ background: toastColors.background, color: toastColors.color }}
         >
           {toast}
         </div>
