@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -77,6 +77,46 @@ export default function ContactsPage() {
   const [syncResult, setSyncResult] = useState<{ succeeded: number; failed: number } | null>(null);
   const [events, setEvents] = useState<Array<{ id: string; name: string }>>([]);
   const [isMobile, setIsMobile] = useState(false);
+  const [isEnriching, setIsEnriching] = useState<string | null>(null);
+
+  const fetchContacts = useCallback(async () => {
+    if (!user?.id) return;
+    const [{ data, error }, { data: eventsData }] = await Promise.all([
+      supabase
+        .from('contacts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false }),
+      supabase.from('events').select('id, name').eq('user_id', user.id),
+    ]);
+
+    if (error) {
+      console.error('Contacts fetch error:', error);
+      return;
+    }
+
+    setContacts(((data as unknown) as Contact[]) || []);
+    setEvents(eventsData || []);
+  }, [user?.id]);
+
+  const reEnrichContact = async (contactId: string) => {
+    setIsEnriching(contactId);
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      await fetch('/api/enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contactId, userId: user?.id }),
+      });
+      await fetchContacts();
+    } catch (err) {
+      console.error('Re-enrich failed:', err);
+    } finally {
+      setIsEnriching(null);
+    }
+  };
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -98,30 +138,14 @@ export default function ContactsPage() {
   useEffect(() => {
     if (!user?.id) return;
 
-    const fetch = async () => {
+    const run = async () => {
       setLoading(true);
-      const [{ data, error }, { data: eventsData }] = await Promise.all([
-        supabase
-          .from('contacts')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false }),
-        supabase.from('events').select('id, name').eq('user_id', user.id),
-      ]);
-
-      if (error) {
-        console.error('Contacts fetch error:', error);
-        setLoading(false);
-        return;
-      }
-
-      setContacts(((data as unknown) as Contact[]) || []);
-      setEvents(eventsData || []);
+      await fetchContacts();
       setLoading(false);
     };
 
-    fetch();
-  }, [user?.id]);
+    void run();
+  }, [user?.id, fetchContacts]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -1780,20 +1804,47 @@ export default function ContactsPage() {
                             style={{
                               display: 'flex',
                               alignItems: 'center',
-                              gap: 6,
-                              fontSize: '11px',
-                              fontWeight: 600,
-                              letterSpacing: '0.04em',
-                              textTransform: 'uppercase',
-                              color: '#999',
+                              justifyContent: 'space-between',
+                              gap: 8,
                               marginBottom: '16px',
                               marginTop: 0,
                             }}
                           >
-                            <span aria-hidden style={{ color: '#7ab648', fontSize: '12px' }}>
-                              ✦
-                            </span>
-                            AI Insights
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                letterSpacing: '0.04em',
+                                textTransform: 'uppercase',
+                                color: '#999',
+                              }}
+                            >
+                              <span aria-hidden style={{ color: '#7ab648', fontSize: '12px' }}>
+                                ✦
+                              </span>
+                              AI Insights
+                            </div>
+                            <button
+                              type='button'
+                              onClick={() => reEnrichContact(contact.id)}
+                              disabled={isEnriching === contact.id}
+                              style={{
+                                background: 'none',
+                                border: '1px solid #ebebeb',
+                                borderRadius: '999px',
+                                padding: '3px 10px',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                color: '#999',
+                                cursor: isEnriching === contact.id ? 'not-allowed' : 'pointer',
+                                opacity: isEnriching === contact.id ? 0.5 : 1,
+                              }}
+                            >
+                              {isEnriching === contact.id ? 'Enriching...' : '↻ Re-enrich'}
+                            </button>
                           </div>
                           {(() => {
                             const e = contact.ai_enrichment as Record<string, unknown>;
