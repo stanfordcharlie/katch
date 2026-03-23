@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { enrichContact } from "@/lib/enrichContact";
 
 const anthropic = new Anthropic();
 
@@ -158,18 +159,10 @@ export async function POST(req: NextRequest) {
         .single();
 
       if (!insertError && insertedContact) {
-        const contactId = insertedContact.id as string;
-        if (contactId) {
-          const baseUrl =
-            process.env.NEXT_PUBLIC_APP_URL || "https://katch-two.vercel.app";
-          fetch(`${baseUrl}/api/enrich`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contactId,
-              userId: (insertedContact as { user_id: string }).user_id,
-            }),
-          }).catch((err) => console.error("Background enrichment failed:", err));
+        if (insertedContact?.id) {
+          enrichContact(insertedContact.id as string, userId as string).catch(
+            (err) => console.error("Background enrichment failed:", err)
+          );
         }
       }
     }
