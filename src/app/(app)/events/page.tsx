@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Fragment, useState, useEffect } from "react";
 import type { User } from "@supabase/supabase-js";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -418,7 +418,295 @@ export default function EventsPage() {
         </div>
       )}
 
-      {!loading && (
+      {!loading && !isMobile && (
+        <div
+          style={{
+            background: "#ffffff",
+            borderRadius: "16px",
+            border: "1px solid #ebebeb",
+            overflow: "hidden",
+            width: "100%",
+            marginTop: "24px",
+          }}
+        >
+          <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+            <thead>
+              <tr style={{ background: "#fafafa", borderBottom: "1px solid #ebebeb" }}>
+                <th style={{ fontSize: "11px", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "#999", padding: "10px 16px", textAlign: "left" }}>
+                  Event Name
+                </th>
+                <th style={{ width: 140, fontSize: "11px", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "#999", padding: "10px 16px", textAlign: "left" }}>
+                  Date
+                </th>
+                <th style={{ width: 160, fontSize: "11px", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "#999", padding: "10px 16px", textAlign: "left" }}>
+                  Location
+                </th>
+                <th style={{ width: 120, fontSize: "11px", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "#999", padding: "10px 16px", textAlign: "left" }}>
+                  Type
+                </th>
+                <th style={{ width: 100, fontSize: "11px", fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "#999", padding: "10px 16px", textAlign: "center" }}>
+                  Contacts
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {events.map((ev) => {
+                const evContacts = contacts.filter((c) => c.event === ev.name);
+                const hotCount = evContacts.filter((c) => c.leadScore >= 3).length;
+                const isSelected = selectedIds.includes(ev.id);
+                return (
+                  <Fragment key={ev.id}>
+                    <tr
+                      onClick={() => setExpandedEventId(expandedEventId === ev.id ? null : ev.id)}
+                      style={{
+                        borderBottom: "1px solid #f5f5f5",
+                        transition: "background 0.1s ease",
+                        cursor: "pointer",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "#fafafa";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "#fff";
+                      }}
+                    >
+                      <td style={{ padding: "14px 16px", verticalAlign: "middle" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedIds((prev) =>
+                                prev.includes(ev.id) ? prev.filter((id) => id !== ev.id) : [...prev, ev.id]
+                              );
+                            }}
+                            style={{
+                              width: 20,
+                              height: 20,
+                              borderRadius: 4,
+                              border: "1.5px solid #dddddd",
+                              background: isSelected ? "#7dde3c" : "#ffffff",
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexShrink: 0,
+                            }}
+                          >
+                            {isSelected && (
+                              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="3">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                            )}
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: "14px", fontWeight: 600, color: "#111" }}>{ev.name}</div>
+                            {ev.notes ? (
+                              <div
+                                style={{
+                                  fontSize: "12px",
+                                  color: "#999",
+                                  marginTop: 2,
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {ev.notes}
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: "14px 16px", fontSize: "13px", color: "#555", verticalAlign: "middle" }}>
+                        {ev.date
+                          ? new Date(ev.date + "T00:00:00").toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })
+                          : "—"}
+                      </td>
+                      <td style={{ padding: "14px 16px", fontSize: "13px", color: "#555", verticalAlign: "middle" }}>
+                        {ev.location || "—"}
+                      </td>
+                      <td style={{ padding: "14px 16px", verticalAlign: "middle" }}>
+                        <span
+                          style={{
+                            background: "#f5f5f5",
+                            borderRadius: "999px",
+                            padding: "2px 10px",
+                            fontSize: "12px",
+                            color: "#555",
+                            textTransform: "capitalize",
+                          }}
+                        >
+                          {(ev.type || "event").toString()}
+                        </span>
+                      </td>
+                      <td style={{ padding: "14px 16px", textAlign: "center", verticalAlign: "middle" }}>
+                        <div style={{ fontSize: "14px", fontWeight: 600, color: "#111" }}>{evContacts.length}</div>
+                        <div style={{ fontSize: "11px", color: "#999" }}>contacts</div>
+                      </td>
+                    </tr>
+                    {expandedEventId === ev.id && (
+                      <tr>
+                        <td colSpan={5} style={{ padding: "0 16px 16px", borderBottom: "1px solid #f5f5f5" }}>
+                          <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #f0f0f0" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEvForm({
+                                    name: ev.name,
+                                    date: ev.date || "",
+                                    type: ev.type || "Conference",
+                                    location: ev.location || "",
+                                    notes: ev.notes || "",
+                                    attendees: ev.attendees || [],
+                                  });
+                                  setEditingEvent(ev.id);
+                                  setShowEventForm(true);
+                                }}
+                                style={{
+                                  background: "#f5f5f5",
+                                  color: "#111",
+                                  border: "none",
+                                  borderRadius: 8,
+                                  padding: "7px 14px",
+                                  fontSize: 13,
+                                  fontWeight: 500,
+                                  cursor: "pointer",
+                                }}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => exportEventCsv(ev.name)}
+                                style={{
+                                  background: "#f5f5f5",
+                                  color: "#111",
+                                  border: "none",
+                                  borderRadius: 8,
+                                  padding: "7px 14px",
+                                  fontSize: 13,
+                                  fontWeight: 500,
+                                  cursor: "pointer",
+                                }}
+                              >
+                                Export CSV
+                              </button>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const { error } = await supabase.from("events").delete().eq("id", ev.id);
+                                  if (error) {
+                                    console.error("Delete event error:", error);
+                                    return;
+                                  }
+                                  setEvents((prev) => prev.filter((e) => e.id !== ev.id));
+                                  setSelectedIds((prev) => prev.filter((id) => id !== ev.id));
+                                  showToast("Event deleted");
+                                }}
+                                style={{
+                                  background: "#ffffff",
+                                  border: "1px solid #fde8e8",
+                                  color: "#e55a5a",
+                                  borderRadius: 8,
+                                  padding: "6px 14px",
+                                  fontSize: 13,
+                                  cursor: "pointer",
+                                }}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                            {(() => {
+                              const eventContacts = allContacts.filter((c) => c.event === ev.name);
+                              if (eventContacts.length === 0) {
+                                return <div style={{ fontSize: 13, color: "#bbb", padding: "12px 0" }}>No contacts tagged to this event yet.</div>;
+                              }
+                              return (
+                                <div>
+                                  {eventContacts.map((c) => {
+                                    const score = Number(c.lead_score || 0);
+                                    const badgeStyle =
+                                      score >= 7
+                                        ? { background: "#f0f7eb", color: "#2d6a1f" }
+                                        : score >= 4
+                                        ? { background: "#fff3eb", color: "#b07020" }
+                                        : { background: "#fde8e8", color: "#e55a5a" };
+                                    return (
+                                      <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: "1px solid #f7f7f7" }}>
+                                        {c.image ? (
+                                          <img src={c.image} alt={c.name || "Contact"} style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover" }} />
+                                        ) : (
+                                          <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#f0f7eb", color: "#2d6a1f", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                            {(c.name || "?").toString().trim().charAt(0).toUpperCase()}
+                                          </div>
+                                        )}
+                                        <div style={{ minWidth: 0, flex: 1 }}>
+                                          <div style={{ fontSize: 13, fontWeight: 600, color: "#111" }}>{c.name || "Unknown contact"}</div>
+                                          <div style={{ fontSize: 12, color: "#999" }}>{[c.title, c.company].filter(Boolean).join(" · ") || "—"}</div>
+                                        </div>
+                                        <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 999, ...badgeStyle }}>{score}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })()}
+                            <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+                              <span style={{ fontSize: 13, color: "#999" }}>
+                                {evContacts.length} contact{evContacts.length !== 1 ? "s" : ""}
+                              </span>
+                              {hotCount > 0 && (
+                                <span style={{ fontSize: 13, color: "#666" }}>
+                                  {hotCount} hot lead{hotCount > 1 ? "s" : ""}
+                                </span>
+                              )}
+                              {ev.attendees?.length > 0 && (
+                                <span style={{ fontSize: 13, color: "#666" }}>{ev.attendees.length} tagged</span>
+                              )}
+                            </div>
+                            {ev.attendees?.length > 0 && (
+                              <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #f0f0f0" }}>
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                                  {ev.attendees.map((a: string) => (
+                                    <span
+                                      key={a}
+                                      style={{
+                                        background: "#f0f7eb",
+                                        color: "#2d6a1f",
+                                        borderRadius: 999,
+                                        fontSize: 12,
+                                        padding: "3px 10px",
+                                      }}
+                                    >
+                                      {a}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {ev.notes && (
+                              <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #f0f0f0" }}>
+                                <p style={{ fontSize: 13, color: "#666", lineHeight: 1.5, margin: 0 }}>{ev.notes}</p>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {!loading && isMobile && (
       <div>
         {events.map((ev) => {
           const evContacts = contacts.filter((c) => c.event === ev.name);
