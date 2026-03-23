@@ -69,6 +69,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "no_contacts" }, { status: 400 });
     }
 
+    const { data: tokenRow } = await supabaseAdmin
+      .from("hubspot_tokens")
+      .select("hub_id")
+      .eq("user_id", userId)
+      .single();
+
+    const ownersRes = await fetch("https://api.hubapi.com/crm/v3/owners?limit=1", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const ownersData = await ownersRes.json();
+    const ownerId = ownersData.results?.[0]?.id;
+
     const results = await Promise.all(
       contacts.map(async (contact) => {
         const properties: Record<string, string> = {};
@@ -79,11 +91,24 @@ export async function POST(req: NextRequest) {
         }
         if (contact.email) properties.email = contact.email;
         if (contact.phone) properties.phone = contact.phone;
-        if (contact.company) properties.company = contact.company;
+        if (contact.company) {
+          let company = contact.company
+            .replace(/^https?:\/\//i, "")
+            .replace(/^www\./i, "")
+            .replace(/\.[a-z]{2,}(\/.*)?$/i, "")
+            .trim();
+          company = company
+            .split(/[\s-]+/)
+            .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+            .join(" ");
+          properties.company = company;
+        }
         if (contact.title) properties.jobtitle = contact.title;
         if (contact.linkedin) properties.linkedinbio = contact.linkedin;
         if (contact.lead_score)
           properties.hs_lead_status = contact.lead_score >= 7 ? "IN_PROGRESS" : "OPEN";
+
+        if (ownerId) properties.hubspot_owner_id = String(ownerId);
 
         const res = await fetch("https://api.hubapi.com/crm/v3/objects/contacts", {
           method: "POST",
@@ -95,6 +120,15 @@ export async function POST(req: NextRequest) {
         });
 
         const data = await res.json();
+        if (res.ok) {
+          await supabaseAdmin
+            .from("contacts")
+            .update({
+              synced_to_hubspot: true,
+              hubspot_synced_at: new Date().toISOString(),
+            })
+            .eq("id", contact.id);
+        }
         return { contactId: contact.id, success: res.ok, hubspotId: data.id, error: data.message };
       })
     );

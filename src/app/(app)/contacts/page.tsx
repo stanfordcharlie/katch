@@ -26,6 +26,8 @@ type Contact = {
   enriched?: boolean | null;
   created_at?: string | null;
   date?: string | null;
+  synced_to_hubspot?: boolean | null;
+  hubspot_synced_at?: string | null;
 };
 
 type EditForm = {
@@ -189,6 +191,23 @@ export default function ContactsPage() {
   const getEventName = (eventId: string | null | undefined) => {
     if (!eventId) return null;
     return events.find((e) => e.id === eventId)?.name || null;
+  };
+
+  const formatHubSpotSyncedAt = (iso: string | null | undefined) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    const datePart = d.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+    const timePart = d.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+    return `${datePart} at ${timePart}`;
   };
 
   const syncToHubSpot = async () => {
@@ -919,6 +938,25 @@ export default function ContactsPage() {
                         {eventLabel}
                       </span>
                     ) : null}
+                    {contact.synced_to_hubspot === true && (
+                      <span
+                        style={{
+                          background: '#fff3ee',
+                          color: '#ff7a59',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          borderRadius: '999px',
+                          padding: '2px 8px',
+                          letterSpacing: '0.02em',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        <span>H</span>
+                        <span>Synced</span>
+                      </span>
+                    )}
                     {contact.enriched && (
                       <span
                         style={{
@@ -1274,6 +1312,39 @@ export default function ContactsPage() {
                             background: '#f7f7f5',
                           }}
                         />
+                      )}
+                      {contact.synced_to_hubspot === true && (
+                        <div style={{ marginBottom: 12 }}>
+                          <span
+                            style={{
+                              background: '#fff3ee',
+                              color: '#ff7a59',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              borderRadius: '999px',
+                              padding: '2px 8px',
+                              letterSpacing: '0.02em',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <span>H</span>
+                            <span>Synced</span>
+                          </span>
+                          {contact.hubspot_synced_at && (
+                            <p
+                              style={{
+                                fontSize: 11,
+                                color: '#999',
+                                margin: '6px 0 0 0',
+                              }}
+                            >
+                              Synced to HubSpot ·{' '}
+                              {formatHubSpotSyncedAt(contact.hubspot_synced_at)}
+                            </p>
+                          )}
+                        </div>
                       )}
                       <div
                         style={{
