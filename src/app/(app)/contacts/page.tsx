@@ -28,6 +28,8 @@ type Contact = {
   date?: string | null;
   synced_to_hubspot?: boolean | null;
   hubspot_synced_at?: string | null;
+  ai_enrichment?: Record<string, unknown> | null;
+  enriched_at?: string | null;
 };
 
 type EditForm = {
@@ -208,6 +210,22 @@ export default function ContactsPage() {
       hour12: true,
     });
     return `${datePart} at ${timePart}`;
+  };
+
+  const formatEnrichedAgo = (iso: string | null | undefined) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    const diffMs = Date.now() - d.getTime();
+    const sec = Math.floor(diffMs / 1000);
+    const min = Math.floor(sec / 60);
+    const hr = Math.floor(min / 60);
+    const day = Math.floor(hr / 24);
+    if (sec < 45) return 'just now';
+    if (min < 60) return `${min} min ago`;
+    if (hr < 24) return `${hr} hour${hr === 1 ? '' : 's'} ago`;
+    if (day < 7) return `${day} day${day === 1 ? '' : 's'} ago`;
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const syncToHubSpot = async () => {
@@ -455,6 +473,10 @@ export default function ContactsPage() {
           to {
             background-position: -200% 0;
           }
+        }
+        @keyframes aiInsightsPending {
+          0%, 100% { opacity: 0.55; }
+          50% { opacity: 1; }
         }
       `}</style>
 
@@ -1741,6 +1763,242 @@ export default function ContactsPage() {
                           >
                             {(contact.free_note ?? contact.freeNote) as string}
                           </p>
+                        </div>
+                      )}
+                      {contact.ai_enrichment &&
+                      typeof contact.ai_enrichment === 'object' &&
+                      !Array.isArray(contact.ai_enrichment) ? (
+                        <div style={{ marginTop: 20 }}>
+                          <div
+                            style={{
+                              borderTop: '1px solid #ebebeb',
+                              marginBottom: 20,
+                              marginTop: 0,
+                            }}
+                          />
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              letterSpacing: '0.04em',
+                              textTransform: 'uppercase',
+                              color: '#999',
+                              marginBottom: '16px',
+                              marginTop: 0,
+                            }}
+                          >
+                            <span aria-hidden style={{ color: '#7ab648', fontSize: '12px' }}>
+                              ✦
+                            </span>
+                            AI Insights
+                          </div>
+                          {(() => {
+                            const e = contact.ai_enrichment as Record<string, unknown>;
+                            const icpScore = Math.min(
+                              10,
+                              Math.max(
+                                0,
+                                typeof e.icp_fit_score === 'number'
+                                  ? e.icp_fit_score
+                                  : Number(e.icp_fit_score) || 0
+                              )
+                            );
+                            const icpReason =
+                              typeof e.icp_fit_reason === 'string' ? e.icp_fit_reason : '';
+                            const summary = typeof e.summary === 'string' ? e.summary : '';
+                            const talkingPoints = Array.isArray(e.talking_points)
+                              ? (e.talking_points as unknown[]).filter(
+                                  (t): t is string => typeof t === 'string'
+                                )
+                              : [];
+                            const redFlags = Array.isArray(e.red_flags)
+                              ? (e.red_flags as unknown[]).filter(
+                                  (t): t is string => typeof t === 'string'
+                                )
+                              : [];
+                            const fillPct = (icpScore / 10) * 100;
+                            const barColor =
+                              icpScore >= 7 ? '#7dde3c' : icpScore >= 4 ? '#f59e3f' : '#e55a5a';
+                            return (
+                              <>
+                                <div style={{ marginBottom: 12 }}>
+                                  <div
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      gap: 12,
+                                      marginBottom: 6,
+                                    }}
+                                  >
+                                    <span style={{ fontSize: '12px', color: '#999' }}>ICP Fit</span>
+                                    <span style={{ fontSize: '13px', fontWeight: 700, color: '#111' }}>
+                                      {icpScore}
+                                    </span>
+                                  </div>
+                                  <div
+                                    style={{
+                                      background: '#f0f0f0',
+                                      borderRadius: '999px',
+                                      height: 6,
+                                      width: '100%',
+                                      overflow: 'hidden',
+                                    }}
+                                  >
+                                    <div
+                                      style={{
+                                        width: `${fillPct}%`,
+                                        height: '100%',
+                                        background: barColor,
+                                        borderRadius: '999px',
+                                        transition: 'width 0.2s ease',
+                                      }}
+                                    />
+                                  </div>
+                                  {icpReason ? (
+                                    <p
+                                      style={{
+                                        fontSize: '12px',
+                                        color: '#666',
+                                        fontStyle: 'italic',
+                                        marginTop: 4,
+                                        marginBottom: 0,
+                                        lineHeight: 1.45,
+                                      }}
+                                    >
+                                      {icpReason}
+                                    </p>
+                                  ) : null}
+                                </div>
+                                {summary ? (
+                                  <p
+                                    style={{
+                                      fontSize: '13px',
+                                      color: '#555',
+                                      lineHeight: 1.6,
+                                      marginBottom: 12,
+                                      marginTop: 0,
+                                    }}
+                                  >
+                                    {summary}
+                                  </p>
+                                ) : null}
+                                {talkingPoints.length > 0 ? (
+                                  <div style={{ marginBottom: redFlags.length > 0 ? 12 : 0 }}>
+                                    <p
+                                      style={{
+                                        fontSize: '11px',
+                                        fontWeight: 600,
+                                        letterSpacing: '0.04em',
+                                        textTransform: 'uppercase',
+                                        color: '#999',
+                                        marginBottom: 8,
+                                        marginTop: 0,
+                                      }}
+                                    >
+                                      Talking points
+                                    </p>
+                                    {talkingPoints.map((tp, i) => (
+                                      <div
+                                        key={i}
+                                        style={{
+                                          display: 'flex',
+                                          alignItems: 'flex-start',
+                                          gap: 8,
+                                          marginBottom: 6,
+                                        }}
+                                      >
+                                        <span
+                                          style={{
+                                            width: 6,
+                                            height: 6,
+                                            borderRadius: '50%',
+                                            background: '#7dde3c',
+                                            flexShrink: 0,
+                                            marginTop: 6,
+                                          }}
+                                        />
+                                        <span style={{ fontSize: '13px', color: '#333', lineHeight: 1.45 }}>
+                                          {tp}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : null}
+                                {redFlags.length > 0 ? (
+                                  <div style={{ marginBottom: 0 }}>
+                                    <p
+                                      style={{
+                                        fontSize: '11px',
+                                        fontWeight: 600,
+                                        color: '#e55a5a',
+                                        marginBottom: 8,
+                                        marginTop: 0,
+                                      }}
+                                    >
+                                      Watch out
+                                    </p>
+                                    {redFlags.map((rf, i) => (
+                                      <div
+                                        key={i}
+                                        style={{
+                                          display: 'flex',
+                                          alignItems: 'flex-start',
+                                          gap: 8,
+                                          marginBottom: 6,
+                                        }}
+                                      >
+                                        <span
+                                          style={{
+                                            width: 6,
+                                            height: 6,
+                                            borderRadius: '50%',
+                                            background: '#e55a5a',
+                                            flexShrink: 0,
+                                            marginTop: 6,
+                                          }}
+                                        />
+                                        <span style={{ fontSize: '13px', color: '#e55a5a', lineHeight: 1.45 }}>
+                                          {rf}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : null}
+                                {contact.enriched_at ? (
+                                  <p
+                                    style={{
+                                      fontSize: '11px',
+                                      color: '#bbb',
+                                      marginTop: 12,
+                                      marginBottom: 0,
+                                    }}
+                                  >
+                                    Enriched · {formatEnrichedAgo(contact.enriched_at)}
+                                  </p>
+                                ) : null}
+                              </>
+                            );
+                          })()}
+                        </div>
+                      ) : (
+                        <div style={{ marginTop: 16 }}>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              background: '#f5f5f5',
+                              borderRadius: '999px',
+                              padding: '4px 12px',
+                              fontSize: '11px',
+                              color: '#999',
+                              animation: 'aiInsightsPending 1.5s ease-in-out infinite',
+                            }}
+                          >
+                            AI insights pending...
+                          </span>
                         </div>
                       )}
                       <div
