@@ -532,12 +532,27 @@ export default function HomePage() {
                 return (
                   <div
                     key={ev.id}
+                    onClick={() => router.push("/events")}
                     style={{
                       padding: "14px 0",
                       borderBottom: "1px solid #f0f0f0",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "space-between",
+                      cursor: "pointer",
+                      transition: "background 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#f9f9f9";
+                      e.currentTarget.style.borderRadius = "10px";
+                      e.currentTarget.style.margin = "0 -12px";
+                      e.currentTarget.style.padding = "14px 12px";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.borderRadius = "0";
+                      e.currentTarget.style.margin = "0";
+                      e.currentTarget.style.padding = "14px 0";
                     }}
                   >
                     <div>
@@ -671,6 +686,7 @@ export default function HomePage() {
                 return (
                   <div
                     key={c.id}
+                    onClick={() => router.push("/contacts")}
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -678,6 +694,20 @@ export default function HomePage() {
                       justifyContent: "space-between",
                       padding: "10px 0",
                       borderBottom: "1px solid #f0f0f0",
+                      cursor: "pointer",
+                      transition: "background 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#f9f9f9";
+                      e.currentTarget.style.borderRadius = "10px";
+                      e.currentTarget.style.margin = "0 -12px";
+                      e.currentTarget.style.padding = "10px 12px";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.borderRadius = "0";
+                      e.currentTarget.style.margin = "0";
+                      e.currentTarget.style.padding = "10px 0";
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
