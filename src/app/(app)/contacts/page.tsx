@@ -765,12 +765,43 @@ export default function ContactsPage() {
       <div
         style={{
           marginTop: 16,
-          background: 'transparent',
+          background: isMobile ? 'transparent' : '#ffffff',
           display: 'flex',
           flexDirection: 'column',
-          gap: 8,
+          gap: isMobile ? 8 : 0,
+          border: isMobile ? 'none' : '1px solid #ebebeb',
+          borderRadius: isMobile ? 0 : 16,
+          overflow: 'hidden',
+          width: '100%',
         }}
       >
+        {!isMobile && (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '40px minmax(200px,1fr) 180px 160px 200px 140px 80px 80px',
+              background: '#fafafa',
+              borderBottom: '1px solid #ebebeb',
+            }}
+          >
+            {['', 'Name', 'Company', 'Title', 'Email', 'Event', 'Score', 'Synced'].map((h, i) => (
+              <div
+                key={h + i}
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
+                  color: '#999',
+                  padding: '10px 16px',
+                  textAlign: i >= 6 ? 'center' : 'left',
+                }}
+              >
+                {h}
+              </div>
+            ))}
+          </div>
+        )}
         {filteredContacts.map((contact) => {
           const rawScore =
             (contact.lead_score ??
@@ -823,25 +854,34 @@ export default function ContactsPage() {
               }
               className='group cursor-pointer'
               style={{
-                background: 'rgba(255, 255, 255, 0.8)',
-                backdropFilter: 'blur(12px)',
-                WebkitBackdropFilter: 'blur(12px)',
-                border: '1px solid rgba(255, 255, 255, 0.9)',
-                borderRadius: 16,
-                borderBottomLeftRadius: 16,
-                borderBottomRightRadius: 16,
-                boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-                borderLeft: leftBorder,
+                background: '#fff',
+                borderBottom: '1px solid #f5f5f5',
                 overflow: 'hidden',
+                transition: 'background 0.1s ease',
+              }}
+              onMouseEnter={(e) => {
+                if (!isMobile) e.currentTarget.style.background = '#fafafa';
+              }}
+              onMouseLeave={(e) => {
+                if (!isMobile) e.currentTarget.style.background = '#fff';
               }}
             >
               <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 14,
-                  padding: '14px 18px',
-                }}
+                style={
+                  isMobile
+                    ? {
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 14,
+                        padding: '14px 18px',
+                      }
+                    : {
+                        display: 'grid',
+                        gridTemplateColumns:
+                          '40px minmax(200px,1fr) 180px 160px 200px 140px 80px 80px',
+                        alignItems: 'center',
+                      }
+                }
               >
                 <div
                   onClick={(e) => {
@@ -863,6 +903,7 @@ export default function ContactsPage() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
+                    marginLeft: isMobile ? 0 : 16,
                   }}
                 >
                   {isSelected && (
@@ -878,7 +919,7 @@ export default function ContactsPage() {
                     </svg>
                   )}
                 </div>
-                {contact.image ? (
+                {isMobile && contact.image ? (
                   <img
                     src={contact.image as string}
                     alt={`${contact.name || 'Contact'} badge`}
@@ -890,7 +931,7 @@ export default function ContactsPage() {
                       flexShrink: 0,
                     }}
                   />
-                ) : (
+                ) : isMobile ? (
                   <div
                     style={{
                       width: 48,
@@ -913,29 +954,126 @@ export default function ContactsPage() {
                       {initials}
                     </span>
                   </div>
-                )}
-                <div style={{ flex: 1, minWidth: 0 }}>
+                ) : null}
+                <div style={{ minWidth: 0, padding: isMobile ? 0 : '12px 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    {contact.image ? (
+                      <img
+                        src={contact.image as string}
+                        alt={`${contact.name || 'Contact'} badge`}
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: '50%',
+                          objectFit: 'cover',
+                          flexShrink: 0,
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: '50%',
+                          background: '#f0f0f0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: '#999',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {initials}
+                      </div>
+                    )}
                   <div
                     style={{
-                      fontSize: '15px',
+                      fontSize: '14px',
                       fontWeight: 600,
-                      letterSpacing: '-0.01em',
                       color: '#111',
                     }}
                   >
                     {contact.name}
                   </div>
-                  <p
+                  {contact.checks && contact.checks.length > 0 && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 8 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#7dde3c' }} />
+                      <span style={{ fontSize: 11, color: '#999' }}>
+                        {contact.checks.length} signals
+                      </span>
+                    </span>
+                  )}
+                  </div>
+                </div>
+                {!isMobile && (
+                  <>
+                    <div style={{ padding: '12px 16px', fontSize: 14, color: '#555' }}>{contact.company || '—'}</div>
+                    <div style={{ padding: '12px 16px', fontSize: 14, color: '#555' }}>{contact.title || '—'}</div>
+                    <div style={{ padding: '12px 16px', fontSize: 13, color: '#999', fontFamily: 'monospace' }}>
+                      {contact.email || '—'}
+                    </div>
+                    <div style={{ padding: '12px 16px' }}>
+                      {eventLabel ? (
+                        <span
+                          style={{
+                            background: '#f5f5f5',
+                            borderRadius: 999,
+                            padding: '2px 10px',
+                            fontSize: 12,
+                            color: '#555',
+                          }}
+                        >
+                          {eventLabel}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: 12, color: '#999' }}>—</span>
+                      )}
+                    </div>
+                  </>
+                )}
+                <div style={{ textAlign: 'center', padding: isMobile ? '0' : '12px 16px' }}>
+                  <span
                     style={{
-                      fontSize: '13px',
-                      fontWeight: 400,
-                      color: '#555',
-                      marginTop: 1,
-                      marginBottom: 0,
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      letterSpacing: '0.02em',
+                      padding: '5px 12px',
+                      borderRadius: 999,
+                      background: badgeBg,
+                      color: badgeColor,
+                      flexShrink: 0,
                     }}
                   >
-                    {contact.title} · {contact.company}
-                  </p>
+                    {scoreNum == null ? '—' : scoreNum}
+                  </span>
+                </div>
+                {!isMobile && (
+                  <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 16px' }}>
+                    {contact.synced_to_hubspot === true ? (
+                      <span
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: '50%',
+                          background: '#ff7a59',
+                          color: '#fff',
+                          fontSize: 11,
+                          fontWeight: 700,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        H
+                      </span>
+                    ) : (
+                      <span style={{ color: '#ccc', fontSize: 12 }}>—</span>
+                    )}
+                  </div>
+                )}
+                {isMobile && (
                   <div
                     style={{
                       display: 'flex',
@@ -999,37 +1137,8 @@ export default function ContactsPage() {
                         Enriched
                       </span>
                     )}
-                    {contact.checks && contact.checks.length > 0 && (
-                      <span
-                        style={{
-                          background: '#f0f7eb',
-                          color: '#2d6a1f',
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          padding: '3px 9px',
-                          borderRadius: 999,
-                        }}
-                      >
-                        {contact.checks.length} signal
-                        {contact.checks.length !== 1 ? 's' : ''}
-                      </span>
-                    )}
                   </div>
-                </div>
-                <span
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    letterSpacing: '0.02em',
-                    padding: '5px 12px',
-                    borderRadius: 999,
-                    background: badgeBg,
-                    color: badgeColor,
-                    flexShrink: 0,
-                  }}
-                >
-                  {scoreNum == null ? '—' : scoreNum}
-                </span>
+                )}
               </div>
 
               {selected?.id === contact.id && (
