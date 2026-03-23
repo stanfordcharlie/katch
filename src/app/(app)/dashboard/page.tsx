@@ -205,32 +205,43 @@ export default function DashboardPage() {
     <div
       style={{
         minHeight: "100vh",
-        backgroundColor: "#f4f4f2",
-        padding: isMobile ? "20px 16px 100px" : "40px 44px 44px 260px",
+        backgroundColor: "#f7f7f5",
+        padding: isMobile ? "20px 16px 100px" : "32px 32px 40px",
         overflowX: "hidden",
-        maxWidth: "100vw",
+        maxWidth: "1200px",
+        margin: "0 auto",
+        width: "100%",
         boxSizing: "border-box",
       }}
     >
       <main style={{ maxWidth: 1120 }}>
         <div
           style={{
-            display: "flex",
-            flexDirection: isMobile ? "column" : "row",
-            alignItems: isMobile ? "stretch" : "flex-end",
-            justifyContent: "space-between",
-            gap: isMobile ? 8 : 0,
-            marginBottom: 28,
+            background: "linear-gradient(135deg, #1a3a2a 0%, #2d5a3d 30%, #1e4d6b 70%, #0f2a3d 100%)",
+            borderRadius: 20,
+            padding: isMobile ? "22px 20px" : "32px 40px",
+            marginBottom: 24,
+            position: "relative",
+            overflow: "hidden",
           }}
         >
-          <div>
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              borderRadius: 20,
+              pointerEvents: "none",
+              background: "radial-gradient(ellipse at 30% 50%, rgba(125,222,60,0.15) 0%, transparent 60%)",
+            }}
+          />
+          <div style={{ position: "relative", zIndex: 1 }}>
             <h1
               style={{
-                fontSize: "24px",
-                fontWeight: 600,
-                letterSpacing: "-0.02em",
-                lineHeight: 1.2,
-                color: "#111",
+                fontSize: isMobile ? "28px" : "32px",
+                fontWeight: 700,
+                letterSpacing: "-0.03em",
+                lineHeight: 1.1,
+                color: "#ffffff",
                 margin: 0,
               }}
             >
@@ -238,43 +249,44 @@ export default function DashboardPage() {
             </h1>
             <p
               style={{
-                fontSize: "13px",
+                fontSize: "14px",
                 fontWeight: 400,
-                color: "#999",
-                marginTop: 3,
+                color: "rgba(255,255,255,0.55)",
+                marginTop: 6,
                 marginBottom: 0,
               }}
             >
               Your lead pipeline at a glance.
             </p>
+            {events.length > 0 && (
+              <div style={{ marginTop: isMobile ? 14 : 0, position: isMobile ? "static" : "absolute", top: 0, right: 0 }}>
+                <select
+                  value={dashEvent}
+                  onChange={(e) => setDashEvent(e.target.value)}
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: 500,
+                    lineHeight: 1.5,
+                    padding: "6px 14px",
+                    borderRadius: 999,
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    background: "rgba(255,255,255,0.1)",
+                    color: "#ffffff",
+                    cursor: "pointer",
+                    width: isMobile ? "100%" : "auto",
+                    minHeight: isMobile ? 44 : undefined,
+                  }}
+                >
+                  <option value="all" style={{ color: "#111" }}>All events</option>
+                  {events.map((ev) => (
+                    <option key={ev.id} value={ev.name} style={{ color: "#111" }}>
+                      {ev.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
-          {events.length > 0 && (
-            <select
-              value={dashEvent}
-              onChange={(e) => setDashEvent(e.target.value)}
-              style={{
-                fontSize: "14px",
-                fontWeight: 400,
-                lineHeight: 1.5,
-                padding: "7px 14px",
-                borderRadius: 999,
-                border: "1px solid #d8ddd0",
-                backgroundColor: "#ffffff",
-                color: "#1b2415",
-                cursor: "pointer",
-                width: isMobile ? "100%" : "auto",
-                marginTop: isMobile ? 8 : 0,
-                minHeight: isMobile ? 44 : undefined,
-              }}
-            >
-              <option value="all">All events</option>
-              {events.map((ev) => (
-                <option key={ev.id} value={ev.name}>
-                  {ev.name}
-                </option>
-              ))}
-            </select>
-          )}
         </div>
 
         {loading ? (
@@ -407,8 +419,8 @@ export default function DashboardPage() {
                 style={{
                   background: "#ffffff",
                   border: "1px solid #ebebeb",
-                  borderRadius: 20,
-                  padding: isMobile ? 16 : 22,
+                  borderRadius: 16,
+                  padding: isMobile ? 16 : "20px 24px",
                   position: "relative",
                   overflow: "hidden",
                   opacity: 1,
@@ -443,7 +455,7 @@ export default function DashboardPage() {
                 </div>
                 <div
                   style={{
-                    fontSize: "24px",
+                    fontSize: "32px",
                     fontWeight: 700,
                     letterSpacing: "-0.03em",
                     lineHeight: 1.2,
@@ -471,7 +483,7 @@ export default function DashboardPage() {
                     fontWeight: 600,
                     display: "inline-flex",
                     alignItems: "center",
-                    padding: "2px 8px",
+                    padding: "2px 10px",
                     borderRadius: 999,
                     background: "#f0f7eb",
                     color: "#3a7a20",
@@ -485,12 +497,12 @@ export default function DashboardPage() {
 
               <div
                 style={{
-                  background: "#0d1f0d",
-                  borderRadius: 20,
-                  padding: isMobile ? 16 : 22,
+                  background: "#ffffff",
+                  border: "1px solid #ebebeb",
+                  borderRadius: 16,
+                  padding: isMobile ? 16 : "20px 24px",
                   position: "relative",
                   overflow: "hidden",
-                  color: "#ffffff",
                   opacity: 1,
                   transform: "translateY(0)",
                   animation: "dashStatIn 0.4s ease-out 0.06s forwards",
@@ -501,7 +513,7 @@ export default function DashboardPage() {
                     width: 30,
                     height: 30,
                     borderRadius: 8,
-                    background: "rgba(125,222,60,0.12)",
+                    background: "#f0f7eb",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -513,7 +525,7 @@ export default function DashboardPage() {
                     height="16"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke="#7dde3c"
+                    stroke="#7ab648"
                     strokeWidth="1.8"
                   >
                     <path d="M13 2L5 14h6l-1 8 8-12h-6z" />
@@ -521,11 +533,11 @@ export default function DashboardPage() {
                 </div>
                 <div
                   style={{
-                    fontSize: "24px",
+                    fontSize: "32px",
                     fontWeight: 700,
                     letterSpacing: "-0.03em",
                     lineHeight: 1.2,
-                    color: "#7dde3c",
+                    color: "#111111",
                     marginBottom: 8,
                   }}
                 >
@@ -537,7 +549,7 @@ export default function DashboardPage() {
                     fontWeight: 600,
                     letterSpacing: "0.04em",
                     textTransform: "uppercase",
-                    color: "rgba(255,255,255,0.4)",
+                    color: "#999",
                     marginBottom: 8,
                   }}
                 >
@@ -549,10 +561,10 @@ export default function DashboardPage() {
                     fontWeight: 600,
                     display: "inline-flex",
                     alignItems: "center",
-                    padding: "2px 8px",
+                    padding: "2px 10px",
                     borderRadius: 999,
-                    background: "rgba(125,222,60,0.12)",
-                    color: "#7dde3c",
+                    background: "#f0f7eb",
+                    color: "#2d6a1f",
                   }}
                 >
                   Score 8–10
@@ -563,8 +575,8 @@ export default function DashboardPage() {
                 style={{
                   background: "#ffffff",
                   border: "1px solid #ebebeb",
-                  borderRadius: 20,
-                  padding: isMobile ? 16 : 22,
+                  borderRadius: 16,
+                  padding: isMobile ? 16 : "20px 24px",
                   position: "relative",
                   overflow: "hidden",
                   opacity: 1,
@@ -597,7 +609,7 @@ export default function DashboardPage() {
                 </div>
                 <div
                   style={{
-                    fontSize: "24px",
+                    fontSize: "32px",
                     fontWeight: 700,
                     letterSpacing: "-0.03em",
                     lineHeight: 1.2,
@@ -625,7 +637,7 @@ export default function DashboardPage() {
                     fontWeight: 600,
                     display: "inline-flex",
                     alignItems: "center",
-                    padding: "2px 8px",
+                    padding: "2px 10px",
                     borderRadius: 999,
                     background: "#fff3eb",
                     color: "#b07020",
@@ -639,8 +651,8 @@ export default function DashboardPage() {
                 style={{
                   background: "#ffffff",
                   border: "1px solid #ebebeb",
-                  borderRadius: 20,
-                  padding: isMobile ? 16 : 22,
+                  borderRadius: 16,
+                  padding: isMobile ? 16 : "20px 24px",
                   position: "relative",
                   overflow: "hidden",
                   opacity: 1,
@@ -673,7 +685,7 @@ export default function DashboardPage() {
                 </div>
                 <div
                   style={{
-                    fontSize: "24px",
+                    fontSize: "32px",
                     fontWeight: 700,
                     letterSpacing: "-0.03em",
                     lineHeight: 1.2,
@@ -703,7 +715,7 @@ export default function DashboardPage() {
                     fontWeight: 600,
                     display: "inline-flex",
                     alignItems: "center",
-                    padding: "2px 8px",
+                    padding: "2px 10px",
                     borderRadius: 999,
                     background: "#f0f7eb",
                     color: "#3a7a20",
@@ -727,20 +739,20 @@ export default function DashboardPage() {
                 <section
                   style={{
                     background: "#ffffff",
-                    borderRadius: 20,
+                    borderRadius: 16,
                     border: "1px solid #ebebeb",
-                    padding: 26,
+                    padding: 24,
                     position: "relative",
                     overflow: "hidden",
                   }}
                 >
                   <p
                     style={{
-                      fontSize: "17px",
+                      fontSize: "13px",
                       fontWeight: 600,
-                      letterSpacing: "-0.01em",
-                      lineHeight: 1.35,
-                      color: "#bbbbbb",
+                      letterSpacing: "0.04em",
+                      textTransform: "uppercase",
+                      color: "#999",
                       margin: 0,
                       marginBottom: 20,
                     }}
@@ -842,18 +854,18 @@ export default function DashboardPage() {
                 <section
                   style={{
                     background: "#ffffff",
-                    borderRadius: 20,
+                    borderRadius: 16,
                     border: "1px solid #ebebeb",
-                    padding: 26,
+                    padding: 24,
                   }}
                 >
                   <p
                     style={{
-                      fontSize: "17px",
+                      fontSize: "13px",
                       fontWeight: 600,
-                      letterSpacing: "-0.01em",
-                      lineHeight: 1.35,
-                      color: "#bbbbbb",
+                      letterSpacing: "0.04em",
+                      textTransform: "uppercase",
+                      color: "#999",
                       margin: 0,
                       marginBottom: 18,
                     }}
@@ -926,18 +938,18 @@ export default function DashboardPage() {
                   <section
                     style={{
                       background: "#ffffff",
-                      borderRadius: 20,
+                      borderRadius: 16,
                       border: "1px solid #ebebeb",
                       padding: 24,
                     }}
                   >
                     <p
                       style={{
-                        fontSize: "17px",
+                        fontSize: "13px",
                         fontWeight: 600,
-                        letterSpacing: "-0.01em",
-                        lineHeight: 1.35,
-                        color: "#bbbbbb",
+                        letterSpacing: "0.04em",
+                        textTransform: "uppercase",
+                        color: "#999",
                         margin: 0,
                         marginBottom: 16,
                       }}
@@ -1042,18 +1054,18 @@ export default function DashboardPage() {
                 <section
                   style={{
                     background: "#ffffff",
-                    borderRadius: 20,
+                    borderRadius: 16,
                     border: "1px solid #ebebeb",
                     padding: 24,
                   }}
                 >
                   <p
                     style={{
-                      fontSize: "17px",
+                      fontSize: "13px",
                       fontWeight: 600,
-                      letterSpacing: "-0.01em",
-                      lineHeight: 1.35,
-                      color: "#bbbbbb",
+                      letterSpacing: "0.04em",
+                      textTransform: "uppercase",
+                      color: "#999",
                       margin: 0,
                       marginBottom: 16,
                     }}
@@ -1085,9 +1097,8 @@ export default function DashboardPage() {
                             display: "flex",
                             alignItems: "center",
                             gap: 10,
-                            padding: isMobile ? "8px 0" : "8px 10px",
-                            borderRadius: 12,
-                            background: "#f9f9f7",
+                            padding: "12px 0",
+                            borderBottom: "1px solid #f5f5f5",
                             opacity: 0,
                             transform: "translateX(-6px)",
                             animation: "dashRowIn 0.35s ease-out forwards",
@@ -1096,8 +1107,8 @@ export default function DashboardPage() {
                         >
                           <div
                             style={{
-                              width: isMobile ? 28 : 32,
-                              height: isMobile ? 28 : 32,
+                              width: 36,
+                              height: 36,
                               borderRadius: "50%",
                               overflow: "hidden",
                               flexShrink: 0,
@@ -1107,7 +1118,7 @@ export default function DashboardPage() {
                               alignItems: "center",
                               justifyContent: "center",
                               fontSize: 10,
-                              fontWeight: 700,
+                              fontWeight: 600,
                             }}
                           >
                             {c.image ? (
@@ -1128,7 +1139,7 @@ export default function DashboardPage() {
                             <div
                               style={{
                                 fontSize: "14px",
-                                fontWeight: 400,
+                              fontWeight: 600,
                                 lineHeight: 1.5,
                                 color: "#111111",
                                 marginBottom: 2,
@@ -1138,7 +1149,7 @@ export default function DashboardPage() {
                             </div>
                             <div
                               style={{
-                                fontSize: "13px",
+                              fontSize: "12px",
                                 fontWeight: 400,
                                 color: "#999",
                               }}
@@ -1149,10 +1160,10 @@ export default function DashboardPage() {
                           </div>
                           <div
                             style={{
-                              fontSize: "13px",
-                              fontWeight: 400,
+                              fontSize: "12px",
+                              fontWeight: 600,
                               lineHeight: 1.5,
-                              padding: isMobile ? "2px 6px" : "4px 8px",
+                              padding: "2px 10px",
                               borderRadius: 999,
                               ...badgeStyle,
                             }}
