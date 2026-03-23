@@ -18,7 +18,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [contacts, setContacts] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
-  const [dashEvent, setDashEvent] = useState("all");
+  const [selectedEventId, setSelectedEventId] = useState("");
   const [animatedStats, setAnimatedStats] = useState({
     total: 0,
     hot: 0,
@@ -60,7 +60,7 @@ export default function DashboardPage() {
         .order("created_at", { ascending: false });
       const { data: eventsData } = await supabase
         .from("events")
-        .select("*")
+        .select("id, name, date, location, type")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
       if (contactsData) setContacts((contactsData as any[]) || []);
@@ -70,20 +70,25 @@ export default function DashboardPage() {
     fetchData();
   }, [user?.id]);
 
-  const dashContacts =
-    dashEvent === "all" ? contacts : contacts.filter((c) => c.event === dashEvent);
+  const filteredContacts = selectedEventId
+    ? contacts.filter((c) => c.event === selectedEventId)
+    : contacts;
 
-  const totalContacts = dashContacts.length;
-  const hotContacts = dashContacts.filter(
+  const eventsAttended = new Set(
+    contacts.map((c) => c.event).filter(Boolean)
+  ).size;
+
+  const totalContacts = filteredContacts.length;
+  const hotContacts = filteredContacts.filter(
     (c) => (Number(c.lead_score) || 0) >= 8
   );
-  const warmContacts = dashContacts.filter((c) => {
+  const warmContacts = filteredContacts.filter((c) => {
     const s = Number(c.lead_score) || 0;
     return s >= 5 && s <= 7;
   });
   const avgScore =
     totalContacts > 0
-      ? dashContacts.reduce((sum, c) => sum + (Number(c.lead_score) || 0), 0) / totalContacts
+      ? filteredContacts.reduce((sum, c) => sum + (Number(c.lead_score) || 0), 0) / totalContacts
       : 0;
 
   const scoreBuckets = [
@@ -94,7 +99,7 @@ export default function DashboardPage() {
     { label: "9-10", min: 9, max: 10 },
   ].map((b) => ({
     ...b,
-    count: dashContacts.filter((c) => {
+    count: filteredContacts.filter((c) => {
       const s = Number(c.lead_score) || 0;
       return s >= b.min && s <= b.max;
     }).length,
@@ -111,7 +116,7 @@ export default function DashboardPage() {
     const start = performance.now();
     const startVals = { total: 0, hot: 0, warm: 0, avg: 0 };
     const targetVals = {
-      total: dashContacts.length,
+      total: filteredContacts.length,
       hot: hotContacts.length,
       warm: warmContacts.length,
       avg: avgScore,
@@ -129,7 +134,7 @@ export default function DashboardPage() {
       if (t < 1) requestAnimationFrame(frame);
     };
     requestAnimationFrame(frame);
-  }, [contacts.length, dashEvent, dashContacts.length, hotContacts.length, warmContacts.length, avgScore]);
+  }, [contacts.length, selectedEventId, filteredContacts.length, hotContacts.length, warmContacts.length, avgScore]);
 
   useEffect(() => {
     if (!scoreBuckets.length) return;
@@ -139,14 +144,14 @@ export default function DashboardPage() {
       return Math.max(pct, 8);
     });
     setBarHeights(heights);
-  }, [contacts.length, dashEvent, maxBucketCount]);
+  }, [contacts.length, selectedEventId, maxBucketCount]);
 
   if (!user) return <div className="min-h-screen" style={{ backgroundColor: "#f4f4f2" }} />;
 
   const signals = NOTE_CHECKS;
   const signalCounts = signals.map((s) => ({
     label: s.label,
-    count: dashContacts.filter((c) => c.checks?.includes(s.label)).length,
+    count: filteredContacts.filter((c) => c.checks?.includes(s.label)).length,
   }));
   const maxSignalCount = Math.max(
     ...signalCounts.map((s) => s.count),
@@ -155,7 +160,7 @@ export default function DashboardPage() {
 
   const eventStats: EventStats[] = events
     .map((ev) => {
-      const evContacts = contacts.filter((c) => c.event === ev.name);
+      const evContacts = contacts.filter((c) => c.event === ev.id);
       if (!evContacts.length) return null;
       const total = evContacts.length;
       const avg =
@@ -178,7 +183,12 @@ export default function DashboardPage() {
     .filter(Boolean)
     .sort((a, b) => (b as EventStats).total - (a as EventStats).total) as EventStats[];
 
-  const recentContacts = contacts
+  const recentContacts = [...filteredContacts]
+    .sort((a, b) => {
+      const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return tb - ta;
+    })
     .slice(0, 5)
     .map((c) => ({
       ...c,
@@ -262,8 +272,8 @@ export default function DashboardPage() {
               <div style={{ marginTop: isMobile ? 14 : 0, position: isMobile ? "static" : "absolute", top: 0, right: 0 }}>
                 <div style={{ position: "relative", display: "inline-block" }}>
                   <select
-                    value={dashEvent}
-                    onChange={(e) => setDashEvent(e.target.value)}
+                    value={selectedEventId}
+                    onChange={(e) => setSelectedEventId(e.target.value)}
                     style={{
                       background: "#ffffff",
                       color: "#111111",
@@ -278,9 +288,9 @@ export default function DashboardPage() {
                       WebkitAppearance: "none",
                     }}
                   >
-                    <option value="all" style={{ background: "#1a3a2a", color: "#fff" }}>All events</option>
+                    <option value="" style={{ background: "#1a3a2a", color: "#fff" }}>All events</option>
                     {events.map((ev) => (
-                      <option key={ev.id} value={ev.name} style={{ background: "#1a3a2a", color: "#fff" }}>
+                      <option key={ev.id} value={ev.id} style={{ background: "#1a3a2a", color: "#fff" }}>
                         {ev.name}
                       </option>
                     ))}
@@ -512,9 +522,9 @@ export default function DashboardPage() {
                     color: "#3a7a20",
                   }}
                 >
-                  {dashEvent === "all"
-                    ? `${events.length} event${events.length !== 1 ? "s" : ""}`
-                    : dashEvent || "Untagged"}
+                  {!selectedEventId
+                    ? `${eventsAttended} event${eventsAttended !== 1 ? "s" : ""}`
+                    : events.find((e) => e.id === selectedEventId)?.name || "Untagged"}
                 </div>
               </div>
 
@@ -817,7 +827,7 @@ export default function DashboardPage() {
                           1
                         );
                         const heightPct =
-                          contacts.length > 0
+                          filteredContacts.length > 0
                             ? (count / maxCount) * 100
                             : 0;
                         const barHeight =
@@ -957,7 +967,7 @@ export default function DashboardPage() {
                   </div>
                 </section>
 
-                {eventStats.length > 0 && dashEvent === "all" && (
+                {eventStats.length > 0 && !selectedEventId && (
                   <section
                     style={{
                       background: "#ffffff",

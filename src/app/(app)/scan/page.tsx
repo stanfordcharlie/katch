@@ -2001,20 +2001,42 @@ export default function ScanPage() {
         onChange={handleStagedAddMore}
       />
       <div style={{ maxWidth: isMobile ? "100%" : "1100px", margin: "0 auto", padding: isMobile ? "20px 16px 0" : "36px 36px 0" }}>
-        <h1
+        <div
           style={{
-            fontSize: isMobile ? 22 : 26,
-            fontWeight: 700,
-            color: "#111",
-            fontFamily: "Inter, sans-serif",
-            marginBottom: 4,
+            background: "linear-gradient(135deg, #1a3a2a 0%, #2d5a3d 30%, #1e4d6b 70%, #0f2a3d 100%)",
+            borderRadius: "20px",
+            padding: isMobile ? "22px 20px" : "28px 36px",
+            marginBottom: "24px",
+            position: "relative",
+            overflow: "hidden",
           }}
         >
-          Scan a badge
-        </h1>
-        <p style={{ fontSize: 14, color: "#999", marginBottom: "24px" }}>
-          Badge, business card, or photo
-        </p>
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              borderRadius: "20px",
+              pointerEvents: "none",
+              background: "radial-gradient(ellipse at 20% 50%, rgba(125,222,60,0.15) 0%, transparent 60%)",
+            }}
+          />
+          <div style={{ position: "relative" }}>
+            <div
+              style={{
+                fontSize: isMobile ? "24px" : "28px",
+                fontWeight: 700,
+                letterSpacing: "-0.03em",
+                color: "#ffffff",
+                lineHeight: 1.1,
+              }}
+            >
+              Scan a badge
+            </div>
+            <div style={{ fontSize: "14px", color: "rgba(255,255,255,0.55)", marginTop: "4px" }}>
+              Drop a photo, scan with camera, or bulk upload from an event.
+            </div>
+          </div>
+        </div>
         {restoredDraft && (
           <div
             style={{
@@ -2049,7 +2071,7 @@ export default function ScanPage() {
               gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
               gap: "20px",
               alignItems: "start",
-              marginTop: "24px",
+              marginTop: 0,
             }}
           >
             <div
@@ -2105,31 +2127,35 @@ export default function ScanPage() {
                 });
               }}
               style={{
-                border: "2px dashed #ddd",
-                borderRadius: 16,
-                padding: "40px 32px",
-                minHeight: 420,
+                background: "#ffffff",
+                border: "2px dashed",
+                borderColor: isDragging ? "#7dde3c" : "#ddd",
+                borderRadius: "20px",
+                minHeight: "360px",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 16,
+                gap: "12px",
+                padding: "40px 32px",
                 textAlign: "center",
-                background: "#fafafa",
+                transition: "border-color 0.2s ease, background 0.2s ease",
+                ...(isDragging ? { background: "#fafff7" } : {}),
               }}
             >
               <div
                 style={{
                   width: 64,
                   height: 64,
-                  borderRadius: 16,
-                  background: "#f0f7eb",
+                  borderRadius: "50%",
+                  background: "linear-gradient(135deg, #f0f7eb, #e8f5e0)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
+                  marginBottom: 4,
                 }}
               >
-                <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#7ab648" strokeWidth="1.5">
+                <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#7dde3c" strokeWidth="1.5">
                   <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
                   <polyline points="17 8 12 3 7 8" />
                   <line x1="12" y1="3" x2="12" y2="15" />
@@ -2154,6 +2180,7 @@ export default function ScanPage() {
                   textAlign: "center",
                   lineHeight: 1.5,
                   margin: 0,
+                  maxWidth: "280px",
                 }}
               >
                 Drag one photo to scan, or drop multiple to bulk upload
@@ -2166,6 +2193,7 @@ export default function ScanPage() {
                   justifyContent: "center",
                   alignItems: "center",
                   gap: 10,
+                  marginTop: 4,
                 }}
               >
                 <button
@@ -2174,11 +2202,10 @@ export default function ScanPage() {
                   style={{
                     background: "#7dde3c",
                     color: "#0a1a0a",
-                    fontWeight: 700,
-                    borderRadius: 10,
-                    height: 42,
-                    padding: "0 20px",
-                    fontSize: 14,
+                    fontWeight: 600,
+                    borderRadius: "999px",
+                    padding: "10px 22px",
+                    fontSize: "14px",
                     border: "none",
                     cursor: "pointer",
                   }}
@@ -2192,13 +2219,13 @@ export default function ScanPage() {
                     input?.click();
                   }}
                   style={{
-                    background: "#fff",
+                    background: "#ffffff",
                     border: "1px solid #e8e8e8",
-                    color: "#444",
-                    borderRadius: 10,
-                    height: 42,
-                    padding: "0 20px",
-                    fontSize: 14,
+                    color: "#111",
+                    borderRadius: "999px",
+                    padding: "10px 22px",
+                    fontSize: "14px",
+                    fontWeight: 600,
                     cursor: "pointer",
                   }}
                 >
@@ -2208,22 +2235,34 @@ export default function ScanPage() {
             </div>
             <div
               style={{
+                background: "#ffffff",
                 border: "1px solid #ebebeb",
-                borderRadius: 16,
-                minHeight: 420,
+                borderRadius: "20px",
+                minHeight: "360px",
                 overflow: "hidden",
               }}
             >
               {stagedFiles.length === 0 ? (
                 <div
                   style={{
+                    minHeight: "360px",
                     display: "flex",
+                    flexDirection: "column",
                     alignItems: "center",
                     justifyContent: "center",
-                    height: 420,
+                    gap: "8px",
+                    padding: "24px",
                   }}
                 >
-                  <span style={{ fontSize: 14, color: "#bbb" }}>Scan a badge to see contact details</span>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" aria-hidden>
+                    <path
+                      d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
+                      fill="#ddd"
+                    />
+                  </svg>
+                  <span style={{ fontSize: 13, color: "#bbb", textAlign: "center" }}>
+                    Contact details will appear here
+                  </span>
                 </div>
               ) : (
                 <div style={{ padding: 20 }}>

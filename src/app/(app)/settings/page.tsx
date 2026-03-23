@@ -32,9 +32,51 @@ type SectionId =
   | "email-tone"
   | "sequence-templates"
   | "integrations"
+  | "icp-profile"
   | "profile"
   | "notifications"
   | "billing";
+
+type IcpProfileForm = {
+  what_we_sell: string;
+  target_customer: string;
+  problems_solved: string;
+  ideal_titles: string;
+  ideal_industries: string;
+  ideal_company_size: string;
+  disqualifiers: string;
+  value_props: string;
+};
+
+const EMPTY_ICP_PROFILE: IcpProfileForm = {
+  what_we_sell: "",
+  target_customer: "",
+  problems_solved: "",
+  ideal_titles: "",
+  ideal_industries: "",
+  ideal_company_size: "",
+  disqualifiers: "",
+  value_props: "",
+};
+
+function parseIcpProfile(raw: unknown): IcpProfileForm {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return { ...EMPTY_ICP_PROFILE };
+  }
+  const o = raw as Record<string, unknown>;
+  const str = (k: keyof IcpProfileForm) =>
+    o[k] == null ? "" : String(o[k]);
+  return {
+    what_we_sell: str("what_we_sell"),
+    target_customer: str("target_customer"),
+    problems_solved: str("problems_solved"),
+    ideal_titles: str("ideal_titles"),
+    ideal_industries: str("ideal_industries"),
+    ideal_company_size: str("ideal_company_size"),
+    disqualifiers: str("disqualifiers"),
+    value_props: str("value_props"),
+  };
+}
 
 const TONE_OPTIONS = ["professional", "casual", "friendly", "bold", "funny"] as const;
 
@@ -99,6 +141,7 @@ export default function SettingsPage() {
   const [isMobile, setIsMobile] = useState(false);
   const [hubspotConnected, setHubspotConnected] = useState(false);
   const [hubId, setHubId] = useState<string | null>(null);
+  const [icpProfile, setIcpProfile] = useState<IcpProfileForm>(EMPTY_ICP_PROFILE);
   const [toast, setToast] = useState<string | null>(null);
   const [toastVariant, setToastVariant] = useState<"success" | "error">("success");
   const oauthParamsHandled = useRef(false);
@@ -120,6 +163,8 @@ export default function SettingsPage() {
     const tab = searchParams.get("tab");
     if (tab === "integrations") {
       setActiveSection("integrations");
+    } else if (tab === "icp-profile") {
+      setActiveSection("icp-profile");
     }
     const connected = searchParams.get("connected");
     const err = searchParams.get("error");
@@ -230,6 +275,7 @@ export default function SettingsPage() {
           signals: DEFAULT_SIGNALS,
           fields: DEFAULT_FIELDS,
           default_tone: "professional",
+          icp_profile: {},
         });
         setSignals(DEFAULT_SIGNALS);
         setFields(DEFAULT_FIELDS);
@@ -246,6 +292,9 @@ export default function SettingsPage() {
       }
       if (data.default_tone) {
         setDefaultTone(data.default_tone as string);
+      }
+      if (data.icp_profile != null) {
+        setIcpProfile(parseIcpProfile(data.icp_profile));
       }
 
       setLoadingSettings(false);
@@ -273,6 +322,17 @@ export default function SettingsPage() {
     console.log("Signals:", signals);
     console.log("Fields:", fields);
 
+    const icp_profile = {
+      what_we_sell: icpProfile.what_we_sell,
+      target_customer: icpProfile.target_customer,
+      problems_solved: icpProfile.problems_solved,
+      ideal_titles: icpProfile.ideal_titles,
+      ideal_industries: icpProfile.ideal_industries,
+      ideal_company_size: icpProfile.ideal_company_size,
+      disqualifiers: icpProfile.disqualifiers,
+      value_props: icpProfile.value_props,
+    };
+
     const { data, error } = await supabase
       .from("user_settings")
       .upsert(
@@ -281,6 +341,7 @@ export default function SettingsPage() {
           signals,
           fields,
           default_tone: defaultTone ?? "professional",
+          icp_profile,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "user_id" }
@@ -295,6 +356,9 @@ export default function SettingsPage() {
       setSaveStatus("idle");
     } else {
       setSaveStatus("saved");
+      if (activeSection === "icp-profile") {
+        showToast("ICP Profile saved!", "success");
+      }
       setTimeout(() => setSaveStatus("idle"), 2000);
     }
   };
@@ -354,6 +418,7 @@ export default function SettingsPage() {
       title: "Preferences",
       items: [
         { id: "integrations", label: "Integrations" },
+        { id: "icp-profile", label: "ICP Profile" },
         { id: "profile", label: "Profile" },
         { id: "notifications", label: "Notifications" },
         { id: "billing", label: "Billing" },
@@ -367,6 +432,7 @@ export default function SettingsPage() {
     { id: "email-tone", label: "Email Tone" },
     { id: "sequence-templates", label: "Sequence Templates" },
     { id: "integrations", label: "Integrations" },
+    { id: "icp-profile", label: "ICP Profile" },
     { id: "profile", label: "Profile" },
     { id: "notifications", label: "Notifications" },
     { id: "billing", label: "Billing" },
@@ -1052,6 +1118,265 @@ export default function SettingsPage() {
                         Connect HubSpot
                       </button>
                     )}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {activeSection === "icp-profile" && (
+              <section>
+                <h2
+                  style={{
+                    fontSize: 20,
+                    fontWeight: 600,
+                    letterSpacing: "-0.02em",
+                    marginBottom: 4,
+                    color: "#111",
+                    marginTop: 0,
+                  }}
+                >
+                  ICP Profile
+                </h2>
+                <p style={{ fontSize: 14, color: "#999", marginBottom: 24, marginTop: 0 }}>
+                  Tell Katch about your company and ideal customers to sharpen scoring and sequences.
+                </p>
+                <div
+                  className="rounded-2xl p-4 space-y-4"
+                  style={{ border: "1px solid #dce8d0", backgroundColor: "#ffffff" }}
+                >
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      letterSpacing: "0.04em",
+                      textTransform: "uppercase",
+                      color: "#999",
+                      marginBottom: 4,
+                    }}
+                  >
+                    Your Company
+                  </div>
+                  <div>
+                    <label
+                      className="block text-xs mb-1"
+                      style={{ color: "#6b6157", fontSize: isMobile ? 13 : undefined }}
+                    >
+                      What does your company sell?
+                    </label>
+                    <textarea
+                      value={icpProfile.what_we_sell}
+                      onChange={(e) =>
+                        setIcpProfile((p) => ({ ...p, what_we_sell: e.target.value }))
+                      }
+                      placeholder="e.g. AI-powered sales automation software for B2B SaaS companies"
+                      rows={3}
+                      className="w-full px-3 py-2 text-sm rounded border outline-none resize-y"
+                      style={{
+                        borderColor: "#dce8d0",
+                        backgroundColor: "#f0f0ec",
+                        color: "#1a2e1a",
+                        minHeight: isMobile ? 88 : undefined,
+                        fontSize: isMobile ? 15 : undefined,
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      className="block text-xs mb-1"
+                      style={{ color: "#6b6157", fontSize: isMobile ? 13 : undefined }}
+                    >
+                      Who is your target customer?
+                    </label>
+                    <textarea
+                      value={icpProfile.target_customer}
+                      onChange={(e) =>
+                        setIcpProfile((p) => ({ ...p, target_customer: e.target.value }))
+                      }
+                      placeholder="e.g. VP of Sales and CROs at Series A-C SaaS companies with 50-500 employees"
+                      rows={3}
+                      className="w-full px-3 py-2 text-sm rounded border outline-none resize-y"
+                      style={{
+                        borderColor: "#dce8d0",
+                        backgroundColor: "#f0f0ec",
+                        color: "#1a2e1a",
+                        minHeight: isMobile ? 88 : undefined,
+                        fontSize: isMobile ? 15 : undefined,
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      className="block text-xs mb-1"
+                      style={{ color: "#6b6157", fontSize: isMobile ? 13 : undefined }}
+                    >
+                      What problems do you solve?
+                    </label>
+                    <textarea
+                      value={icpProfile.problems_solved}
+                      onChange={(e) =>
+                        setIcpProfile((p) => ({ ...p, problems_solved: e.target.value }))
+                      }
+                      placeholder="e.g. Sales reps waste time on manual data entry and miss follow-ups after events"
+                      rows={3}
+                      className="w-full px-3 py-2 text-sm rounded border outline-none resize-y"
+                      style={{
+                        borderColor: "#dce8d0",
+                        backgroundColor: "#f0f0ec",
+                        color: "#1a2e1a",
+                        minHeight: isMobile ? 88 : undefined,
+                        fontSize: isMobile ? 15 : undefined,
+                      }}
+                    />
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      letterSpacing: "0.04em",
+                      textTransform: "uppercase",
+                      color: "#999",
+                      marginTop: 8,
+                      marginBottom: 4,
+                    }}
+                  >
+                    Ideal customer profile
+                  </div>
+                  <div>
+                    <label
+                      className="block text-xs mb-1"
+                      style={{ color: "#6b6157", fontSize: isMobile ? 13 : undefined }}
+                    >
+                      Ideal job titles
+                    </label>
+                    <input
+                      type="text"
+                      value={icpProfile.ideal_titles}
+                      onChange={(e) =>
+                        setIcpProfile((p) => ({ ...p, ideal_titles: e.target.value }))
+                      }
+                      placeholder="e.g. VP Sales, CRO, Head of Revenue, Sales Director"
+                      className="w-full px-3 py-2 text-sm rounded border outline-none"
+                      style={{
+                        borderColor: "#dce8d0",
+                        backgroundColor: "#f0f0ec",
+                        color: "#1a2e1a",
+                        height: isMobile ? 44 : undefined,
+                        fontSize: isMobile ? 15 : undefined,
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      className="block text-xs mb-1"
+                      style={{ color: "#6b6157", fontSize: isMobile ? 13 : undefined }}
+                    >
+                      Ideal industries
+                    </label>
+                    <input
+                      type="text"
+                      value={icpProfile.ideal_industries}
+                      onChange={(e) =>
+                        setIcpProfile((p) => ({ ...p, ideal_industries: e.target.value }))
+                      }
+                      placeholder="e.g. SaaS, Fintech, MarTech, Enterprise Software"
+                      className="w-full px-3 py-2 text-sm rounded border outline-none"
+                      style={{
+                        borderColor: "#dce8d0",
+                        backgroundColor: "#f0f0ec",
+                        color: "#1a2e1a",
+                        height: isMobile ? 44 : undefined,
+                        fontSize: isMobile ? 15 : undefined,
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      className="block text-xs mb-1"
+                      style={{ color: "#6b6157", fontSize: isMobile ? 13 : undefined }}
+                    >
+                      Ideal company size
+                    </label>
+                    <input
+                      type="text"
+                      value={icpProfile.ideal_company_size}
+                      onChange={(e) =>
+                        setIcpProfile((p) => ({ ...p, ideal_company_size: e.target.value }))
+                      }
+                      placeholder="e.g. 50-500 employees, Series A to Series C"
+                      className="w-full px-3 py-2 text-sm rounded border outline-none"
+                      style={{
+                        borderColor: "#dce8d0",
+                        backgroundColor: "#f0f0ec",
+                        color: "#1a2e1a",
+                        height: isMobile ? 44 : undefined,
+                        fontSize: isMobile ? 15 : undefined,
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      className="block text-xs mb-1"
+                      style={{ color: "#6b6157", fontSize: isMobile ? 13 : undefined }}
+                    >
+                      Deal disqualifiers (who is NOT a good fit)
+                    </label>
+                    <textarea
+                      value={icpProfile.disqualifiers}
+                      onChange={(e) =>
+                        setIcpProfile((p) => ({ ...p, disqualifiers: e.target.value }))
+                      }
+                      placeholder="e.g. Freelancers, companies under 10 employees, non-tech industries"
+                      rows={3}
+                      className="w-full px-3 py-2 text-sm rounded border outline-none resize-y"
+                      style={{
+                        borderColor: "#dce8d0",
+                        backgroundColor: "#f0f0ec",
+                        color: "#1a2e1a",
+                        minHeight: isMobile ? 88 : undefined,
+                        fontSize: isMobile ? 15 : undefined,
+                      }}
+                    />
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      letterSpacing: "0.04em",
+                      textTransform: "uppercase",
+                      color: "#999",
+                      marginTop: 8,
+                      marginBottom: 4,
+                    }}
+                  >
+                    Talking Points
+                  </div>
+                  <div>
+                    <label
+                      className="block text-xs mb-1"
+                      style={{ color: "#6b6157", fontSize: isMobile ? 13 : undefined }}
+                    >
+                      Key value propositions (one per line)
+                    </label>
+                    <textarea
+                      value={icpProfile.value_props}
+                      onChange={(e) =>
+                        setIcpProfile((p) => ({ ...p, value_props: e.target.value }))
+                      }
+                      placeholder={
+                        "e.g. Save 3 hours per event on manual data entry\nSync leads to HubSpot instantly\nAI-scored leads so you follow up with the right people first"
+                      }
+                      rows={4}
+                      className="w-full px-3 py-2 text-sm rounded border outline-none resize-y"
+                      style={{
+                        borderColor: "#dce8d0",
+                        backgroundColor: "#f0f0ec",
+                        color: "#1a2e1a",
+                        minHeight: isMobile ? 120 : undefined,
+                        fontSize: isMobile ? 15 : undefined,
+                      }}
+                    />
                   </div>
                 </div>
               </section>
