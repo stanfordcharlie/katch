@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import HelpDrawer from "@/components/HelpDrawer";
 
 const PATH_TITLES: Record<string, string> = {
   "/home": "Home",
@@ -85,6 +86,7 @@ export function TopBar({
   const [screenName, setScreenName] = useState<string | null>(null);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const displayName = useMemo(() => getDisplayName(user, screenName), [user, screenName]);
@@ -410,45 +412,67 @@ export function TopBar({
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={() => router.push("/account")}
-        style={{
-          border: "none",
-          background: "transparent",
-          cursor: "pointer",
-          paddingRight: 20,
-          paddingLeft: 8,
-          flexShrink: 0,
-        }}
-      >
-        {avatarUrl ? (
-          <img
-            src={avatarUrl}
-            alt=""
-            width={32}
-            height={32}
-            style={{ borderRadius: "50%", objectFit: "cover", display: "block" }}
-          />
-        ) : (
-          <span
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: "50%",
-              backgroundColor: "#1a3a2a",
-              color: "#7dde3c",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 13,
-              fontWeight: 600,
-            }}
-          >
-            {initial}
-          </span>
-        )}
-      </button>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, paddingRight: 20, paddingLeft: 8 }}>
+        <button
+          onClick={() => setHelpOpen(true)}
+          style={{
+            width: "32px",
+            height: "32px",
+            borderRadius: "50%",
+            background: "#f5f5f5",
+            border: "none",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "14px",
+            fontWeight: 600,
+            color: "#555",
+            flexShrink: 0,
+          }}
+          title="Help & Support"
+        >
+          ?
+        </button>
+        <button
+          type="button"
+          onClick={() => router.push("/account")}
+          style={{
+            border: "none",
+            background: "transparent",
+            cursor: "pointer",
+            flexShrink: 0,
+          }}
+        >
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt=""
+              width={32}
+              height={32}
+              style={{ borderRadius: "50%", objectFit: "cover", display: "block" }}
+            />
+          ) : (
+            <span
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: "50%",
+                backgroundColor: "#1a3a2a",
+                color: "#7dde3c",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 13,
+                fontWeight: 600,
+              }}
+            >
+              {initial}
+            </span>
+          )}
+        </button>
+      </div>
+      <HelpDrawer isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
     </header>
   );
 }
