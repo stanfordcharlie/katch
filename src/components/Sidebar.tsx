@@ -37,6 +37,19 @@ const MOBILE_NAV = [
   { label: "Settings", href: "/settings", icon: <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M2 12h2M20 12h2M17.66 17.66l-1.41-1.41M6.34 17.66l1.41-1.41"/></svg> },
 ];
 
+function getTourId(label: string): string | undefined {
+  const map: Record<string, string> = {
+    Home: "home",
+    Scan: "scan",
+    Contacts: "contacts",
+    Events: "events",
+    Dashboard: "dashboard",
+    Sequences: "sequences",
+    Settings: "settings",
+  };
+  return map[label];
+}
+
 export function Sidebar({
   user,
   collapsed,
@@ -75,7 +88,7 @@ export function Sidebar({
         {MOBILE_NAV.map(({ label, href, icon }) => {
           const isActive = pathname === href || (href === "/settings" && pathname.startsWith("/settings"));
           return (
-            <Link key={label} href={href} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: isActive ? "#2d6a1f" : "#999", textDecoration: "none", cursor: "pointer", padding: "4px 0" }}>
+            <Link key={label} href={href} data-tour={getTourId(label)} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: isActive ? "#2d6a1f" : "#999", textDecoration: "none", cursor: "pointer", padding: "4px 0" }}>
               <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 22, height: 22, color: isActive ? "#2d6a1f" : "#999" }}>{icon}</span>
               <span style={{ fontSize: 10, fontWeight: 500, marginTop: 3, lineHeight: 1, textAlign: "center" }}>{label}</span>
             </Link>
@@ -163,7 +176,7 @@ export function Sidebar({
         {DESKTOP_NAV.slice(0, 4).map(({ label, href, icon }) => {
           const isActive = pathname === href;
           return (
-            <Link key={label} href={href} onMouseEnter={() => collapsed && setHoveredItem(label)} onMouseLeave={() => setHoveredItem(null)} style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 12, padding: collapsed ? "10px 0" : "10px 14px", borderRadius: 8, cursor: "pointer", marginBottom: 2, textDecoration: "none", backgroundColor: isActive ? "#f0f7eb" : "transparent", color: isActive ? "#2d6a1f" : "#666666" }}>
+            <Link key={label} href={href} data-tour={getTourId(label)} onMouseEnter={() => collapsed && setHoveredItem(label)} onMouseLeave={() => setHoveredItem(null)} style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 12, padding: collapsed ? "10px 0" : "10px 14px", borderRadius: 8, cursor: "pointer", marginBottom: 2, textDecoration: "none", backgroundColor: isActive ? "#f0f7eb" : "transparent", color: isActive ? "#2d6a1f" : "#666666" }}>
               <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, color: isActive ? "#2d6a1f" : "#666666" }}>{icon}</span>
               <span style={{ transition: "opacity 0.15s ease", opacity: collapsed ? 0 : 1, overflow: "hidden", whiteSpace: "nowrap", width: collapsed ? 0 : "auto", fontSize: "13px", fontWeight: 500, letterSpacing: "0", lineHeight: 1 }}>{label}</span>
               {collapsed && hoveredItem === label && (
@@ -180,7 +193,7 @@ export function Sidebar({
         {DESKTOP_NAV.slice(4, 6).map(({ label, href, icon }) => {
           const isActive = pathname === href;
           return (
-            <Link key={label} href={href} onMouseEnter={() => collapsed && setHoveredItem(label)} onMouseLeave={() => setHoveredItem(null)} style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 12, padding: collapsed ? "10px 0" : "10px 14px", borderRadius: 8, cursor: "pointer", marginBottom: 2, textDecoration: "none", backgroundColor: isActive ? "#f0f7eb" : "transparent", color: isActive ? "#2d6a1f" : "#666666" }}>
+            <Link key={label} href={href} data-tour={getTourId(label)} onMouseEnter={() => collapsed && setHoveredItem(label)} onMouseLeave={() => setHoveredItem(null)} style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 12, padding: collapsed ? "10px 0" : "10px 14px", borderRadius: 8, cursor: "pointer", marginBottom: 2, textDecoration: "none", backgroundColor: isActive ? "#f0f7eb" : "transparent", color: isActive ? "#2d6a1f" : "#666666" }}>
               <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, color: isActive ? "#2d6a1f" : "#666666" }}>{icon}</span>
               <span style={{ transition: "opacity 0.15s ease", opacity: collapsed ? 0 : 1, overflow: "hidden", whiteSpace: "nowrap", width: collapsed ? 0 : "auto", fontSize: "13px", fontWeight: 500, letterSpacing: "0", lineHeight: 1 }}>{label}</span>
               {collapsed && hoveredItem === label && (
@@ -198,7 +211,7 @@ export function Sidebar({
           const { label, href, icon } = DESKTOP_NAV[6];
           const isActive = pathname.startsWith("/settings");
           return (
-            <Link key={label} href={href} onMouseEnter={() => collapsed && setHoveredItem(label)} onMouseLeave={() => setHoveredItem(null)} style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 12, padding: collapsed ? "10px 0" : "10px 14px", borderRadius: 8, cursor: "pointer", marginBottom: 2, textDecoration: "none", backgroundColor: isActive ? "#f0f7eb" : "transparent", color: isActive ? "#2d6a1f" : "#666666" }}>
+            <Link key={label} href={href} data-tour={getTourId(label)} onMouseEnter={() => collapsed && setHoveredItem(label)} onMouseLeave={() => setHoveredItem(null)} style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 12, padding: collapsed ? "10px 0" : "10px 14px", borderRadius: 8, cursor: "pointer", marginBottom: 2, textDecoration: "none", backgroundColor: isActive ? "#f0f7eb" : "transparent", color: isActive ? "#2d6a1f" : "#666666" }}>
               <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, color: isActive ? "#2d6a1f" : "#666666" }}>{icon}</span>
               <span style={{ transition: "opacity 0.15s ease", opacity: collapsed ? 0 : 1, overflow: "hidden", whiteSpace: "nowrap", width: collapsed ? 0 : "auto", fontSize: "13px", fontWeight: 500, letterSpacing: "0", lineHeight: 1 }}>{label}</span>
               {collapsed && hoveredItem === label && (

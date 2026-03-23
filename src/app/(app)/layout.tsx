@@ -2,6 +2,7 @@
 
 import { Sidebar } from "@/components/Sidebar";
 import { TopBar } from "@/components/TopBar";
+import OnboardingTour from "@/components/OnboardingTour";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter, usePathname } from "next/navigation";
@@ -11,6 +12,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
+  const [showTour, setShowTour] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     if (typeof window !== "undefined") {
@@ -32,13 +34,30 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [sidebarCollapsed]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    supabase.auth.getSession().then(async ({ data }) => {
       if (!data.session) {
         router.replace("/landing");
       } else {
-        setUser(data.session.user as User);
+        const nextUser = data.session.user as User;
+        setUser(nextUser);
+
+        const { data: settings } = await supabase
+          .from("user_settings")
+          .select("onboarding_completed")
+          .eq("user_id", nextUser.id)
+          .single();
+
+        if (!settings?.onboarding_completed) {
+          timer = setTimeout(() => setShowTour(true), 800);
+        }
       }
     });
+
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [router]);
 
   useEffect(() => {
@@ -113,6 +132,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       >
         {children}
       </main>
+      {showTour && <OnboardingTour onComplete={() => setShowTour(false)} />}
     </div>
   );
 }
