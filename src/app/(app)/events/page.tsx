@@ -9,6 +9,7 @@ import { EVENT_TYPES } from "@/lib/katch-constants";
 export default function EventsPage() {
   const [user, setUser] = useState<User | null>(null);
   const [contacts, setContacts] = useState<any[]>([]);
+  const [contactEventLinks, setContactEventLinks] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
   const [toast, setToast] = useState<string | null>(null);
   const [showEventForm, setShowEventForm] = useState(false);
@@ -61,6 +62,10 @@ export default function EventsPage() {
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
+      const { data: contactsByEvent } = await supabase
+        .from("contacts")
+        .select("id, event")
+        .eq("user_id", userId);
       if (contactsData) {
         setContacts((contactsData as any[]) || []);
         setAllContacts(
@@ -77,10 +82,15 @@ export default function EventsPage() {
         );
       }
       if (eventsData) setEvents((eventsData as any[]) || []);
+      if (contactsByEvent) setContactEventLinks((contactsByEvent as any[]) || []);
       setLoading(false);
     };
     fetchData();
   }, [user?.id]);
+
+  const getContactCount = (eventId: string) => {
+    return contactEventLinks?.filter((c) => c.event === eventId).length || 0;
+  };
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -451,7 +461,7 @@ export default function EventsPage() {
             </thead>
             <tbody>
               {events.map((ev) => {
-                const evContacts = contacts.filter((c) => c.event === ev.name);
+                const evContacts = contacts.filter((c) => c.event === ev.id);
                 const hotCount = evContacts.filter((c) => c.leadScore >= 3).length;
                 const isSelected = selectedIds.includes(ev.id);
                 return (
@@ -544,7 +554,7 @@ export default function EventsPage() {
                         </span>
                       </td>
                       <td style={{ padding: "14px 16px", textAlign: "center", verticalAlign: "middle" }}>
-                        <div style={{ fontSize: "14px", fontWeight: 600, color: "#111" }}>{evContacts.length}</div>
+                        <div style={{ fontSize: "14px", fontWeight: 600, color: "#111" }}>{getContactCount(ev.id)}</div>
                         <div style={{ fontSize: "11px", color: "#999" }}>contacts</div>
                       </td>
                     </tr>
@@ -622,7 +632,7 @@ export default function EventsPage() {
                               </button>
                             </div>
                             {(() => {
-                              const eventContacts = allContacts.filter((c) => c.event === ev.name);
+                              const eventContacts = allContacts.filter((c) => c.event === ev.id);
                               if (eventContacts.length === 0) {
                                 return <div style={{ fontSize: 13, color: "#bbb", padding: "12px 0" }}>No contacts tagged to this event yet.</div>;
                               }
@@ -709,7 +719,7 @@ export default function EventsPage() {
       {!loading && isMobile && (
       <div>
         {events.map((ev) => {
-          const evContacts = contacts.filter((c) => c.event === ev.name);
+          const evContacts = contacts.filter((c) => c.event === ev.id);
           const hotCount = evContacts.filter((c) => c.leadScore >= 3).length;
           const isSelected = selectedIds.includes(ev.id);
           return (
@@ -897,7 +907,7 @@ export default function EventsPage() {
               </div>
               <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
                 <span style={{ fontSize: 13, color: "#999" }}>
-                  {evContacts.length} contact{evContacts.length !== 1 ? "s" : ""}
+                  {getContactCount(ev.id)} contact{getContactCount(ev.id) !== 1 ? "s" : ""}
                 </span>
                 {hotCount > 0 && (
                   <span
@@ -937,7 +947,7 @@ export default function EventsPage() {
               {expandedEventId === ev.id && (
                 <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #f0f0f0" }}>
                   {(() => {
-                    const eventContacts = allContacts.filter((c) => c.event === ev.name);
+                    const eventContacts = allContacts.filter((c) => c.event === ev.id);
                     if (eventContacts.length === 0) {
                       return <div style={{ fontSize: 13, color: "#bbb", padding: "12px 0" }}>No contacts tagged to this event yet.</div>;
                     }
