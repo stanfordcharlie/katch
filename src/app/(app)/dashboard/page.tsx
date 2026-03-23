@@ -260,30 +260,53 @@ export default function DashboardPage() {
             </p>
             {events.length > 0 && (
               <div style={{ marginTop: isMobile ? 14 : 0, position: isMobile ? "static" : "absolute", top: 0, right: 0 }}>
-                <select
-                  value={dashEvent}
-                  onChange={(e) => setDashEvent(e.target.value)}
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: 500,
-                    lineHeight: 1.5,
-                    padding: "6px 14px",
-                    borderRadius: 999,
-                    border: "1px solid rgba(255,255,255,0.2)",
-                    background: "rgba(255,255,255,0.1)",
-                    color: "#ffffff",
-                    cursor: "pointer",
-                    width: isMobile ? "100%" : "auto",
-                    minHeight: isMobile ? 44 : undefined,
-                  }}
-                >
-                  <option value="all" style={{ color: "#111" }}>All events</option>
-                  {events.map((ev) => (
-                    <option key={ev.id} value={ev.name} style={{ color: "#111" }}>
-                      {ev.name}
-                    </option>
-                  ))}
-                </select>
+                <div style={{ position: "relative", display: "inline-block" }}>
+                  <select
+                    value={dashEvent}
+                    onChange={(e) => setDashEvent(e.target.value)}
+                    style={{
+                      background: "#ffffff",
+                      color: "#111111",
+                      border: "1px solid #e8e8e8",
+                      borderRadius: "999px",
+                      padding: "8px 32px 8px 16px",
+                      fontSize: "13px",
+                      fontWeight: 500,
+                      cursor: "pointer",
+                      outline: "none",
+                      appearance: "none",
+                      WebkitAppearance: "none",
+                    }}
+                  >
+                    <option value="all" style={{ background: "#1a3a2a", color: "#fff" }}>All events</option>
+                    {events.map((ev) => (
+                      <option key={ev.id} value={ev.name} style={{ background: "#1a3a2a", color: "#fff" }}>
+                        {ev.name}
+                      </option>
+                    ))}
+                  </select>
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 12 12"
+                    fill="none"
+                    style={{
+                      position: "absolute",
+                      right: "12px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      pointerEvents: "none",
+                    }}
+                  >
+                    <path
+                      d="M2 4l4 4 4-4"
+                      stroke="#111111"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
               </div>
             )}
           </div>
