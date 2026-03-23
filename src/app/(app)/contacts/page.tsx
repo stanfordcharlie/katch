@@ -226,25 +226,45 @@ export default function ContactsPage() {
         body: JSON.stringify({ contactIds: selectedIds, userId: user.id }),
       });
 
-      const data = await res.json();
-
       if (res.status === 401) {
-        showToast('HubSpot not connected. Go to Settings → Integrations.', 'error');
+        showToast('HubSpot not connected. Go to Settings → Integrations to connect.', 'error');
         return;
       }
 
-      if (!res.ok) throw new Error('Sync failed');
+      if (res.status === 400) {
+        showToast('No contacts selected to sync.', 'error');
+        return;
+      }
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showToast(`Sync failed: ${data.message || 'Unknown error. Please try again.'}`, 'error');
+        return;
+      }
 
       setSyncResult({ succeeded: data.succeeded, failed: data.failed });
 
-      if (data.failed === 0) {
+      if (data.succeeded === 0 && data.failed > 0) {
         showToast(
-          `${data.succeeded} contact${data.succeeded !== 1 ? 's' : ''} synced to HubSpot!`,
-          'success'
+          `Sync failed — HubSpot rejected all ${data.failed} contacts. Check that your contacts have valid emails.`,
+          'error'
         );
-      } else {
-        showToast(`${data.succeeded} synced, ${data.failed} failed.`, 'warning');
+        return;
       }
+
+      if (data.failed > 0) {
+        showToast(
+          `${data.succeeded} synced, ${data.failed} failed — contacts may already exist in HubSpot or have missing emails.`,
+          'warning'
+        );
+        return;
+      }
+
+      showToast(
+        `${data.succeeded} contact${data.succeeded !== 1 ? 's' : ''} synced to HubSpot successfully!`,
+        'success'
+      );
     } catch (err) {
       console.error('HubSpot sync error:', err);
       showToast('Sync failed. Please try again.', 'error');

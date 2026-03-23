@@ -128,8 +128,14 @@ export async function POST(req: NextRequest) {
               hubspot_synced_at: new Date().toISOString(),
             })
             .eq("id", contact.id);
+          return { contactId: contact.id, success: true, hubspotId: data.id };
         }
-        return { contactId: contact.id, success: res.ok, hubspotId: data.id, error: data.message };
+        console.error("HubSpot contact create failed:", contact.name, JSON.stringify(data));
+        return {
+          contactId: contact.id,
+          success: false,
+          error: data.message || data.status || "Unknown HubSpot error",
+        };
       })
     );
 
