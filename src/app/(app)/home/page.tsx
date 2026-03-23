@@ -175,50 +175,48 @@ export default function HomePage() {
       ) : (
       <section
         style={{
-          background: "linear-gradient(135deg, #e8f5d8 0%, #c8e8a0 40%, #a8d870 70%, #d4edb8 100%)",
-          borderRadius: 16,
+          background: "linear-gradient(135deg, #1a3a2a 0%, #2d5a3d 30%, #1e4d6b 70%, #0f2a3d 100%)",
+          borderRadius: 20,
           margin: "20px 20px 0",
-          padding: isMobile ? "24px 20px" : "36px 40px",
-          border: "1px solid rgba(0,0,0,0.04)",
+          padding: isMobile ? "28px 22px" : "40px 48px",
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "center",
-          minHeight: 180,
+          alignItems: isMobile ? "stretch" : "center",
+          minHeight: 200,
           flexDirection: isMobile ? "column" : "row",
-          gap: isMobile ? 14 : 0,
+          gap: isMobile ? 16 : 24,
+          position: "relative",
+          overflow: "hidden",
         }}
       >
-        <div style={{ maxWidth: isMobile ? "100%" : "40%", width: isMobile ? "100%" : "auto" }}>
-          <p
-            style={{
-              fontSize: "11px",
-              fontWeight: 600,
-              letterSpacing: "0.04em",
-              textTransform: "uppercase",
-              color: "#2d6a1f",
-              marginBottom: 6,
-            }}
-          >
-            Overview
-          </p>
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            borderRadius: 20,
+            background: "radial-gradient(ellipse at 30% 50%, rgba(125,222,60,0.15) 0%, transparent 60%)",
+            pointerEvents: "none",
+          }}
+        />
+        <div style={{ maxWidth: isMobile ? "100%" : "54%", width: isMobile ? "100%" : "auto", position: "relative", zIndex: 1 }}>
           <h1
             style={{
-              fontSize: "clamp(28px, 4vw, 38px)",
+              fontSize: "clamp(28px, 3.5vw, 42px)",
               fontWeight: 700,
               letterSpacing: "-0.03em",
-              lineHeight: 1.2,
-              color: "#1a3a0a",
-              marginBottom: 4,
+              lineHeight: 1.1,
+              color: "#ffffff",
+              marginBottom: 6,
             }}
           >
             {greeting}, {firstName}
           </h1>
           <p
             style={{
-              fontSize: "16px",
+              fontSize: "15px",
               fontWeight: 400,
-              lineHeight: 1.5,
-              color: "rgba(26,58,10,0.6)",
+              lineHeight: 1.45,
+              color: "rgba(255,255,255,0.55)",
               marginBottom: 0,
             }}
           >
@@ -227,31 +225,32 @@ export default function HomePage() {
         </div>
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(2, minmax(0, 1fr))",
-            gap: isMobile ? 10 : 12,
-            maxWidth: isMobile ? "100%" : "52%",
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+            minWidth: isMobile ? 0 : 220,
             width: isMobile ? "100%" : "auto",
+            position: "relative",
+            zIndex: 1,
           }}
         >
           {[
-            { label: "Total scanned", value: totalContacts.toString() },
-            { label: "Hot / Fire leads", value: hotLeads.toString() },
-            { label: "Sequences sent", value: "—" },
-            { label: "Events attended", value: eventsAttended.toString() },
+            { label: "TOTAL SCANNED", value: totalContacts.toString() },
+            { label: "HOT LEADS", value: hotLeads.toString() },
+            { label: "SEQUENCES SENT", value: "—" },
+            { label: "EVENTS ATTENDED", value: eventsAttended.toString() },
           ].map((stat) => (
             <div
               key={stat.label}
               style={{
-                backgroundColor: "rgba(255,255,255,0.65)",
+                background: "rgba(255,255,255,0.08)",
+                backdropFilter: "blur(12px)",
+                border: "1px solid rgba(255,255,255,0.12)",
                 borderRadius: 12,
-                padding: isMobile ? "14px 16px" : "14px 20px",
-                minWidth: 120,
+                padding: "12px 16px",
                 display: "flex",
-                flexDirection: "column",
-                alignItems: "flex-start",
-                justifyContent: "center",
-                border: "1px solid rgba(0,0,0,0.04)",
+                justifyContent: "space-between",
+                alignItems: "center",
               }}
             >
               <span
@@ -260,19 +259,18 @@ export default function HomePage() {
                   fontWeight: 600,
                   letterSpacing: "0.04em",
                   textTransform: "uppercase",
-                  color: "rgba(26,58,10,0.55)",
-                  marginBottom: 4,
+                  color: "rgba(255,255,255,0.5)",
                 }}
               >
                 {stat.label}
               </span>
               <span
                 style={{
-                  fontSize: "24px",
+                  fontSize: "20px",
                   fontWeight: 700,
-                  letterSpacing: "-0.03em",
-                  lineHeight: 1.2,
-                  color: "#1a3a0a",
+                  letterSpacing: "-0.02em",
+                  lineHeight: 1,
+                  color: "#ffffff",
                 }}
               >
                 {stat.value}
@@ -321,16 +319,40 @@ export default function HomePage() {
             label: "Scan a badge",
             desc: "Open the scanner and capture a new contact.",
             href: "/scan",
+            iconBg: "#f0f7eb",
+            iconColor: "#2d6a1f",
+            icon: (
+              <svg viewBox="0 0 16 16" width="16" height="16" fill="none">
+                <path d="M2 5a1 1 0 011-1h1.5l1-2h5l1 2H13a1 1 0 011 1v7a1 1 0 01-1 1H3a1 1 0 01-1-1V5z" stroke="currentColor" strokeWidth="1.2" fill="none"/>
+                <circle cx="8" cy="8.5" r="2" stroke="currentColor" strokeWidth="1.2" fill="none"/>
+              </svg>
+            ),
           },
           {
             label: "Generate sequences",
             desc: "Write thoughtful follow-up emails in one click.",
             href: "/sequences",
+            iconBg: "#f0f4ff",
+            iconColor: "#4a6cf7",
+            icon: (
+              <svg viewBox="0 0 16 16" width="16" height="16" fill="none">
+                <rect x="2" y="4" width="12" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.2" fill="none"/>
+                <path d="M2 6l6 4 6-4" stroke="currentColor" strokeWidth="1.2"/>
+              </svg>
+            ),
           },
           {
             label: "Import attendees",
             desc: "Upload event lists and enrich them automatically.",
             href: "/import",
+            iconBg: "#fff3eb",
+            iconColor: "#b07020",
+            icon: (
+              <svg viewBox="0 0 16 16" width="16" height="16" fill="none">
+                <path d="M8 10V3M5 6l3-3 3 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                <path d="M3 12h10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+              </svg>
+            ),
           },
         ].map((qa) => (
           <button
@@ -339,46 +361,40 @@ export default function HomePage() {
             style={{
               textAlign: "left",
               background: "#ffffff",
-              borderRadius: isMobile ? 14 : 12,
+              borderRadius: 16,
               border: "1px solid #ebebeb",
-              padding: isMobile ? 16 : 24,
+              padding: 24,
               cursor: "pointer",
               display: "flex",
               flexDirection: "column",
               justifyContent: "space-between",
               width: isMobile ? "100%" : "auto",
               minWidth: isMobile ? 0 : undefined,
-              minHeight: isMobile ? 44 : 120,
+              minHeight: isMobile ? 44 : 150,
+              transition: "all 0.15s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "translateY(-2px)";
+              e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.08)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.boxShadow = "none";
             }}
           >
             <div
               style={{
-                width: isMobile ? 40 : 32,
-                height: isMobile ? 40 : 32,
-                borderRadius: 999,
-                backgroundColor: "#f0f7eb",
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                backgroundColor: qa.iconBg,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                marginBottom: 12,
-                color: "#2d6a1f",
+                color: qa.iconColor,
               }}
             >
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 12 12"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M2.5 9.5L9.5 2.5M9.5 2.5H4M9.5 2.5V8"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              {qa.icon}
             </div>
             <div>
               <div
@@ -387,6 +403,7 @@ export default function HomePage() {
                   fontWeight: 600,
                   letterSpacing: "-0.01em",
                   color: "#111111",
+                  marginTop: 16,
                   marginBottom: 4,
                 }}
               >
@@ -394,10 +411,10 @@ export default function HomePage() {
               </div>
               <div
                 style={{
-                  fontSize: "14px",
+                  fontSize: "13px",
                   fontWeight: 400,
                   lineHeight: 1.5,
-                  color: "#888888",
+                  color: "#999999",
                 }}
               >
                 {qa.desc}
@@ -478,11 +495,12 @@ export default function HomePage() {
               style={{
                 border: "none",
                 background: "transparent",
-                color: "#4b5563",
+                color: "#7dde3c",
                 fontSize: "13px",
-                fontWeight: 600,
+                fontWeight: 500,
                 letterSpacing: "-0.01em",
                 cursor: "pointer",
+                textDecoration: "none",
                 minHeight: isMobile ? 44 : undefined,
               }}
             >
@@ -504,7 +522,7 @@ export default function HomePage() {
               style={{
                 display: "flex",
                 flexDirection: "column",
-                gap: 8,
+                gap: 0,
               }}
             >
               {recentEvents.map((ev) => {
@@ -515,20 +533,18 @@ export default function HomePage() {
                   <div
                     key={ev.id}
                     style={{
-                      padding: isMobile ? "14px 16px" : "16px 20px",
-                      borderRadius: 10,
-                      border: "1px solid #ebebeb",
+                      padding: "14px 0",
+                      borderBottom: "1px solid #f0f0f0",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "space-between",
-                      backgroundColor: "#ffffff",
                     }}
                   >
                     <div>
                       <div
                         style={{
-                          fontSize: "15px",
-                          fontWeight: 600,
+                          fontSize: "14px",
+                          fontWeight: 500,
                           letterSpacing: "-0.01em",
                           color: "#111111",
                         }}
@@ -537,7 +553,7 @@ export default function HomePage() {
                       </div>
                       <div
                         style={{
-                          fontSize: "13px",
+                          fontSize: "12px",
                           fontWeight: 400,
                           color: "#888888",
                         }}
@@ -555,10 +571,10 @@ export default function HomePage() {
                     >
                       <span
                         style={{
-                          fontSize: "14px",
-                          fontWeight: 400,
+                          fontSize: "13px",
+                          fontWeight: 600,
                           lineHeight: 1.5,
-                          color: "#4b5563",
+                          color: "#111",
                         }}
                       >
                         {eventContacts.length} contacts
@@ -619,11 +635,12 @@ export default function HomePage() {
               style={{
                 border: "none",
                 background: "transparent",
-                color: "#4b5563",
+                color: "#7dde3c",
                 fontSize: "13px",
-                fontWeight: 600,
+                fontWeight: 500,
                 letterSpacing: "-0.01em",
                 cursor: "pointer",
+                textDecoration: "none",
                 minHeight: isMobile ? 44 : undefined,
               }}
             >
@@ -645,30 +662,47 @@ export default function HomePage() {
               style={{
                 display: "flex",
                 flexDirection: "column",
-                gap: 8,
+                gap: 0,
               }}
             >
               {needsFollowUp.map((c) => {
                 const badge = scoreBadge(c.lead_score ?? 0);
+                const initials = (c.name || "?").trim().charAt(0).toUpperCase();
                 return (
                   <div
                     key={c.id}
                     style={{
                       display: "flex",
                       alignItems: "center",
+                      gap: 12,
                       justifyContent: "space-between",
-                      padding: isMobile ? "12px 0" : "6px 8px",
-                      borderRadius: 8,
-                      border: "1px solid #ebebeb",
-                      backgroundColor: "#ffffff",
+                      padding: "10px 0",
+                      borderBottom: "1px solid #f0f0f0",
                     }}
                   >
-                    <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                       <div
                         style={{
-                          fontSize: "15px",
-                          fontWeight: 600,
-                          letterSpacing: "-0.01em",
+                          width: 36,
+                          height: 36,
+                          borderRadius: "50%",
+                          backgroundColor: badge.bg,
+                          color: badge.color,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {initials}
+                      </div>
+                      <div>
+                      <div
+                        style={{
+                          fontSize: "14px",
+                          fontWeight: 500,
                           color: "#111111",
                         }}
                       >
@@ -676,20 +710,21 @@ export default function HomePage() {
                       </div>
                       <div
                         style={{
-                          fontSize: "13px",
+                          fontSize: "12px",
                           fontWeight: 400,
-                          color: "#6b7280",
+                          color: "#999",
                         }}
                       >
                         {c.company || c.event || "No company info"}
                       </div>
+                      </div>
                     </div>
                     <span
                       style={{
-                        fontSize: "14px",
-                        fontWeight: 400,
+                        fontSize: "12px",
+                        fontWeight: 600,
                         lineHeight: 1.5,
-                        padding: "3px 8px",
+                        padding: "4px 10px",
                         borderRadius: 999,
                         backgroundColor: badge.bg,
                         color: badge.color,
