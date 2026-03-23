@@ -107,6 +107,7 @@ export default function ScanPage() {
   const stagedAddInputRef = useRef<HTMLInputElement>(null);
   const stagedFilesRef = useRef(stagedFiles);
   stagedFilesRef.current = stagedFiles;
+  const bulkProcessCancelRequestedRef = useRef(false);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -193,11 +194,22 @@ export default function ScanPage() {
     setStagedFiles([]);
   };
 
-  const handleBulkProcess = async () => {
+  const handleBulkProcess = async (
+    filesOverride?: Array<{
+      id: string;
+      dataUrl: string;
+      status: "pending" | "scanning" | "done" | "failed";
+      contact: any | null;
+      failureReason?: "scan_failed" | "other";
+    }>
+  ) => {
+    bulkProcessCancelRequestedRef.current = false;
+    const queue = filesOverride ?? bulkFiles;
     setBulkProcessing(true);
     let scanFailedExtractCount = 0;
-    for (let i = 0; i < bulkFiles.length; i++) {
-      const item = bulkFiles[i];
+    for (let i = 0; i < queue.length; i++) {
+      if (bulkProcessCancelRequestedRef.current) break;
+      const item = queue[i];
       if (item.status !== "pending") continue;
       setBulkFiles((prev) => prev.map((x) => (x.id === item.id ? { ...x, status: "scanning" } : x)));
       setBulkProgress(i + 1);
@@ -209,7 +221,9 @@ export default function ScanPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ imageBase64: base64, mediaType }),
         });
+        if (bulkProcessCancelRequestedRef.current) break;
         const data = await res.json();
+        if (bulkProcessCancelRequestedRef.current) break;
         if (res.status === 422 && data.error === "scan_failed") {
           scanFailedExtractCount += 1;
           setBulkFiles((prev) =>
@@ -234,6 +248,7 @@ export default function ScanPage() {
           )
         );
       } catch {
+        if (bulkProcessCancelRequestedRef.current) break;
         setBulkFiles((prev) =>
           prev.map((x) =>
             x.id === item.id
@@ -243,13 +258,33 @@ export default function ScanPage() {
         );
       }
     }
+    const cancelled = bulkProcessCancelRequestedRef.current;
+    bulkProcessCancelRequestedRef.current = false;
     setBulkProcessing(false);
-    if (scanFailedExtractCount > 0) {
+    if (!cancelled && scanFailedExtractCount > 0) {
       showToast(
         `${scanFailedExtractCount} photo(s) couldn't be scanned — try clearer images`,
         { background: "#e55a5a", color: "#fff" }
       );
     }
+  };
+
+  const cancelScanning = () => {
+    bulkProcessCancelRequestedRef.current = true;
+    setBulkMode(false);
+    setBulkFiles([]);
+    setBulkProcessing(false);
+    setBulkProgress(0);
+    setStagedFiles([]);
+    setIsReviewing(false);
+    setReviewIndex(0);
+    setReviewData({});
+    setShowEventPicker(false);
+    setSelectedEventId(null);
+    setShowCreateEvent(false);
+    setNewEventName("");
+    setNewEventDate("");
+    setEventNameTouched(false);
   };
 
   const saveContact = async (
@@ -1042,6 +1077,21 @@ export default function ScanPage() {
                   <span style={{ fontSize: 13, fontWeight: 500, color: "#111" }}>
                     Scanning {bulkProgress} of {bulkTotal}...
                   </span>
+                  <button
+                    type="button"
+                    onClick={cancelScanning}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "#999",
+                      fontSize: "13px",
+                      fontWeight: 500,
+                      cursor: "pointer",
+                      padding: "10px 14px",
+                    }}
+                  >
+                    Cancel
+                  </button>
                 </>
               ) : !bulkAllProcessed ? (
                 <>
@@ -1055,22 +1105,6 @@ export default function ScanPage() {
                   >
                     {bulkTotal} photos ready
                   </span>
-                  <button
-                    type="button"
-                    onClick={handleBulkProcess}
-                    style={{
-                      background: "#7dde3c",
-                      color: "#0a1a0a",
-                      fontWeight: 700,
-                      fontSize: 14,
-                      borderRadius: 999,
-                      padding: "10px 22px",
-                      border: "none",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Scan {bulkTotal} photos
-                  </button>
                   <button
                     type="button"
                     onClick={() => setShowBulkDiscard(true)}
@@ -2347,17 +2381,17 @@ export default function ScanPage() {
                     await scanWithClaude(s.dataUrl.split(",")[1], s.file.type);
                     setStagedFiles([]);
                   } else {
-                    setBulkFiles(
-                      stagedFiles.map((s) => ({
-                        id: s.id,
-                        dataUrl: s.dataUrl,
-                        status: "pending" as const,
-                        contact: null,
-                      }))
-                    );
+                    const newBulk = stagedFiles.map((s) => ({
+                      id: s.id,
+                      dataUrl: s.dataUrl,
+                      status: "pending" as const,
+                      contact: null,
+                    }));
+                    setBulkFiles(newBulk);
                     setBulkMode(true);
                     setBulkProgress(0);
                     setStagedFiles([]);
+                    void handleBulkProcess(newBulk);
                   }
                 }}
                 style={{
