@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
     };
 
     if (userId && persistContact) {
-      const { data: insertedContact, error: insertError } = await supabaseAdmin
+      const { data: insertedData, error: insertError } = await supabaseAdmin
         .from("contacts")
         .insert({
           user_id: userId,
@@ -158,12 +158,10 @@ export async function POST(req: NextRequest) {
         .select()
         .single();
 
-      if (!insertError && insertedContact) {
-        if (insertedContact?.id) {
-          enrichContact(insertedContact.id as string, userId as string).catch(
-            (err) => console.error("Background enrichment failed:", err)
-          );
-        }
+      if (!insertError && insertedData?.id && userId) {
+        enrichContact(insertedData.id as string, userId as string).catch((err) =>
+          console.error("Background enrichment failed:", err)
+        );
       }
     }
 
