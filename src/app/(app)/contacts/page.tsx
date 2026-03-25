@@ -855,6 +855,8 @@ export default function ContactsPage() {
           <div
             style={{
               display: 'grid',
+              tableLayout: 'fixed',
+              width: '100%',
               gridTemplateColumns: '40px minmax(200px,1fr) 180px 160px 200px 140px 80px 80px',
               background: '#fafafa',
               borderBottom: '1px solid #ebebeb',
@@ -963,6 +965,8 @@ export default function ContactsPage() {
                       }
                     : {
                         display: 'grid',
+                        tableLayout: 'fixed',
+                        width: '100%',
                         gridTemplateColumns:
                           '40px minmax(200px,1fr) 180px 160px 200px 140px 80px 80px',
                         alignItems: 'center',
@@ -1095,9 +1099,45 @@ export default function ContactsPage() {
                 </div>
                 {!isMobile && (
                   <>
-                    <div style={{ padding: '12px 16px', fontSize: 14, color: '#555' }}>{contact.company || '—'}</div>
-                    <div style={{ padding: '12px 16px', fontSize: 14, color: '#555' }}>{contact.title || '—'}</div>
-                    <div style={{ padding: '12px 16px', fontSize: 13, color: '#999', fontFamily: 'monospace' }}>
+                    <div
+                      style={{
+                        padding: '12px 16px',
+                        fontSize: 14,
+                        color: '#555',
+                        maxWidth: 160,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {contact.company || '—'}
+                    </div>
+                    <div
+                      style={{
+                        padding: '12px 16px',
+                        fontSize: 14,
+                        color: '#555',
+                        maxWidth: 160,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {contact.title || '—'}
+                    </div>
+                    <div
+                      title={contact.email}
+                      style={{
+                        padding: '12px 16px',
+                        fontSize: 13,
+                        color: '#999',
+                        fontFamily: 'monospace',
+                        maxWidth: 180,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
                       {contact.email || '—'}
                     </div>
                     <div style={{ padding: '12px 16px' }}>

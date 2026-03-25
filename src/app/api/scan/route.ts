@@ -149,6 +149,14 @@ export async function POST(req: NextRequest) {
     let enrichmentResult: Record<string, unknown> | null = null;
 
     if (userId) {
+      const { data: settings } = await supabaseAdmin
+        .from("user_settings")
+        .select("icp_profile")
+        .eq("user_id", userId)
+        .single();
+      const icpProfile = settings?.icp_profile || null;
+      void icpProfile;
+
       const { data: insertedData, error: insertError } = await supabaseAdmin
         .from("contacts")
         .insert({
