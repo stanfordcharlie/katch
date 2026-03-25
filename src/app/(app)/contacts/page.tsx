@@ -102,14 +102,13 @@ export default function ContactsPage() {
   const reEnrichContact = async (contactId: string) => {
     setIsEnriching(contactId);
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       await fetch('/api/enrich', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contactId, userId: user?.id }),
       });
+      await new Promise((resolve) => setTimeout(resolve, 3000));
       await fetchContacts();
     } catch (err) {
       console.error('Re-enrich failed:', err);
@@ -2036,7 +2035,49 @@ export default function ContactsPage() {
                           })()}
                         </div>
                       ) : (
-                        <div style={{ marginTop: 16 }}>
+                        <div>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              marginBottom: '12px',
+                              marginTop: '20px',
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                letterSpacing: '0.04em',
+                                textTransform: 'uppercase',
+                                color: '#999',
+                              }}
+                            >
+                              ✦ AI Insights
+                            </div>
+                            <button
+                              type='button'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                reEnrichContact(contact.id);
+                              }}
+                              disabled={isEnriching === contact.id}
+                              style={{
+                                background: 'none',
+                                border: '1px solid #ebebeb',
+                                borderRadius: '999px',
+                                padding: '3px 10px',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                color: '#999',
+                                cursor: isEnriching === contact.id ? 'not-allowed' : 'pointer',
+                                opacity: isEnriching === contact.id ? 0.5 : 1,
+                              }}
+                            >
+                              {isEnriching === contact.id ? 'Enriching...' : '↻ Re-enrich'}
+                            </button>
+                          </div>
                           <span
                             style={{
                               display: 'inline-block',
