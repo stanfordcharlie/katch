@@ -93,6 +93,7 @@ export default function ScanPage() {
   const [newEventName, setNewEventName] = useState("");
   const [newEventDate, setNewEventDate] = useState("");
   const [showBulkDiscard, setShowBulkDiscard] = useState(false);
+  const [isHoveringCancel, setIsHoveringCancel] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [stagedFiles, setStagedFiles] = useState<Array<{ id: string; dataUrl: string; file: File }>>([]);
   const [duplicateModal, setDuplicateModal] = useState<{
@@ -1129,14 +1130,18 @@ export default function ScanPage() {
                   <button
                     type="button"
                     onClick={cancelScanning}
+                    onMouseEnter={() => setIsHoveringCancel(true)}
+                    onMouseLeave={() => setIsHoveringCancel(false)}
                     style={{
-                      background: "transparent",
-                      border: "none",
-                      color: "#999",
-                      fontSize: "13px",
-                      fontWeight: 500,
                       cursor: "pointer",
-                      padding: "10px 14px",
+                      padding: "6px 12px",
+                      borderRadius: 8,
+                      background: isHoveringCancel ? "#f0f0f0" : "transparent",
+                      color: "#111",
+                      fontSize: 14,
+                      fontWeight: 500,
+                      transition: "background 0.15s",
+                      border: "none",
                     }}
                   >
                     Cancel
@@ -1157,14 +1162,18 @@ export default function ScanPage() {
                   <button
                     type="button"
                     onClick={() => setShowBulkDiscard(true)}
+                    onMouseEnter={() => setIsHoveringCancel(true)}
+                    onMouseLeave={() => setIsHoveringCancel(false)}
                     style={{
-                      background: "transparent",
-                      border: "none",
-                      color: "#999",
-                      fontSize: 13,
-                      fontWeight: 500,
                       cursor: "pointer",
-                      padding: "10px 14px",
+                      padding: "6px 12px",
+                      borderRadius: 8,
+                      background: isHoveringCancel ? "#f0f0f0" : "transparent",
+                      color: "#111",
+                      fontSize: 14,
+                      fontWeight: 500,
+                      transition: "background 0.15s",
+                      border: "none",
                     }}
                   >
                     Cancel
