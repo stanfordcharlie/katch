@@ -57,6 +57,9 @@ export default function ScanPage() {
   const [scanEnrichment, setScanEnrichment] = useState<Record<string, unknown> | null>(null);
   const [enriching, setEnriching] = useState(false);
   const [enriched, setEnriched] = useState(false);
+  const [singleEnrichment, setSingleEnrichment] = useState<Record<string, unknown> | null>(null);
+  const [singlePanelEnriching, setSinglePanelEnriching] = useState(false);
+  const [singleEnrichError, setSingleEnrichError] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [checks, setChecks] = useState<Record<string, boolean>>({});
   const [freeNote, setFreeNote] = useState("");
@@ -95,7 +98,7 @@ export default function ScanPage() {
   const [showBulkDiscard, setShowBulkDiscard] = useState(false);
   const [isHoveringCancel, setIsHoveringCancel] = useState(false);
   const [enrichingReviewIndex, setEnrichingReviewIndex] = useState<number | null>(null);
-  const [reviewEnrichFeedback, setReviewEnrichFeedback] = useState<"success" | "error" | null>(null);
+  const [reviewEnrichFeedback, setReviewEnrichFeedback] = useState<"error" | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [stagedFiles, setStagedFiles] = useState<Array<{ id: string; dataUrl: string; file: File }>>([]);
   const [duplicateModal, setDuplicateModal] = useState<{
@@ -171,6 +174,8 @@ export default function ScanPage() {
         if (draft && Date.now() - draft.timestamp < 24 * 60 * 60 * 1000) {
           setUploadedImage(draft.imageDataUrl);
           setExtracted(draft.contactResult);
+          setSingleEnrichment(null);
+          setSingleEnrichError(false);
           setScanMode("review");
           setRestoredDraft(true);
         }
@@ -190,6 +195,9 @@ export default function ScanPage() {
     setEnriching(false);
     setEnriched(false);
     setScanEnrichment(null);
+    setSingleEnrichment(null);
+    setSinglePanelEnriching(false);
+    setSingleEnrichError(false);
     setUploadedImage(null);
     setChecks({});
     setFreeNote("");
@@ -405,7 +413,6 @@ export default function ScanPage() {
             : x
         )
       );
-      setReviewEnrichFeedback("success");
     } catch {
       setReviewEnrichFeedback("error");
     } finally {
@@ -533,6 +540,9 @@ export default function ScanPage() {
   };
 
   const scanWithClaude = async (base64: string, mediaType: string) => {
+    setSingleEnrichment(null);
+    setSingleEnrichError(false);
+    setSinglePanelEnriching(false);
     setScanMode("extracting");
     try {
       const res = await fetch("/api/scan", {
@@ -672,6 +682,34 @@ export default function ScanPage() {
     });
   };
 
+  const handleSinglePanelEnrich = async () => {
+    if (!user?.id || !extracted) return;
+    setSinglePanelEnriching(true);
+    setSingleEnrichError(false);
+    try {
+      const res = await fetch("/api/enrich", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.id,
+          contact: {
+            name: extracted.name,
+            title: extracted.title,
+            company: extracted.company,
+            email: extracted.email,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error("enrich failed");
+      setSingleEnrichment((data.enrichment as Record<string, unknown>) || null);
+    } catch {
+      setSingleEnrichError(true);
+    } finally {
+      setSinglePanelEnriching(false);
+    }
+  };
+
   const handleEnrich = async () => {
     if (!user?.id || !extracted) return;
     setEnriching(true);
@@ -764,10 +802,6 @@ export default function ScanPage() {
       }
     }
 
-    const hasEnrichment =
-      scanEnrichment != null &&
-      typeof scanEnrichment === "object" &&
-      !Array.isArray(scanEnrichment);
     const payload: Record<string, unknown> = {
       user_id: sessionUser.id,
       name: extracted?.name ?? "",
@@ -780,9 +814,9 @@ export default function ScanPage() {
       checks: activeChecks,
       free_note: freeNote,
       event: eventTag || "Untagged",
-      ai_enrichment: hasEnrichment ? scanEnrichment : null,
-      enriched: hasEnrichment,
-      enriched_at: hasEnrichment ? new Date().toISOString() : null,
+      ai_enrichment: singleEnrichment,
+      enriched: !!singleEnrichment,
+      enriched_at: singleEnrichment ? new Date().toISOString() : null,
     };
 
     if (imageUrl) {
@@ -1675,6 +1709,8 @@ export default function ScanPage() {
                   padding: 28,
                   width: "100%",
                   maxWidth: 480,
+                  maxHeight: "90vh",
+                  overflowY: "auto",
                   margin: 20,
                   boxSizing: "border-box",
                 }}
@@ -1812,14 +1848,177 @@ export default function ScanPage() {
                       "✦ Enrich with AI"
                     )}
                   </button>
-                  {reviewEnrichFeedback === "success" && (
-                    <p style={{ fontSize: 12, color: "#2d6a1f", margin: "8px 0 0 0" }}>AI insights ready</p>
-                  )}
                   {reviewEnrichFeedback === "error" && (
                     <p style={{ fontSize: 12, color: "#e55a5a", margin: "8px 0 0 0" }}>
                       Enrichment failed, try again
                     </p>
                   )}
+                  {currentItem?.enrichment &&
+                  typeof currentItem.enrichment === "object" &&
+                  !Array.isArray(currentItem.enrichment) ? (
+                    (() => {
+                      const en = currentItem.enrichment as Record<string, unknown>;
+                      const fitRaw = en.icp_fit_score;
+                      const fit =
+                        typeof fitRaw === "number"
+                          ? fitRaw
+                          : typeof fitRaw === "string"
+                            ? Number(fitRaw)
+                            : null;
+                      const fitNum =
+                        fit != null && !Number.isNaN(Number(fit)) ? Number(fit) : null;
+                      const fitColor =
+                        fitNum == null
+                          ? "#2d6a1f"
+                          : fitNum >= 7
+                            ? "#2d6a1f"
+                            : fitNum >= 4
+                              ? "#b07020"
+                              : "#e55a5a";
+                      const reason =
+                        typeof en.icp_fit_reason === "string" ? en.icp_fit_reason : null;
+                      const summary = typeof en.summary === "string" ? en.summary : null;
+                      const ptsRaw = en.talking_points;
+                      const points = (
+                        Array.isArray(ptsRaw)
+                          ? (ptsRaw as unknown[]).filter((x) => typeof x === "string")
+                          : []
+                      ).slice(0, 3);
+                      const redRaw = en.red_flags;
+                      const redFlags = Array.isArray(redRaw)
+                        ? (redRaw as unknown[]).filter((x) => typeof x === "string")
+                        : [];
+                      return (
+                        <div
+                          style={{
+                            marginTop: 12,
+                            padding: "12px 14px",
+                            background: "#f8fdf4",
+                            border: "1px solid #d4edbc",
+                            borderRadius: 12,
+                          }}
+                        >
+                          {fitNum != null || reason ? (
+                            <div
+                              style={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                alignItems: "baseline",
+                              }}
+                            >
+                              {fitNum != null ? (
+                                <span
+                                  style={{
+                                    fontSize: 13,
+                                    fontWeight: 600,
+                                    color: fitColor,
+                                  }}
+                                >
+                                  ICP fit: {fitNum}/10
+                                </span>
+                              ) : null}
+                              {reason ? (
+                                <span
+                                  style={{
+                                    fontSize: 12,
+                                    color: "#888",
+                                    marginLeft: fitNum != null ? 6 : 0,
+                                  }}
+                                >
+                                  {reason}
+                                </span>
+                              ) : null}
+                            </div>
+                          ) : null}
+                          {summary ? (
+                            <p
+                              style={{
+                                fontSize: 13,
+                                color: "#444",
+                                marginTop: 8,
+                                lineHeight: 1.5,
+                                marginBottom: 0,
+                              }}
+                            >
+                              {summary}
+                            </p>
+                          ) : null}
+                          {points.length > 0 ? (
+                            <div>
+                              <p
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                  color: "#999",
+                                  marginTop: 10,
+                                  marginBottom: 4,
+                                  marginLeft: 0,
+                                  marginRight: 0,
+                                }}
+                              >
+                                Talking points
+                              </p>
+                              {points.map((t, i) => (
+                                <div
+                                  key={i}
+                                  style={{ display: "flex", alignItems: "flex-start" }}
+                                >
+                                  <span
+                                    style={{
+                                      width: 5,
+                                      height: 5,
+                                      borderRadius: 99,
+                                      background: "#7dde3c",
+                                      marginRight: 8,
+                                      marginTop: 5,
+                                      flexShrink: 0,
+                                    }}
+                                  />
+                                  <span style={{ fontSize: 12, color: "#444" }}>{t}</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : null}
+                          {redFlags.length > 0 ? (
+                            <div>
+                              <p
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                  color: "#e55a5a",
+                                  marginTop: 8,
+                                  marginBottom: 4,
+                                  marginLeft: 0,
+                                  marginRight: 0,
+                                }}
+                              >
+                                Red flags
+                              </p>
+                              {redFlags.map((t, i) => (
+                                <div
+                                  key={i}
+                                  style={{ display: "flex", alignItems: "flex-start" }}
+                                >
+                                  <span
+                                    style={{
+                                      width: 5,
+                                      height: 5,
+                                      borderRadius: 99,
+                                      background: "#e55a5a",
+                                      marginRight: 8,
+                                      marginTop: 5,
+                                      flexShrink: 0,
+                                    }}
+                                  />
+                                  <span style={{ fontSize: 12, color: "#e55a5a" }}>{t}</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })()
+                  ) : null}
                 </div>
 
                 <div style={{ marginBottom: 20 }}>
@@ -2976,6 +3175,218 @@ export default function ScanPage() {
                       />
                     </div>
                   ))}
+              </div>
+
+              <div style={{ marginTop: 16, marginBottom: 12 }}>
+                <button
+                  type="button"
+                  onClick={() => void handleSinglePanelEnrich()}
+                  disabled={singlePanelEnriching}
+                  style={{
+                    background: "#f0f7eb",
+                    border: "1px solid #c8e6b0",
+                    color: "#2d6a1f",
+                    borderRadius: 10,
+                    padding: "10px 16px",
+                    fontSize: 13,
+                    fontWeight: 500,
+                    cursor: singlePanelEnriching ? "wait" : "pointer",
+                    width: "fit-content",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    opacity: singlePanelEnriching ? 0.75 : 1,
+                  }}
+                >
+                  {singlePanelEnriching ? (
+                    <>
+                      <div
+                        style={{
+                          width: 14,
+                          height: 14,
+                          border: "2px solid #e8e8e8",
+                          borderTop: "2px solid #7dde3c",
+                          borderRadius: "50%",
+                          animation: "spin 0.8s linear infinite",
+                        }}
+                      />
+                      Enriching...
+                    </>
+                  ) : (
+                    "✦ Enrich with AI"
+                  )}
+                </button>
+                {singleEnrichError ? (
+                  <p style={{ fontSize: 12, color: "#e55a5a", margin: "8px 0 0 0" }}>
+                    Enrichment failed, try again
+                  </p>
+                ) : null}
+                {singleEnrichment &&
+                typeof singleEnrichment === "object" &&
+                !Array.isArray(singleEnrichment) ? (
+                  (() => {
+                    const en = singleEnrichment as Record<string, unknown>;
+                    const fitRaw = en.icp_fit_score;
+                    const fit =
+                      typeof fitRaw === "number"
+                        ? fitRaw
+                        : typeof fitRaw === "string"
+                          ? Number(fitRaw)
+                          : null;
+                    const fitNum =
+                      fit != null && !Number.isNaN(Number(fit)) ? Number(fit) : null;
+                    const fitColor =
+                      fitNum == null
+                        ? "#2d6a1f"
+                        : fitNum >= 7
+                          ? "#2d6a1f"
+                          : fitNum >= 4
+                            ? "#b07020"
+                            : "#e55a5a";
+                    const reason =
+                      typeof en.icp_fit_reason === "string" ? en.icp_fit_reason : null;
+                    const summary = typeof en.summary === "string" ? en.summary : null;
+                    const ptsRaw = en.talking_points;
+                    const points = (
+                      Array.isArray(ptsRaw)
+                        ? (ptsRaw as unknown[]).filter((x) => typeof x === "string")
+                        : []
+                    ).slice(0, 3);
+                    const redRaw = en.red_flags;
+                    const redFlags = Array.isArray(redRaw)
+                      ? (redRaw as unknown[]).filter((x) => typeof x === "string")
+                      : [];
+                    return (
+                      <div
+                        style={{
+                          marginTop: 12,
+                          padding: "12px 14px",
+                          background: "#f8fdf4",
+                          border: "1px solid #d4edbc",
+                          borderRadius: 12,
+                        }}
+                      >
+                        {fitNum != null || reason ? (
+                          <div
+                            style={{
+                              display: "flex",
+                              flexWrap: "wrap",
+                              alignItems: "baseline",
+                            }}
+                          >
+                            {fitNum != null ? (
+                              <span
+                                style={{
+                                  fontSize: 13,
+                                  fontWeight: 600,
+                                  color: fitColor,
+                                }}
+                              >
+                                ICP fit: {fitNum}/10
+                              </span>
+                            ) : null}
+                            {reason ? (
+                              <span
+                                style={{
+                                  fontSize: 12,
+                                  color: "#888",
+                                  marginLeft: fitNum != null ? 6 : 0,
+                                }}
+                              >
+                                {reason}
+                              </span>
+                            ) : null}
+                          </div>
+                        ) : null}
+                        {summary ? (
+                          <p
+                            style={{
+                              fontSize: 13,
+                              color: "#444",
+                              marginTop: 8,
+                              lineHeight: 1.5,
+                              marginBottom: 0,
+                            }}
+                          >
+                            {summary}
+                          </p>
+                        ) : null}
+                        {points.length > 0 ? (
+                          <div>
+                            <p
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 600,
+                                color: "#999",
+                                marginTop: 10,
+                                marginBottom: 4,
+                                marginLeft: 0,
+                                marginRight: 0,
+                              }}
+                            >
+                              Talking points
+                            </p>
+                            {points.map((t, i) => (
+                              <div
+                                key={i}
+                                style={{ display: "flex", alignItems: "flex-start" }}
+                              >
+                                <span
+                                  style={{
+                                    width: 5,
+                                    height: 5,
+                                    borderRadius: 99,
+                                    background: "#7dde3c",
+                                    marginRight: 8,
+                                    marginTop: 5,
+                                    flexShrink: 0,
+                                  }}
+                                />
+                                <span style={{ fontSize: 12, color: "#444" }}>{t}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+                        {redFlags.length > 0 ? (
+                          <div>
+                            <p
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 600,
+                                color: "#e55a5a",
+                                marginTop: 8,
+                                marginBottom: 4,
+                                marginLeft: 0,
+                                marginRight: 0,
+                              }}
+                            >
+                              Red flags
+                            </p>
+                            {redFlags.map((t, i) => (
+                              <div
+                                key={i}
+                                style={{ display: "flex", alignItems: "flex-start" }}
+                              >
+                                <span
+                                  style={{
+                                    width: 5,
+                                    height: 5,
+                                    borderRadius: 99,
+                                    background: "#e55a5a",
+                                    marginRight: 8,
+                                    marginTop: 5,
+                                    flexShrink: 0,
+                                  }}
+                                />
+                                <span style={{ fontSize: 12, color: "#e55a5a" }}>{t}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })()
+                ) : null}
               </div>
 
               <div style={{ marginTop: 16, marginBottom: 12 }}>

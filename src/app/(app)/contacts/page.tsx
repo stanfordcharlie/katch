@@ -62,6 +62,9 @@ export default function ContactsPage() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterEvent, setFilterEvent] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<
+    'newest' | 'oldest' | 'az' | 'za' | 'highest' | 'lowest'
+  >('newest');
 
   const [selected, setSelected] = useState<Contact | null>(null);
   const [editingContactId, setEditingContactId] = useState<string | null>(null);
@@ -83,6 +86,7 @@ export default function ContactsPage() {
   const [pendingDeleteCount, setPendingDeleteCount] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
   const [reEnrichingId, setReEnrichingId] = useState<string | null>(null);
+  const [reEnrichErrorForId, setReEnrichErrorForId] = useState<string | null>(null);
 
   const fetchContacts = useCallback(async () => {
     if (!user?.id) return;
@@ -273,6 +277,7 @@ export default function ContactsPage() {
   const handleReEnrich = async (contact: Contact) => {
     if (!user?.id) return;
     setReEnrichingId(contact.id);
+    setReEnrichErrorForId((prev) => (prev === contact.id ? null : prev));
     try {
       const res = await fetch('/api/enrich', {
         method: 'POST',
@@ -296,7 +301,7 @@ export default function ContactsPage() {
           : sel
       );
     } catch {
-      showToast('Enrichment failed, try again', 'error');
+      setReEnrichErrorForId(contact.id);
     } finally {
       setReEnrichingId(null);
     }
@@ -380,6 +385,54 @@ export default function ContactsPage() {
       return matchesSearch && matchesEvent;
     });
   }, [contacts, searchQuery, filterEvent]);
+
+  const sortedContacts = useMemo(() => {
+    const list = [...filteredContacts];
+    const createdMs = (c: Contact) => {
+      const d = c.created_at ?? c.date;
+      if (d == null || d === '') return 0;
+      const t = new Date(d as string).getTime();
+      return Number.isNaN(t) ? 0 : t;
+    };
+    const leadNum = (c: Contact) => {
+      const s = c.lead_score ?? c.leadScore;
+      if (s == null || Number.isNaN(Number(s))) return null;
+      return Number(s);
+    };
+    const nameStr = (c: Contact) => (c.name ?? '').toString();
+
+    list.sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          return createdMs(b) - createdMs(a);
+        case 'oldest':
+          return createdMs(a) - createdMs(b);
+        case 'az':
+          return nameStr(a).localeCompare(nameStr(b), undefined, { sensitivity: 'base' });
+        case 'za':
+          return nameStr(b).localeCompare(nameStr(a), undefined, { sensitivity: 'base' });
+        case 'highest': {
+          const sa = leadNum(a);
+          const sb = leadNum(b);
+          if (sa == null && sb == null) return 0;
+          if (sa == null) return 1;
+          if (sb == null) return -1;
+          return sb - sa;
+        }
+        case 'lowest': {
+          const sa = leadNum(a);
+          const sb = leadNum(b);
+          if (sa == null && sb == null) return 0;
+          if (sa == null) return 1;
+          if (sb == null) return -1;
+          return sa - sb;
+        }
+        default:
+          return 0;
+      }
+    });
+    return list;
+  }, [filteredContacts, sortBy]);
 
   const allEventNames = useMemo(() => {
     const uniqueEventIds = Array.from(new Set(contacts.map((c) => c.event).filter(Boolean))) as string[];
@@ -613,7 +666,7 @@ export default function ContactsPage() {
             <button
               type='button'
               onClick={() => {
-                const visibleIds = filteredContacts.map((c) => c.id);
+                const visibleIds = sortedContacts.map((c) => c.id);
                 const allSelected =
                   visibleIds.length > 0 &&
                   visibleIds.every((id) => selectedIds.includes(id));
@@ -642,7 +695,7 @@ export default function ContactsPage() {
               }}
             >
               {(() => {
-                const visibleIds = filteredContacts.map((c) => c.id);
+                const visibleIds = sortedContacts.map((c) => c.id);
                 const allSelected =
                   visibleIds.length > 0 &&
                   visibleIds.every((id) => selectedIds.includes(id));
@@ -884,6 +937,58 @@ export default function ContactsPage() {
           width: '100%',
         }}
       >
+        {contacts.length > 0 && (
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 12,
+              padding: isMobile ? '0 2px' : '0 16px',
+              flexWrap: 'wrap',
+              gap: 8,
+            }}
+          >
+            <span style={{ fontSize: 13, color: '#999' }}>
+              {sortedContacts.length} contact{sortedContacts.length === 1 ? '' : 's'}
+            </span>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                fontSize: 13,
+                color: '#999',
+                marginLeft: 'auto',
+              }}
+            >
+              <span style={{ fontSize: 13, color: '#999' }}>Sort by</span>
+              <select
+                value={sortBy}
+                onChange={(e) =>
+                  setSortBy(e.target.value as typeof sortBy)
+                }
+                style={{
+                  background: '#fff',
+                  border: '1px solid #e8e8e8',
+                  borderRadius: 8,
+                  padding: '6px 12px',
+                  fontSize: 13,
+                  color: '#111',
+                  cursor: 'pointer',
+                  outline: 'none',
+                }}
+              >
+                <option value='newest'>newest</option>
+                <option value='oldest'>oldest</option>
+                <option value='az'>A → Z</option>
+                <option value='za'>Z → A</option>
+                <option value='highest'>Highest score</option>
+                <option value='lowest'>Lowest score</option>
+              </select>
+            </div>
+          </div>
+        )}
         {!isMobile && (
           <div
             style={{
@@ -913,7 +1018,7 @@ export default function ContactsPage() {
             ))}
           </div>
         )}
-        {filteredContacts.map((contact) => {
+        {sortedContacts.map((contact) => {
           const rawScore =
             (contact.lead_score ??
               contact.leadScore ??
@@ -1595,7 +1700,7 @@ export default function ContactsPage() {
                           alignItems: 'start',
                         }}
                       >
-                        <div style={{ width: '100%' }}>
+                        <div style={{ width: '100%', marginBottom: 12 }}>
                           {contact.image ? (
                             <img
                               src={contact.image as string}
@@ -1970,27 +2075,33 @@ export default function ContactsPage() {
                           </p>
                         </div>
                       )}
-                      <div style={{ marginTop: 16 }}>
+                      <div
+                        style={{
+                          marginTop: 16,
+                          padding: '14px 16px',
+                          background: '#fafafa',
+                          border: '1px solid #f0f0f0',
+                          borderRadius: 12,
+                        }}
+                      >
                         <div
                           style={{
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center',
-                            marginBottom: 8,
+                            marginBottom: 10,
                           }}
                         >
-                          <p
+                          <span
                             style={{
-                              fontSize: '11px',
+                              fontSize: 11,
                               fontWeight: 600,
-                              letterSpacing: '0.04em',
-                              textTransform: 'uppercase',
                               color: '#999',
-                              margin: 0,
+                              letterSpacing: '0.08em',
                             }}
                           >
-                            AI Insights
-                          </p>
+                            AI INSIGHTS
+                          </span>
                           <button
                             type='button'
                             onClick={(e) => {
@@ -1998,13 +2109,22 @@ export default function ContactsPage() {
                               void handleReEnrich(contact);
                             }}
                             disabled={reEnrichingId === contact.id}
+                            onMouseEnter={(e) => {
+                              if (reEnrichingId !== contact.id) {
+                                e.currentTarget.style.background = '#f0f7eb';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'transparent';
+                            }}
                             style={{
                               background: 'transparent',
-                              border: 'none',
+                              border: '1px solid #e8e8e8',
+                              borderRadius: 6,
+                              padding: '3px 10px',
+                              fontSize: 11,
                               color: '#7dde3c',
-                              fontSize: 12,
                               cursor: reEnrichingId === contact.id ? 'wait' : 'pointer',
-                              padding: 0,
                               fontWeight: 500,
                             }}
                           >
@@ -2014,56 +2134,220 @@ export default function ContactsPage() {
                         {contact.ai_enrichment &&
                         typeof contact.ai_enrichment === 'object' &&
                         !Array.isArray(contact.ai_enrichment) ? (
+                          (() => {
+                            const ai = contact.ai_enrichment as Record<string, unknown>;
+                            const summary = typeof ai.summary === 'string' ? ai.summary : null;
+                            const fitRaw = ai.icp_fit_score;
+                            const fit =
+                              typeof fitRaw === 'number'
+                                ? fitRaw
+                                : typeof fitRaw === 'string'
+                                  ? Number(fitRaw)
+                                  : null;
+                            const fitNum =
+                              fit != null && !Number.isNaN(Number(fit)) ? Number(fit) : null;
+                            const fitColor =
+                              fitNum == null
+                                ? '#2d6a1f'
+                                : fitNum >= 7
+                                  ? '#2d6a1f'
+                                  : fitNum >= 4
+                                    ? '#b07020'
+                                    : '#e55a5a';
+                            const reason =
+                              typeof ai.icp_fit_reason === 'string' ? ai.icp_fit_reason : null;
+                            const points = Array.isArray(ai.talking_points)
+                              ? (ai.talking_points as unknown[]).filter((x) => typeof x === 'string')
+                              : [];
+                            const redRaw = ai.red_flags;
+                            const redFlags = Array.isArray(redRaw)
+                              ? (redRaw as unknown[]).filter((x) => typeof x === 'string')
+                              : [];
+                            return (
+                              <>
+                                {fitNum != null || reason ? (
+                                  <div
+                                    style={{
+                                      display: 'flex',
+                                      flexWrap: 'wrap',
+                                      alignItems: 'baseline',
+                                    }}
+                                  >
+                                    {fitNum != null ? (
+                                      <span style={{ fontSize: 13, fontWeight: 600, color: '#111' }}>
+                                        ICP fit:{' '}
+                                        <span style={{ color: fitColor }}>
+                                          {fitNum}/10
+                                        </span>
+                                      </span>
+                                    ) : null}
+                                    {reason ? (
+                                      <span
+                                        style={{
+                                          fontSize: 12,
+                                          color: '#999',
+                                          marginLeft: fitNum != null ? 8 : 0,
+                                        }}
+                                      >
+                                        {reason}
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                ) : null}
+                                {summary ? (
+                                  <p
+                                    style={{
+                                      fontSize: 13,
+                                      color: '#444',
+                                      marginTop: 8,
+                                      lineHeight: 1.5,
+                                      marginBottom: 0,
+                                    }}
+                                  >
+                                    {summary}
+                                  </p>
+                                ) : null}
+                                {points.length > 0 ? (
+                                  <div>
+                                    <p
+                                      style={{
+                                        fontSize: 11,
+                                        fontWeight: 600,
+                                        color: '#999',
+                                        marginTop: 12,
+                                        marginBottom: 4,
+                                        marginLeft: 0,
+                                        marginRight: 0,
+                                      }}
+                                    >
+                                      Talking points
+                                    </p>
+                                    {points.map((t, i) => (
+                                      <div
+                                        key={i}
+                                        style={{
+                                          display: 'flex',
+                                          alignItems: 'flex-start',
+                                          gap: 0,
+                                        }}
+                                      >
+                                        <span
+                                          style={{
+                                            width: 5,
+                                            height: 5,
+                                            borderRadius: 99,
+                                            background: '#7dde3c',
+                                            marginRight: 8,
+                                            marginTop: 6,
+                                            flexShrink: 0,
+                                          }}
+                                        />
+                                        <span
+                                          style={{
+                                            fontSize: 13,
+                                            color: '#444',
+                                          }}
+                                        >
+                                          {t}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : null}
+                                {redFlags.length > 0 ? (
+                                  <div>
+                                    <p
+                                      style={{
+                                        fontSize: 11,
+                                        fontWeight: 600,
+                                        color: '#e55a5a',
+                                        marginTop: 10,
+                                        marginBottom: 4,
+                                        marginLeft: 0,
+                                        marginRight: 0,
+                                      }}
+                                    >
+                                      Red flags
+                                    </p>
+                                    {redFlags.map((t, i) => (
+                                      <div
+                                        key={i}
+                                        style={{
+                                          display: 'flex',
+                                          alignItems: 'flex-start',
+                                        }}
+                                      >
+                                        <span
+                                          style={{
+                                            width: 5,
+                                            height: 5,
+                                            borderRadius: 99,
+                                            background: '#e55a5a',
+                                            marginRight: 8,
+                                            marginTop: 6,
+                                            flexShrink: 0,
+                                          }}
+                                        />
+                                        <span
+                                          style={{
+                                            fontSize: 13,
+                                            color: '#e55a5a',
+                                          }}
+                                        >
+                                          {t}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : null}
+                              </>
+                            );
+                          })()
+                        ) : (
                           <div
                             style={{
-                              fontSize: '13px',
-                              color: '#111',
-                              lineHeight: 1.5,
-                              background: '#f7f7f5',
-                              borderRadius: 10,
-                              padding: 12,
+                              display: 'flex',
+                              alignItems: 'center',
+                              flexWrap: 'wrap',
+                              gap: 8,
                             }}
                           >
-                            {(() => {
-                              const ai = contact.ai_enrichment as Record<string, unknown>;
-                              const summary = typeof ai.summary === 'string' ? ai.summary : null;
-                              const fit =
-                                typeof ai.icp_fit_score === 'number'
-                                  ? ai.icp_fit_score
-                                  : null;
-                              const reason = typeof ai.icp_fit_reason === 'string' ? ai.icp_fit_reason : null;
-                              const points = Array.isArray(ai.talking_points)
-                                ? (ai.talking_points as unknown[]).filter((x) => typeof x === 'string')
-                                : [];
-                              return (
-                                <>
-                                  {summary ? <p style={{ margin: '0 0 8px 0' }}>{summary}</p> : null}
-                                  {fit != null ? (
-                                    <p style={{ margin: '0 0 4px 0', fontWeight: 600, color: '#2d6a1f' }}>
-                                      ICP fit: {fit}/10
-                                    </p>
-                                  ) : null}
-                                  {reason ? (
-                                    <p style={{ margin: '0 0 8px 0', color: '#555' }}>{reason}</p>
-                                  ) : null}
-                                  {points.length > 0 ? (
-                                    <ul style={{ margin: 0, paddingLeft: 18 }}>
-                                      {points.map((t, i) => (
-                                        <li key={i} style={{ marginBottom: 4 }}>
-                                          {t}
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  ) : null}
-                                </>
-                              );
-                            })()}
+                            <span style={{ fontSize: 13, color: '#bbb' }}>No AI insights yet.</span>
+                            <button
+                              type='button'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void handleReEnrich(contact);
+                              }}
+                              disabled={reEnrichingId === contact.id}
+                              onMouseEnter={(e) => {
+                                if (reEnrichingId !== contact.id) {
+                                  e.currentTarget.style.background = '#f0f7eb';
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'transparent';
+                              }}
+                              style={{
+                                background: 'transparent',
+                                border: '1px solid #e8e8e8',
+                                borderRadius: 6,
+                                padding: '3px 10px',
+                                fontSize: 11,
+                                color: '#7dde3c',
+                                cursor: reEnrichingId === contact.id ? 'wait' : 'pointer',
+                                fontWeight: 500,
+                              }}
+                            >
+                              {reEnrichingId === contact.id ? 'Enriching...' : 'Enrich'}
+                            </button>
                           </div>
-                        ) : (
-                          <p style={{ fontSize: '13px', color: '#999', margin: 0 }}>
-                            No AI insights yet.
-                          </p>
                         )}
+                        {reEnrichErrorForId === contact.id ? (
+                          <p style={{ fontSize: 12, color: '#e55a5a', margin: '10px 0 0 0' }}>
+                            Enrichment failed, try again
+                          </p>
+                        ) : null}
                       </div>
                       <div
                         style={{
@@ -2341,7 +2625,7 @@ export default function ContactsPage() {
           <button
             type='button'
             onClick={() => {
-              const visibleIds = filteredContacts.map((c) => c.id);
+              const visibleIds = sortedContacts.map((c) => c.id);
               const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
               if (allSelected) {
                 setSelectedIds((prev) => prev.filter((id) => !visibleIds.includes(id)));
@@ -2363,7 +2647,7 @@ export default function ContactsPage() {
             }}
           >
             {(() => {
-              const visibleIds = filteredContacts.map((c) => c.id);
+              const visibleIds = sortedContacts.map((c) => c.id);
               const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
               return isMobile ? (allSelected ? 'None' : 'All') : allSelected ? 'Deselect all' : 'Select all';
             })()}
