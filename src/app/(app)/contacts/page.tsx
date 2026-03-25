@@ -82,6 +82,7 @@ export default function ContactsPage() {
   const [isDeleteAllWarning, setIsDeleteAllWarning] = useState(false);
   const [pendingDeleteCount, setPendingDeleteCount] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
+  const [reEnrichingId, setReEnrichingId] = useState<string | null>(null);
 
   const fetchContacts = useCallback(async () => {
     if (!user?.id) return;
@@ -266,6 +267,38 @@ export default function ContactsPage() {
       showToast('Sync failed. Please try again.', 'error');
     } finally {
       setIsSyncing(null);
+    }
+  };
+
+  const handleReEnrich = async (contact: Contact) => {
+    if (!user?.id) return;
+    setReEnrichingId(contact.id);
+    try {
+      const res = await fetch('/api/enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contactId: contact.id, userId: user.id }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error || data.enrichment == null) throw new Error('enrich failed');
+      const result = data.enrichment as Record<string, unknown>;
+      const at = new Date().toISOString();
+      setContacts((prev) =>
+        prev.map((c) =>
+          c.id === contact.id
+            ? { ...c, ai_enrichment: result, enriched: true, enriched_at: at }
+            : c
+        )
+      );
+      setSelected((sel) =>
+        sel?.id === contact.id
+          ? { ...sel, ai_enrichment: result, enriched: true, enriched_at: at }
+          : sel
+      );
+    } catch {
+      showToast('Enrichment failed, try again', 'error');
+    } finally {
+      setReEnrichingId(null);
     }
   };
 
@@ -1937,6 +1970,101 @@ export default function ContactsPage() {
                           </p>
                         </div>
                       )}
+                      <div style={{ marginTop: 16 }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: 8,
+                          }}
+                        >
+                          <p
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              letterSpacing: '0.04em',
+                              textTransform: 'uppercase',
+                              color: '#999',
+                              margin: 0,
+                            }}
+                          >
+                            AI Insights
+                          </p>
+                          <button
+                            type='button'
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleReEnrich(contact);
+                            }}
+                            disabled={reEnrichingId === contact.id}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#7dde3c',
+                              fontSize: 12,
+                              cursor: reEnrichingId === contact.id ? 'wait' : 'pointer',
+                              padding: 0,
+                              fontWeight: 500,
+                            }}
+                          >
+                            {reEnrichingId === contact.id ? 'Enriching...' : 'Re-enrich'}
+                          </button>
+                        </div>
+                        {contact.ai_enrichment &&
+                        typeof contact.ai_enrichment === 'object' &&
+                        !Array.isArray(contact.ai_enrichment) ? (
+                          <div
+                            style={{
+                              fontSize: '13px',
+                              color: '#111',
+                              lineHeight: 1.5,
+                              background: '#f7f7f5',
+                              borderRadius: 10,
+                              padding: 12,
+                            }}
+                          >
+                            {(() => {
+                              const ai = contact.ai_enrichment as Record<string, unknown>;
+                              const summary = typeof ai.summary === 'string' ? ai.summary : null;
+                              const fit =
+                                typeof ai.icp_fit_score === 'number'
+                                  ? ai.icp_fit_score
+                                  : null;
+                              const reason = typeof ai.icp_fit_reason === 'string' ? ai.icp_fit_reason : null;
+                              const points = Array.isArray(ai.talking_points)
+                                ? (ai.talking_points as unknown[]).filter((x) => typeof x === 'string')
+                                : [];
+                              return (
+                                <>
+                                  {summary ? <p style={{ margin: '0 0 8px 0' }}>{summary}</p> : null}
+                                  {fit != null ? (
+                                    <p style={{ margin: '0 0 4px 0', fontWeight: 600, color: '#2d6a1f' }}>
+                                      ICP fit: {fit}/10
+                                    </p>
+                                  ) : null}
+                                  {reason ? (
+                                    <p style={{ margin: '0 0 8px 0', color: '#555' }}>{reason}</p>
+                                  ) : null}
+                                  {points.length > 0 ? (
+                                    <ul style={{ margin: 0, paddingLeft: 18 }}>
+                                      {points.map((t, i) => (
+                                        <li key={i} style={{ marginBottom: 4 }}>
+                                          {t}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  ) : null}
+                                </>
+                              );
+                            })()}
+                          </div>
+                        ) : (
+                          <p style={{ fontSize: '13px', color: '#999', margin: 0 }}>
+                            No AI insights yet.
+                          </p>
+                        )}
+                      </div>
                       <div
                         style={{
                           display: 'flex',

@@ -94,6 +94,8 @@ export default function ScanPage() {
   const [newEventDate, setNewEventDate] = useState("");
   const [showBulkDiscard, setShowBulkDiscard] = useState(false);
   const [isHoveringCancel, setIsHoveringCancel] = useState(false);
+  const [enrichingReviewIndex, setEnrichingReviewIndex] = useState<number | null>(null);
+  const [reviewEnrichFeedback, setReviewEnrichFeedback] = useState<"success" | "error" | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [stagedFiles, setStagedFiles] = useState<Array<{ id: string; dataUrl: string; file: File }>>([]);
   const [duplicateModal, setDuplicateModal] = useState<{
@@ -118,6 +120,10 @@ export default function ScanPage() {
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
+
+  useEffect(() => {
+    setReviewEnrichFeedback(null);
+  }, [reviewIndex]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -368,6 +374,45 @@ export default function ScanPage() {
     setNewEventDate("");
   };
 
+  const handleBulkReviewEnrich = async () => {
+    if (!user?.id) return;
+    const successes = bulkFiles.filter((x) => x.status === "done" && x.contact);
+    const currentItem = successes[reviewIndex];
+    const c = currentItem?.contact;
+    if (!currentItem?.id || !c) return;
+    setEnrichingReviewIndex(reviewIndex);
+    setReviewEnrichFeedback(null);
+    try {
+      const res = await fetch("/api/enrich", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.id,
+          contact: {
+            name: c.name,
+            title: c.title,
+            company: c.company,
+            email: c.email,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error("enrich failed");
+      setBulkFiles((prev) =>
+        prev.map((x) =>
+          x.id === currentItem.id
+            ? { ...x, enrichment: data.enrichment as Record<string, unknown> }
+            : x
+        )
+      );
+      setReviewEnrichFeedback("success");
+    } catch {
+      setReviewEnrichFeedback("error");
+    } finally {
+      setEnrichingReviewIndex(null);
+    }
+  };
+
   const saveContact = async (
     item: {
       id: string;
@@ -407,6 +452,10 @@ export default function ScanPage() {
     const lead_score = r?.lead_score ?? 5;
     const checks = r?.checks ?? [];
     const free_note = r?.free_note ?? "";
+    const hasEnrichment =
+      item.enrichment != null &&
+      typeof item.enrichment === "object" &&
+      !Array.isArray(item.enrichment);
 
     // Bulk save: persist event as the selected event UUID from the picker, not a display name.
     const { error } = await supabase.from("contacts").insert({
@@ -421,9 +470,9 @@ export default function ScanPage() {
       checks,
       free_note,
       event: eventId,
-      ai_enrichment: item.enrichment || null,
-      enriched: true,
-      enriched_at: new Date().toISOString(),
+      ai_enrichment: hasEnrichment ? item.enrichment : null,
+      enriched: hasEnrichment,
+      enriched_at: hasEnrichment ? new Date().toISOString() : null,
       image: imageUrl,
     });
     if (error) throw error;
@@ -623,13 +672,36 @@ export default function ScanPage() {
     });
   };
 
-  const handleEnrich = () => {
+  const handleEnrich = async () => {
+    if (!user?.id || !extracted) return;
     setEnriching(true);
-    setTimeout(() => {
+    try {
+      const res = await fetch("/api/enrich", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.id,
+          contact: {
+            name: extracted.name,
+            title: extracted.title,
+            company: extracted.company,
+            email: extracted.email,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error("enrich failed");
+      setScanEnrichment((data.enrichment as Record<string, unknown>) || null);
+      setEnriched(!!data.enrichment);
+      showToast("AI insights ready");
+    } catch {
+      showToast("Enrichment failed, try again", {
+        background: "#e55a5a",
+        color: "#fff",
+      });
+    } finally {
       setEnriching(false);
-      setEnriched(true);
-      showToast("Enriched via Apollo.io");
-    }, 1800);
+    }
   };
 
   const handleSaveNewEvent = async () => {
@@ -692,6 +764,10 @@ export default function ScanPage() {
       }
     }
 
+    const hasEnrichment =
+      scanEnrichment != null &&
+      typeof scanEnrichment === "object" &&
+      !Array.isArray(scanEnrichment);
     const payload: Record<string, unknown> = {
       user_id: sessionUser.id,
       name: extracted?.name ?? "",
@@ -704,9 +780,9 @@ export default function ScanPage() {
       checks: activeChecks,
       free_note: freeNote,
       event: eventTag || "Untagged",
-      ai_enrichment: scanEnrichment,
-      enriched: true,
-      enriched_at: new Date().toISOString(),
+      ai_enrichment: hasEnrichment ? scanEnrichment : null,
+      enriched: hasEnrichment,
+      enriched_at: hasEnrichment ? new Date().toISOString() : null,
     };
 
     if (imageUrl) {
@@ -1696,6 +1772,54 @@ export default function ScanPage() {
                       {ls}
                     </span>
                   </div>
+                </div>
+
+                <div style={{ marginBottom: 20 }}>
+                  <button
+                    type="button"
+                    onClick={() => void handleBulkReviewEnrich()}
+                    disabled={enrichingReviewIndex === reviewIndex}
+                    style={{
+                      background: "#f0f7eb",
+                      border: "1px solid #c8e6b0",
+                      color: "#2d6a1f",
+                      borderRadius: 10,
+                      padding: "10px 16px",
+                      fontSize: 13,
+                      fontWeight: 500,
+                      cursor: enrichingReviewIndex === reviewIndex ? "wait" : "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 8,
+                      opacity: enrichingReviewIndex === reviewIndex ? 0.75 : 1,
+                    }}
+                  >
+                    {enrichingReviewIndex === reviewIndex ? (
+                      <>
+                        <div
+                          style={{
+                            width: 14,
+                            height: 14,
+                            border: "2px solid #e8e8e8",
+                            borderTop: "2px solid #7dde3c",
+                            borderRadius: "50%",
+                            animation: "spin 0.8s linear infinite",
+                          }}
+                        />
+                        Enriching...
+                      </>
+                    ) : (
+                      "✦ Enrich with AI"
+                    )}
+                  </button>
+                  {reviewEnrichFeedback === "success" && (
+                    <p style={{ fontSize: 12, color: "#2d6a1f", margin: "8px 0 0 0" }}>AI insights ready</p>
+                  )}
+                  {reviewEnrichFeedback === "error" && (
+                    <p style={{ fontSize: 12, color: "#e55a5a", margin: "8px 0 0 0" }}>
+                      Enrichment failed, try again
+                    </p>
+                  )}
                 </div>
 
                 <div style={{ marginBottom: 20 }}>
