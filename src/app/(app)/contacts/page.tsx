@@ -795,7 +795,7 @@ export default function ContactsPage() {
         </div>
       </div>
 
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: 8 }}>
         <div
           style={{
             display: 'flex',
@@ -924,9 +924,48 @@ export default function ContactsPage() {
       )}
 
       {!loading && (
+      <>
+        {contacts.length > 0 && (
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              alignItems: 'center',
+              gap: 8,
+              padding: '8px 0 8px 0',
+              marginTop: 8,
+              marginBottom: 8,
+            }}
+          >
+            <span style={{ fontSize: 13, color: '#999' }}>Sort by</span>
+            <select
+              value={sortBy}
+              onChange={(e) =>
+                setSortBy(e.target.value as typeof sortBy)
+              }
+              style={{
+                background: '#fff',
+                border: '1px solid #e8e8e8',
+                borderRadius: 8,
+                padding: '6px 12px',
+                fontSize: 13,
+                color: '#111',
+                cursor: 'pointer',
+                outline: 'none',
+              }}
+            >
+              <option value='newest'>newest</option>
+              <option value='oldest'>oldest</option>
+              <option value='az'>A → Z</option>
+              <option value='za'>Z → A</option>
+              <option value='highest'>Highest score</option>
+              <option value='lowest'>Lowest score</option>
+            </select>
+          </div>
+        )}
       <div
         style={{
-          marginTop: 16,
+          marginTop: contacts.length > 0 ? 0 : 8,
           background: isMobile ? 'transparent' : '#ffffff',
           display: 'flex',
           flexDirection: 'column',
@@ -937,58 +976,13 @@ export default function ContactsPage() {
           width: '100%',
         }}
       >
-        {contacts.length > 0 && (
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 12,
-              padding: isMobile ? '0 2px' : '0 16px',
-              flexWrap: 'wrap',
-              gap: 8,
-            }}
-          >
-            <span style={{ fontSize: 13, color: '#999' }}>
-              {sortedContacts.length} contact{sortedContacts.length === 1 ? '' : 's'}
-            </span>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                fontSize: 13,
-                color: '#999',
-                marginLeft: 'auto',
-              }}
-            >
-              <span style={{ fontSize: 13, color: '#999' }}>Sort by</span>
-              <select
-                value={sortBy}
-                onChange={(e) =>
-                  setSortBy(e.target.value as typeof sortBy)
-                }
-                style={{
-                  background: '#fff',
-                  border: '1px solid #e8e8e8',
-                  borderRadius: 8,
-                  padding: '6px 12px',
-                  fontSize: 13,
-                  color: '#111',
-                  cursor: 'pointer',
-                  outline: 'none',
-                }}
-              >
-                <option value='newest'>newest</option>
-                <option value='oldest'>oldest</option>
-                <option value='az'>A → Z</option>
-                <option value='za'>Z → A</option>
-                <option value='highest'>Highest score</option>
-                <option value='lowest'>Lowest score</option>
-              </select>
-            </div>
-          </div>
-        )}
+        <div
+          style={{
+            marginTop: 0,
+            paddingTop: 0,
+            width: '100%',
+          }}
+        >
         {!isMobile && (
           <div
             style={{
@@ -1012,7 +1006,7 @@ export default function ContactsPage() {
                   padding: '10px 16px',
                   textAlign: i >= 6 ? 'center' : 'left',
                 }}
-              >
+      >
                 {h}
               </div>
             ))}
@@ -2529,7 +2523,9 @@ export default function ContactsPage() {
             </div>
           );
         })}
+        </div>
       </div>
+      </>
       )}
 
       {showDeleteWarning && (
