@@ -374,7 +374,11 @@ export default function ScanPage() {
     setEnrichErrorIndex(null);
   };
 
-  const handleBulkReviewEnrich = async (currentReviewIndex: number, contact: any) => {
+  const handleBulkReviewEnrich = async (
+    currentReviewIndex: number,
+    contact: any,
+    reviewContactId?: string
+  ) => {
     if (!user?.id || !contact) return;
     setEnrichingIndex(currentReviewIndex);
     setEnrichErrorIndex(null);
@@ -397,6 +401,26 @@ export default function ScanPage() {
       const result = (data.enrichment as Record<string, unknown>) || null;
       setContactEnrichments((prev) => ({ ...prev, [currentReviewIndex]: result }));
       setEnrichmentExpanded((prev) => ({ ...prev, [currentReviewIndex]: false }));
+      const suggestedRaw = result?.suggested_lead_score;
+      const suggested =
+        typeof suggestedRaw === "number"
+          ? suggestedRaw
+          : typeof suggestedRaw === "string"
+            ? Number(suggestedRaw)
+            : null;
+      const suggestedScore =
+        suggested != null && Number.isFinite(suggested)
+          ? Math.min(10, Math.max(1, Math.round(suggested)))
+          : null;
+      if (reviewContactId && suggestedScore != null) {
+        setReviewData((prev) => ({
+          ...prev,
+          [reviewContactId]: {
+            ...(prev[reviewContactId] ?? { lead_score: 5, checks: [], free_note: "" }),
+            lead_score: suggestedScore,
+          },
+        }));
+      }
     } catch {
       setEnrichErrorIndex(currentReviewIndex);
     } finally {
@@ -1744,7 +1768,7 @@ export default function ScanPage() {
                 <div style={{ marginBottom: 20 }}>
                   <button
                     type="button"
-                    onClick={() => void handleBulkReviewEnrich(reviewIndex, c)}
+                    onClick={() => void handleBulkReviewEnrich(reviewIndex, c, currentId)}
                     disabled={enrichingIndex === reviewIndex}
                     style={{
                       background: "#f0f7eb",
@@ -1786,6 +1810,17 @@ export default function ScanPage() {
                               ? "#b07020"
                               : "#e55a5a";
                       const reason = typeof en.icp_fit_reason === "string" ? en.icp_fit_reason : null;
+                      const suggestedRaw = en.suggested_lead_score;
+                      const suggested =
+                        typeof suggestedRaw === "number"
+                          ? suggestedRaw
+                          : typeof suggestedRaw === "string"
+                            ? Number(suggestedRaw)
+                            : null;
+                      const suggestedScore =
+                        suggested != null && Number.isFinite(suggested)
+                          ? Math.min(10, Math.max(1, Math.round(suggested)))
+                          : null;
                       const summary = typeof en.summary === "string" ? en.summary : null;
                       const shortSummary =
                         summary && summary.includes(". ")
@@ -1823,6 +1858,11 @@ export default function ScanPage() {
                                 <span style={{ fontSize: 12, color: "#888", marginLeft: 6 }}>{reason}</span>
                               ) : null}
                             </div>
+                          ) : null}
+                          {suggestedScore != null ? (
+                            <p style={{ fontSize: 12, color: "#666", marginTop: 4, marginBottom: 0 }}>
+                              Suggested score: {suggestedScore}/10
+                            </p>
                           ) : null}
 
                           {!isExpanded ? (
@@ -1949,44 +1989,46 @@ export default function ScanPage() {
                   ) : null}
                 </div>
 
-                <div style={{ marginBottom: 20 }}>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 600,
-                      letterSpacing: "0.04em",
-                      textTransform: "uppercase",
-                      color: "#999",
-                      marginBottom: 8,
-                    }}
-                  >
-                    Lead Score
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <input
-                      type="range"
-                      min={1}
-                      max={10}
-                      step={1}
-                      value={ls}
-                      onChange={(e) => {
-                        const v = Number(e.target.value);
-                        if (!currentId) return;
-                        setReviewData((prev) => ({
-                          ...prev,
-                          [currentId]: {
-                            ...(prev[currentId] ?? { lead_score: 5, checks: [], free_note: "" }),
-                            lead_score: v,
-                          },
-                        }));
+                {!hasCurrentEnrichment ? (
+                  <div style={{ marginBottom: 20 }}>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        letterSpacing: "0.04em",
+                        textTransform: "uppercase",
+                        color: "#999",
+                        marginBottom: 8,
                       }}
-                      style={{ flex: 1, touchAction: "none" }}
-                    />
-                    <span style={{ fontSize: 20, fontWeight: 700, color: scoreNumColor, minWidth: 28, textAlign: "right" }}>
-                      {ls}
-                    </span>
+                    >
+                      Lead Score
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <input
+                        type="range"
+                        min={1}
+                        max={10}
+                        step={1}
+                        value={ls}
+                        onChange={(e) => {
+                          const v = Number(e.target.value);
+                          if (!currentId) return;
+                          setReviewData((prev) => ({
+                            ...prev,
+                            [currentId]: {
+                              ...(prev[currentId] ?? { lead_score: 5, checks: [], free_note: "" }),
+                              lead_score: v,
+                            },
+                          }));
+                        }}
+                        style={{ flex: 1, touchAction: "none" }}
+                      />
+                      <span style={{ fontSize: 20, fontWeight: 700, color: scoreNumColor, minWidth: 28, textAlign: "right" }}>
+                        {ls}
+                      </span>
+                    </div>
                   </div>
-                </div>
+                ) : null}
 
                 <div style={{ marginBottom: 20 }}>
                   <div
