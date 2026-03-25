@@ -86,34 +86,50 @@ function titleCaseTone(tone: string) {
   return tone;
 }
 
-const Toggle = ({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) => (
+const SettingsCheckbox = ({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) => (
   <div
+    role="checkbox"
+    aria-checked={checked}
+    tabIndex={0}
     onClick={() => onChange(!checked)}
+    onKeyDown={(e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onChange(!checked);
+      }
+    }}
     style={{
-      width: "51px",
-      height: "31px",
-      minWidth: "51px",
-      borderRadius: "999px",
-      background: checked ? "#7dde3c" : "#e5e5ea",
-      position: "relative",
+      width: 18,
+      height: 18,
+      borderRadius: 4,
+      border: checked ? "1.5px solid #1a3a2a" : "1.5px solid #d0d0d0",
+      background: checked ? "#1a3a2a" : "#ffffff",
       cursor: "pointer",
-      transition: "background 0.2s ease",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
       flexShrink: 0,
+      transition: "all 0.15s ease",
+      boxSizing: "border-box",
     }}
   >
-    <div
-      style={{
-        position: "absolute",
-        top: "2px",
-        left: checked ? "22px" : "2px",
-        width: "27px",
-        height: "27px",
-        borderRadius: "50%",
-        background: "#ffffff",
-        boxShadow: "0 2px 4px rgba(0,0,0,0.25)",
-        transition: "left 0.2s ease",
-      }}
-    />
+    {checked ? (
+      <svg width="10" height="8" viewBox="0 0 10 8" fill="none" aria-hidden>
+        <path
+          d="M1 4L3.5 6.5L9 1"
+          stroke="white"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ) : null}
   </div>
 );
 
@@ -128,6 +144,8 @@ export default function SettingsPage() {
   const [defaultTone, setDefaultTone] = useState<string>("professional");
   const [signalInput, setSignalInput] = useState("");
   const [fieldInput, setFieldInput] = useState("");
+  const [signalInputFocused, setSignalInputFocused] = useState(false);
+  const [fieldInputFocused, setFieldInputFocused] = useState(false);
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [activeSection, setActiveSection] = useState<SectionId>("conversation-signals");
@@ -463,12 +481,12 @@ export default function SettingsPage() {
             type="button"
             onClick={handleSave}
             style={{
-              background: "#7dde3c",
-              color: "#0a1a0a",
+              background: "#1a3a2a",
+              color: "#ffffff",
               border: "none",
-              borderRadius: "10px",
-              padding: isMobile ? "0 24px" : "10px 20px",
-              height: isMobile ? 44 : undefined,
+              borderRadius: 10,
+              padding: "10px 28px",
+              minHeight: isMobile ? 44 : undefined,
               fontWeight: 600,
               fontSize: 14,
               cursor: "pointer",
@@ -595,109 +613,121 @@ export default function SettingsPage() {
                 >
                   Configure the signals you mark after each conversation.
                 </p>
-                <div className="space-y-3">
-                  <div className="space-y-2">
+                <div>
+                  <div>
                     {signals.map((signal) => (
-                      isMobile ? (
-                        <div
-                          key={signal.id}
+                      <div
+                        key={signal.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 12,
+                          padding: "14px 16px",
+                          background: signal.enabled ? "#f8fdf4" : "#ffffff",
+                          border: signal.enabled ? "1px solid #d4edbc" : "1px solid #ebebeb",
+                          borderRadius: 10,
+                          marginBottom: 8,
+                        }}
+                      >
+                        <SettingsCheckbox
+                          checked={signal.enabled}
+                          onChange={(v) =>
+                            setSignals((prev) =>
+                              prev.map((s) => (s.id === signal.id ? { ...s, enabled: v } : s))
+                            )
+                          }
+                        />
+                        <input
+                          type="text"
+                          value={signal.name}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setSignals((prev) =>
+                              prev.map((s) => (s.id === signal.id ? { ...s, name: value } : s))
+                            );
+                          }}
+                          onBlur={(e) => {
+                            const value = e.target.value.trim();
+                            setSignals((prev) =>
+                              prev.map((s) => (s.id === signal.id ? { ...s, name: value } : s))
+                            );
+                          }}
                           style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            padding: "14px 0",
-                            borderBottom: "1px solid #f5f5f5",
+                            flex: 1,
+                            minWidth: 0,
+                            border: "none",
+                            background: "transparent",
+                            outline: "none",
+                            fontSize: 14,
+                            color: "#111",
+                            fontWeight: 400,
+                            fontFamily: "'Geist', sans-serif",
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setSignals((prev) => prev.filter((s) => s.id !== signal.id))}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            padding: 4,
+                            cursor: "pointer",
+                            color: "#bbb",
+                            fontSize: 16,
+                            lineHeight: 1,
+                            flexShrink: 0,
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = "#e55a5a";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = "#bbb";
                           }}
                         >
-                          <span style={{ fontSize: 14, color: "#111", flex: 1 }}>{signal.name}</span>
-                          <Toggle
-                            checked={signal.enabled}
-                            onChange={(v) =>
-                              setSignals((prev) =>
-                                prev.map((s) => (s.id === signal.id ? { ...s, enabled: v } : s))
-                              )
-                            }
-                          />
-                        </div>
-                      ) : (
-                        <div
-                          key={signal.id}
-                          className="flex items-center gap-3"
-                          style={{
-                            backgroundColor: "#ffffff",
-                            border: "1px solid #dce8d0",
-                            borderRadius: 10,
-                            padding: "8px 10px",
-                            width: "100%",
-                          }}
-                        >
-                          <Toggle
-                            checked={signal.enabled}
-                            onChange={(v) =>
-                              setSignals((prev) =>
-                                prev.map((s) => (s.id === signal.id ? { ...s, enabled: v } : s))
-                              )
-                            }
-                          />
-                          <input
-                            type="text"
-                            value={signal.name}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              setSignals((prev) =>
-                                prev.map((s) => (s.id === signal.id ? { ...s, name: value } : s))
-                              );
-                            }}
-                            onBlur={(e) => {
-                              const value = e.target.value.trim();
-                              setSignals((prev) =>
-                                prev.map((s) => (s.id === signal.id ? { ...s, name: value } : s))
-                              );
-                            }}
-                            className="flex-1 px-3 py-2 text-sm rounded outline-none"
-                            style={{
-                              border: "none",
-                              backgroundColor: "transparent",
-                              color: "#1a2e1a",
-                              fontFamily: "'Geist', sans-serif",
-                            }}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setSignals((prev) => prev.filter((s) => s.id !== signal.id))}
-                            className="p-1 rounded"
-                            style={{ color: "#a99a8e" }}
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
                           >
-                            <svg
-                              width="16"
-                              height="16"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                d="M18 6L6 18M6 6L18 18"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                              />
-                            </svg>
-                          </button>
-                        </div>
-                      )
+                            <path
+                              d="M18 6L6 18M6 6L18 18"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        </button>
+                      </div>
                     ))}
                   </div>
-                  <div className="flex gap-2 items-center" style={{ flexDirection: isMobile ? "column" : "row" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      flexDirection: isMobile ? "column" : "row",
+                    }}
+                  >
                     <input
                       type="text"
                       value={signalInput}
                       onChange={(e) => setSignalInput(e.target.value)}
                       placeholder="Add custom signal"
-                      className="flex-1 px-3 py-2 text-sm rounded border outline-none"
+                      onFocus={() => setSignalInputFocused(true)}
+                      onBlur={() => setSignalInputFocused(false)}
                       style={{
-                        borderColor: "#dce8d0",
-                        backgroundColor: "#f0f0ec",
-                        color: "#1a2e1a",
+                        flex: 1,
+                        width: isMobile ? "100%" : undefined,
+                        background: "#fff",
+                        border: signalInputFocused ? "1px solid #1a3a2a" : "1px solid #ebebeb",
+                        borderRadius: 10,
+                        padding: "12px 16px",
+                        fontSize: 14,
+                        color: "#111",
+                        outline: "none",
+                        boxSizing: "border-box",
+                        minHeight: isMobile ? 44 : undefined,
                       }}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") addSignal();
@@ -706,11 +736,17 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={addSignal}
-                      className="px-3 py-2 text-sm font-medium rounded border"
                       style={{
-                        borderColor: "#c47c4a",
-                        backgroundColor: "#f0f0ec",
-                        color: "#c47c4a",
+                        background: "#1a3a2a",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: 8,
+                        padding: "10px 18px",
+                        fontSize: 14,
+                        fontWeight: 500,
+                        cursor: "pointer",
+                        marginLeft: isMobile ? 0 : 8,
+                        marginTop: isMobile ? 8 : 0,
                         minHeight: isMobile ? 44 : undefined,
                         width: isMobile ? "100%" : undefined,
                       }}
@@ -747,14 +783,23 @@ export default function SettingsPage() {
                 >
                   Decide which fields you track for each contact.
                 </p>
-                <div
-                  className="rounded-2xl p-4 space-y-4"
-                  style={{ border: "1px solid #dce8d0", backgroundColor: "#ffffff" }}
-                >
-                  <div className="space-y-2">
+                <div>
+                  <div>
                     {fields.map((field) => (
-                      <div key={field.id} className="flex items-center gap-3" style={{ width: "100%", padding: isMobile ? "12px 0" : undefined, borderBottom: isMobile ? "1px solid #f0f0f0" : undefined }}>
-                        <Toggle
+                      <div
+                        key={field.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 12,
+                          padding: "14px 16px",
+                          background: field.enabled ? "#f8fdf4" : "#ffffff",
+                          border: field.enabled ? "1px solid #d4edbc" : "1px solid #ebebeb",
+                          borderRadius: 10,
+                          marginBottom: 8,
+                        }}
+                      >
+                        <SettingsCheckbox
                           checked={field.enabled}
                           onChange={(v) =>
                             setFields((prev) =>
@@ -777,21 +822,40 @@ export default function SettingsPage() {
                               prev.map((f) => (f.id === field.id ? { ...f, name: value } : f))
                             );
                           }}
-                          className="flex-1 px-3 py-2 text-sm rounded border outline-none"
                           style={{
-                            borderColor: "#dce8d0",
-                            backgroundColor: "#f0f0ec",
-                            color: "#1a2e1a",
+                            flex: 1,
+                            minWidth: 0,
+                            border: "none",
+                            background: "transparent",
+                            outline: "none",
+                            fontSize: 14,
+                            color: "#111",
+                            fontWeight: 400,
                             fontFamily: "'Geist', sans-serif",
-                            height: isMobile ? 44 : undefined,
-                            fontSize: isMobile ? 15 : undefined,
+                            minHeight: isMobile ? 44 : undefined,
                           }}
                         />
                         <button
                           type="button"
                           onClick={() => setFields((prev) => prev.filter((f) => f.id !== field.id))}
-                          className="p-1 rounded"
-                          style={{ color: "#a99a8e", width: isMobile ? 44 : undefined, height: isMobile ? 44 : undefined }}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            padding: 4,
+                            cursor: "pointer",
+                            color: "#bbb",
+                            fontSize: 16,
+                            lineHeight: 1,
+                            flexShrink: 0,
+                            width: isMobile ? 44 : undefined,
+                            height: isMobile ? 44 : undefined,
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = "#e55a5a";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = "#bbb";
+                          }}
                         >
                           <svg
                             width="16"
@@ -811,18 +875,33 @@ export default function SettingsPage() {
                       </div>
                     ))}
                   </div>
-                  <div className="flex gap-2 items-center" style={{ flexDirection: isMobile ? "column" : "row" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      flexDirection: isMobile ? "column" : "row",
+                    }}
+                  >
                     <input
                       type="text"
                       value={fieldInput}
                       onChange={(e) => setFieldInput(e.target.value)}
                       placeholder="Add custom field"
-                      className="flex-1 px-3 py-2 text-sm rounded border outline-none"
+                      onFocus={() => setFieldInputFocused(true)}
+                      onBlur={() => setFieldInputFocused(false)}
                       style={{
-                        borderColor: "#dce8d0",
-                        backgroundColor: "#f0f0ec",
-                        color: "#1a2e1a",
+                        flex: 1,
+                        width: isMobile ? "100%" : undefined,
+                        background: "#fff",
+                        border: fieldInputFocused ? "1px solid #1a3a2a" : "1px solid #ebebeb",
+                        borderRadius: 10,
+                        padding: "12px 16px",
+                        fontSize: 14,
+                        color: "#111",
+                        outline: "none",
+                        boxSizing: "border-box",
                         fontFamily: "'Geist', sans-serif",
+                        minHeight: isMobile ? 44 : undefined,
                       }}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") addField();
@@ -831,11 +910,17 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={addField}
-                      className="px-3 py-2 text-sm font-medium rounded border"
                       style={{
-                        borderColor: "#c47c4a",
-                        backgroundColor: "#f0f0ec",
-                        color: "#c47c4a",
+                        background: "#1a3a2a",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: 8,
+                        padding: "10px 18px",
+                        fontSize: 14,
+                        fontWeight: 500,
+                        cursor: "pointer",
+                        marginLeft: isMobile ? 0 : 8,
+                        marginTop: isMobile ? 8 : 0,
                         minHeight: isMobile ? 44 : undefined,
                         width: isMobile ? "100%" : undefined,
                       }}
