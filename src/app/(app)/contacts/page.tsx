@@ -1100,6 +1100,7 @@ export default function ContactsPage() {
                 {!isMobile && (
                   <>
                     <div
+                      title={contact.company ?? undefined}
                       style={{
                         padding: '12px 16px',
                         fontSize: 14,
@@ -1113,6 +1114,7 @@ export default function ContactsPage() {
                       {contact.company || '—'}
                     </div>
                     <div
+                      title={contact.title ?? undefined}
                       style={{
                         padding: '12px 16px',
                         fontSize: 14,
@@ -1126,7 +1128,7 @@ export default function ContactsPage() {
                       {contact.title || '—'}
                     </div>
                     <div
-                      title={contact.email}
+                      title={contact.email ?? undefined}
                       style={{
                         padding: '12px 16px',
                         fontSize: 13,

@@ -110,6 +110,7 @@ export default function ScanPage() {
   const stagedFilesRef = useRef(stagedFiles);
   stagedFilesRef.current = stagedFiles;
   const bulkProcessCancelRequestedRef = useRef(false);
+  const scanStartTime = useRef<number>(0);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -209,6 +210,7 @@ export default function ScanPage() {
   ) => {
     bulkProcessCancelRequestedRef.current = false;
     const queue = filesOverride ?? bulkFiles;
+    scanStartTime.current = Date.now();
     setBulkProcessing(true);
     let scanFailedExtractCount = 0;
     const retryQueue: number[] = [];
@@ -920,6 +922,18 @@ export default function ScanPage() {
         return "—";
       }
     };
+    const completedForEta = bulkFiles.filter((x) => x.status === "done" || x.status === "failed").length;
+    const bulkScanEtaLabel = (() => {
+      if (!bulkProcessing || bulkTotal === 0) return "";
+      if (completedForEta === 0) return "";
+      const elapsed = Date.now() - scanStartTime.current;
+      const avgPerPhoto = elapsed / completedForEta;
+      const remaining = Math.round(((bulkTotal - completedForEta) * avgPerPhoto) / 1000);
+      if (remaining <= 5) return "Almost done...";
+      if (remaining >= 60) return `~${Math.ceil(remaining / 60)}m left`;
+      return `~${remaining}s left`;
+    })();
+    const bulkScanProgressPct = bulkTotal > 0 ? (bulkProgress / bulkTotal) * 100 : 0;
     return (
       <div
         className="min-h-screen"
@@ -1085,10 +1099,99 @@ export default function ScanPage() {
             ))}
           </div>
 
+        {bulkTotal > 0 && bulkProcessing && (
+          <div
+            style={{
+              position: "fixed",
+              bottom: 32,
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 1000,
+              width: 380,
+              background: "#ffffff",
+              borderRadius: 20,
+              padding: "24px 28px",
+              boxShadow: "0 8px 40px rgba(0,0,0,0.12)",
+              boxSizing: "border-box",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 8,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div
+                  style={{
+                    width: 16,
+                    height: 16,
+                    border: "2px solid #e8e8e8",
+                    borderTop: "2px solid #7dde3c",
+                    borderRadius: "50%",
+                    flexShrink: 0,
+                    animation: "spin 0.8s linear infinite",
+                  }}
+                />
+                <span style={{ fontWeight: 600, fontSize: 16, color: "#111" }}>Scanning badges...</span>
+              </div>
+              <button
+                type="button"
+                onClick={cancelScanning}
+                onMouseEnter={() => setIsHoveringCancel(true)}
+                onMouseLeave={() => setIsHoveringCancel(false)}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  cursor: "pointer",
+                  fontSize: 14,
+                  color: isHoveringCancel ? "#111" : "#999",
+                  padding: "4px 8px",
+                  fontWeight: 500,
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+            <div style={{ fontSize: 13, color: "#999", marginBottom: 12 }}>
+              {bulkProgress} of {bulkTotal} contacts
+            </div>
+            <div
+              style={{
+                width: "100%",
+                height: 6,
+                background: "#f0f0f0",
+                borderRadius: 99,
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  width: `${bulkScanProgressPct}%`,
+                  height: "100%",
+                  background: "linear-gradient(90deg, #7dde3c, #4db832)",
+                  borderRadius: 99,
+                  transition: "width 0.4s ease",
+                }}
+              />
+            </div>
+            <div
+              style={{
+                fontSize: 12,
+                color: "#999",
+                marginTop: 8,
+                textAlign: "right",
+              }}
+            >
+              {bulkScanEtaLabel}
+            </div>
+          </div>
+        )}
         {bulkTotal > 0 &&
-          (bulkProcessing ||
-            !bulkAllProcessed ||
-            (bulkAllProcessed && bulkSuccessfulCount > 0)) && (
+          !bulkProcessing &&
+          (!bulkAllProcessed || (bulkAllProcessed && bulkSuccessfulCount > 0)) && (
             <div
               style={{
                 position: "fixed",
@@ -1107,47 +1210,7 @@ export default function ScanPage() {
                 boxShadow: "0 4px 24px rgba(0,0,0,0.10)",
               }}
             >
-              {bulkProcessing ? (
-                <>
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    style={{ animation: "spin 0.8s linear infinite", flexShrink: 0 }}
-                  >
-                    <circle cx="8" cy="8" r="6" stroke="#e8e8e8" strokeWidth="2" />
-                    <path
-                      d="M8 2 A6 6 0 0 1 14 8"
-                      stroke="#7dde3c"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <span style={{ fontSize: 13, fontWeight: 500, color: "#111" }}>
-                    Scanning {bulkProgress} of {bulkTotal}...
-                  </span>
-                  <button
-                    type="button"
-                    onClick={cancelScanning}
-                    onMouseEnter={() => setIsHoveringCancel(true)}
-                    onMouseLeave={() => setIsHoveringCancel(false)}
-                    style={{
-                      cursor: "pointer",
-                      padding: "6px 12px",
-                      borderRadius: 8,
-                      background: isHoveringCancel ? "#f0f0f0" : "transparent",
-                      color: "#111",
-                      fontSize: 14,
-                      fontWeight: 500,
-                      transition: "background 0.15s",
-                      border: "none",
-                    }}
-                  >
-                    Cancel
-                  </button>
-                </>
-              ) : !bulkAllProcessed ? (
+              {!bulkAllProcessed ? (
                 <>
                   <span
                     style={{
