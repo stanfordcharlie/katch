@@ -924,48 +924,9 @@ export default function ContactsPage() {
       )}
 
       {!loading && (
-      <>
-        {contacts.length > 0 && (
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              alignItems: 'center',
-              gap: 8,
-              padding: '8px 0 8px 0',
-              marginTop: 8,
-              marginBottom: 8,
-            }}
-          >
-            <span style={{ fontSize: 13, color: '#999' }}>Sort by</span>
-            <select
-              value={sortBy}
-              onChange={(e) =>
-                setSortBy(e.target.value as typeof sortBy)
-              }
-              style={{
-                background: '#fff',
-                border: '1px solid #e8e8e8',
-                borderRadius: 8,
-                padding: '6px 12px',
-                fontSize: 13,
-                color: '#111',
-                cursor: 'pointer',
-                outline: 'none',
-              }}
-            >
-              <option value='newest'>newest</option>
-              <option value='oldest'>oldest</option>
-              <option value='az'>A → Z</option>
-              <option value='za'>Z → A</option>
-              <option value='highest'>Highest score</option>
-              <option value='lowest'>Lowest score</option>
-            </select>
-          </div>
-        )}
       <div
         style={{
-          marginTop: contacts.length > 0 ? 0 : 8,
+          marginTop: 8,
           background: isMobile ? 'transparent' : '#ffffff',
           display: 'flex',
           flexDirection: 'column',
@@ -986,30 +947,116 @@ export default function ContactsPage() {
         {!isMobile && (
           <div
             style={{
-              display: 'grid',
-              tableLayout: 'fixed',
+              position: 'relative',
               width: '100%',
-              gridTemplateColumns: '40px minmax(200px,1fr) 180px 160px 200px 140px 80px 80px',
               background: '#fafafa',
               borderBottom: '1px solid #ebebeb',
             }}
           >
-            {['', 'Name', 'Company', 'Title', 'Email', 'Event', 'Score', 'Synced'].map((h, i) => (
+            <div
+              style={{
+                display: 'grid',
+                tableLayout: 'fixed',
+                width: '100%',
+                boxSizing: 'border-box',
+                gridTemplateColumns: '40px minmax(200px,1fr) 180px 160px 200px 140px 80px 80px',
+                paddingRight: contacts.length > 0 ? 200 : 0,
+              }}
+            >
+              {['', 'Name', 'Company', 'Title', 'Email', 'Event', 'Score', 'Synced'].map((h, i) => (
+                <div
+                  key={h + i}
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
+                    color: '#999',
+                    padding: '10px 16px',
+                    textAlign: i >= 6 ? 'center' : 'left',
+                  }}
+                >
+                  {h}
+                </div>
+              ))}
+            </div>
+            {contacts.length > 0 && (
               <div
-                key={h + i}
                 style={{
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  letterSpacing: '0.04em',
-                  textTransform: 'uppercase',
-                  color: '#999',
-                  padding: '10px 16px',
-                  textAlign: i >= 6 ? 'center' : 'left',
+                  position: 'absolute',
+                  right: 0,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  paddingRight: 16,
                 }}
-      >
-                {h}
+              >
+                <span style={{ fontSize: 12, color: '#999' }}>Sort by</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) =>
+                    setSortBy(e.target.value as typeof sortBy)
+                  }
+                  style={{
+                    background: '#fff',
+                    border: '1px solid #e8e8e8',
+                    borderRadius: 8,
+                    padding: '4px 10px',
+                    fontSize: 12,
+                    color: '#111',
+                    cursor: 'pointer',
+                    outline: 'none',
+                  }}
+                >
+                  <option value='newest'>newest</option>
+                  <option value='oldest'>oldest</option>
+                  <option value='az'>A → Z</option>
+                  <option value='za'>Z → A</option>
+                  <option value='highest'>Highest score</option>
+                  <option value='lowest'>Lowest score</option>
+                </select>
               </div>
-            ))}
+            )}
+          </div>
+        )}
+        {isMobile && contacts.length > 0 && (
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              alignItems: 'center',
+              gap: 8,
+              padding: '10px 16px',
+              background: '#fafafa',
+              borderBottom: '1px solid #ebebeb',
+            }}
+          >
+            <span style={{ fontSize: 12, color: '#999' }}>Sort by</span>
+            <select
+              value={sortBy}
+              onChange={(e) =>
+                setSortBy(e.target.value as typeof sortBy)
+              }
+              style={{
+                background: '#fff',
+                border: '1px solid #e8e8e8',
+                borderRadius: 8,
+                padding: '4px 10px',
+                fontSize: 12,
+                color: '#111',
+                cursor: 'pointer',
+                outline: 'none',
+              }}
+            >
+              <option value='newest'>newest</option>
+              <option value='oldest'>oldest</option>
+              <option value='az'>A → Z</option>
+              <option value='za'>Z → A</option>
+              <option value='highest'>Highest score</option>
+              <option value='lowest'>Lowest score</option>
+            </select>
           </div>
         )}
         {sortedContacts.map((contact) => {
@@ -2525,7 +2572,6 @@ export default function ContactsPage() {
         })}
         </div>
       </div>
-      </>
       )}
 
       {showDeleteWarning && (

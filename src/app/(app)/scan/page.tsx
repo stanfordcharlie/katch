@@ -54,9 +54,6 @@ export default function ScanPage() {
 
   const [scanMode, setScanMode] = useState("idle");
   const [extracted, setExtracted] = useState<any>(null);
-  const [scanEnrichment, setScanEnrichment] = useState<Record<string, unknown> | null>(null);
-  const [enriching, setEnriching] = useState(false);
-  const [enriched, setEnriched] = useState(false);
   const [singleEnrichment, setSingleEnrichment] = useState<Record<string, unknown> | null>(null);
   const [singlePanelEnriching, setSinglePanelEnriching] = useState(false);
   const [singleEnrichError, setSingleEnrichError] = useState(false);
@@ -76,7 +73,6 @@ export default function ScanPage() {
       dataUrl: string;
       status: "pending" | "scanning" | "retrying" | "done" | "failed";
       contact: any | null;
-      enrichment?: Record<string, unknown> | null;
       failureReason?: "scan_failed" | "timeout" | "other";
     }>
   >([]);
@@ -97,8 +93,10 @@ export default function ScanPage() {
   const [newEventDate, setNewEventDate] = useState("");
   const [showBulkDiscard, setShowBulkDiscard] = useState(false);
   const [isHoveringCancel, setIsHoveringCancel] = useState(false);
-  const [enrichingReviewIndex, setEnrichingReviewIndex] = useState<number | null>(null);
-  const [reviewEnrichFeedback, setReviewEnrichFeedback] = useState<"error" | null>(null);
+  const [enrichingIndex, setEnrichingIndex] = useState<number | null>(null);
+  const [contactEnrichments, setContactEnrichments] = useState<Record<number, any>>({});
+  const [enrichmentExpanded, setEnrichmentExpanded] = useState<Record<number, boolean>>({});
+  const [enrichErrorIndex, setEnrichErrorIndex] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [stagedFiles, setStagedFiles] = useState<Array<{ id: string; dataUrl: string; file: File }>>([]);
   const [duplicateModal, setDuplicateModal] = useState<{
@@ -123,10 +121,6 @@ export default function ScanPage() {
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
-
-  useEffect(() => {
-    setReviewEnrichFeedback(null);
-  }, [reviewIndex]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -192,9 +186,6 @@ export default function ScanPage() {
   const resetScan = () => {
     setScanMode("idle");
     setExtracted(null);
-    setEnriching(false);
-    setEnriched(false);
-    setScanEnrichment(null);
     setSingleEnrichment(null);
     setSinglePanelEnriching(false);
     setSingleEnrichError(false);
@@ -218,7 +209,6 @@ export default function ScanPage() {
       dataUrl: string;
       status: "pending" | "scanning" | "retrying" | "done" | "failed";
       contact: any | null;
-      enrichment?: Record<string, unknown> | null;
       failureReason?: "scan_failed" | "timeout" | "other";
     }>
   ) => {
@@ -286,7 +276,6 @@ export default function ScanPage() {
                   ...x,
                   status: data.contact ? ("done" as const) : ("failed" as const),
                   contact: data.contact || null,
-                  enrichment: (data.enrichment as Record<string, unknown> | null) || null,
                   ...(data.contact ? {} : { failureReason: "other" as const }),
                 }
               : x
@@ -328,7 +317,6 @@ export default function ScanPage() {
                     ...x,
                     status: "done" as const,
                     contact: data.contact,
-                    enrichment: (data.enrichment as Record<string, unknown> | null) || null,
                     failureReason: undefined,
                   }
                 : x
@@ -380,16 +368,16 @@ export default function ScanPage() {
     setShowNewEventInput(false);
     setNewEventName("");
     setNewEventDate("");
+    setEnrichingIndex(null);
+    setContactEnrichments({});
+    setEnrichmentExpanded({});
+    setEnrichErrorIndex(null);
   };
 
-  const handleBulkReviewEnrich = async () => {
-    if (!user?.id) return;
-    const successes = bulkFiles.filter((x) => x.status === "done" && x.contact);
-    const currentItem = successes[reviewIndex];
-    const c = currentItem?.contact;
-    if (!currentItem?.id || !c) return;
-    setEnrichingReviewIndex(reviewIndex);
-    setReviewEnrichFeedback(null);
+  const handleBulkReviewEnrich = async (currentReviewIndex: number, contact: any) => {
+    if (!user?.id || !contact) return;
+    setEnrichingIndex(currentReviewIndex);
+    setEnrichErrorIndex(null);
     try {
       const res = await fetch("/api/enrich", {
         method: "POST",
@@ -397,26 +385,22 @@ export default function ScanPage() {
         body: JSON.stringify({
           userId: user.id,
           contact: {
-            name: c.name,
-            title: c.title,
-            company: c.company,
-            email: c.email,
+            name: contact.name,
+            title: contact.title,
+            company: contact.company,
+            email: contact.email,
           },
         }),
       });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error("enrich failed");
-      setBulkFiles((prev) =>
-        prev.map((x) =>
-          x.id === currentItem.id
-            ? { ...x, enrichment: data.enrichment as Record<string, unknown> }
-            : x
-        )
-      );
+      const result = (data.enrichment as Record<string, unknown>) || null;
+      setContactEnrichments((prev) => ({ ...prev, [currentReviewIndex]: result }));
+      setEnrichmentExpanded((prev) => ({ ...prev, [currentReviewIndex]: false }));
     } catch {
-      setReviewEnrichFeedback("error");
+      setEnrichErrorIndex(currentReviewIndex);
     } finally {
-      setEnrichingReviewIndex(null);
+      setEnrichingIndex(null);
     }
   };
 
@@ -426,11 +410,11 @@ export default function ScanPage() {
       dataUrl: string;
       status: "pending" | "scanning" | "retrying" | "done" | "failed";
       contact: any;
-      enrichment?: Record<string, unknown> | null;
       failureReason?: "scan_failed" | "timeout" | "other";
     },
     sessionUser: User,
-    eventId: string | null
+    eventId: string | null,
+    reviewItemIndex: number
   ) => {
     let imageUrl: string | null = null;
     try {
@@ -459,10 +443,12 @@ export default function ScanPage() {
     const lead_score = r?.lead_score ?? 5;
     const checks = r?.checks ?? [];
     const free_note = r?.free_note ?? "";
-    const hasEnrichment =
-      item.enrichment != null &&
-      typeof item.enrichment === "object" &&
-      !Array.isArray(item.enrichment);
+
+    const enrichmentForContact = contactEnrichments[reviewItemIndex];
+    const hasEnrichmentForContact =
+      enrichmentForContact != null &&
+      typeof enrichmentForContact === "object" &&
+      !Array.isArray(enrichmentForContact);
 
     // Bulk save: persist event as the selected event UUID from the picker, not a display name.
     const { error } = await supabase.from("contacts").insert({
@@ -477,9 +463,9 @@ export default function ScanPage() {
       checks,
       free_note,
       event: eventId,
-      ai_enrichment: hasEnrichment ? item.enrichment : null,
-      enriched: hasEnrichment,
-      enriched_at: hasEnrichment ? new Date().toISOString() : null,
+      ai_enrichment: hasEnrichmentForContact ? enrichmentForContact : null,
+      enriched: hasEnrichmentForContact,
+      enriched_at: hasEnrichmentForContact ? new Date().toISOString() : null,
       image: imageUrl,
     });
     if (error) throw error;
@@ -496,7 +482,7 @@ export default function ScanPage() {
       }
       const doneItems = bulkFiles.filter((x) => x.status === "done" && x.contact);
       await Promise.all(
-        doneItems.map((item) => saveContact(item, sessionUser, selectedEventId ?? null))
+        doneItems.map((item, index) => saveContact(item, sessionUser, selectedEventId ?? null, index))
       );
       setBulkMode(false);
       setBulkFiles([]);
@@ -509,6 +495,10 @@ export default function ScanPage() {
       setShowNewEventInput(false);
       setNewEventName("");
       setNewEventDate("");
+      setEnrichingIndex(null);
+      setContactEnrichments({});
+      setEnrichmentExpanded({});
+      setEnrichErrorIndex(null);
       showToast(`${doneItems.length} contacts saved`);
       setIsSaving(false);
       router.push("/contacts");
@@ -563,8 +553,6 @@ export default function ScanPage() {
       }
       if (data.contact) {
         setExtracted(data.contact);
-        setScanEnrichment((data.enrichment as Record<string, unknown> | null) || null);
-        setEnriched(!!data.enrichment);
         setScanMode("review");
         try {
           const imageDataUrl = uploadedImage || `data:${mediaType};base64,${base64}`;
@@ -707,38 +695,6 @@ export default function ScanPage() {
       setSingleEnrichError(true);
     } finally {
       setSinglePanelEnriching(false);
-    }
-  };
-
-  const handleEnrich = async () => {
-    if (!user?.id || !extracted) return;
-    setEnriching(true);
-    try {
-      const res = await fetch("/api/enrich", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: user.id,
-          contact: {
-            name: extracted.name,
-            title: extracted.title,
-            company: extracted.company,
-            email: extracted.email,
-          },
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error("enrich failed");
-      setScanEnrichment((data.enrichment as Record<string, unknown>) || null);
-      setEnriched(!!data.enrichment);
-      showToast("AI insights ready");
-    } catch {
-      showToast("Enrichment failed, try again", {
-        background: "#e55a5a",
-        color: "#fff",
-      });
-    } finally {
-      setEnriching(false);
     }
   };
 
@@ -900,7 +856,7 @@ export default function ScanPage() {
           checks: activeChecks,
           free_note: freeNote,
           event: eventTag || "Untagged",
-          enriched: enriched,
+          enriched: !!singleEnrichment,
         },
         imageFile,
       });
@@ -1607,6 +1563,10 @@ export default function ScanPage() {
                     setShowNewEventInput(false);
                     setNewEventName("");
                     setNewEventDate("");
+                    setEnrichingIndex(null);
+                    setContactEnrichments({});
+                    setEnrichmentExpanded({});
+                    setEnrichErrorIndex(null);
                   }}
                   style={{
                     background: "none",
@@ -1658,6 +1618,10 @@ export default function ScanPage() {
                     setShowNewEventInput(false);
                     setNewEventName("");
                     setNewEventDate("");
+                    setEnrichingIndex(null);
+                    setContactEnrichments({});
+                    setEnrichmentExpanded({});
+                    setEnrichErrorIndex(null);
                   }}
                   style={{
                     background: "#7dde3c",
@@ -1687,6 +1651,12 @@ export default function ScanPage() {
           const scoreNumColor = ls >= 7 ? "#2d6a1f" : ls >= 4 ? "#b07020" : "#e55a5a";
           const isLastReview = reviewIndex >= bulkReviewTotal - 1;
           const c = currentItem?.contact;
+          const currentEnrichment = contactEnrichments[reviewIndex];
+          const hasCurrentEnrichment =
+            currentEnrichment != null &&
+            typeof currentEnrichment === "object" &&
+            !Array.isArray(currentEnrichment);
+          const isExpanded = enrichmentExpanded[reviewIndex] === true;
 
           return (
             <div
@@ -1772,6 +1742,214 @@ export default function ScanPage() {
                 </div>
 
                 <div style={{ marginBottom: 20 }}>
+                  <button
+                    type="button"
+                    onClick={() => void handleBulkReviewEnrich(reviewIndex, c)}
+                    disabled={enrichingIndex === reviewIndex}
+                    style={{
+                      background: "#f0f7eb",
+                      border: "1px solid #c8e6b0",
+                      color: "#2d6a1f",
+                      borderRadius: 10,
+                      padding: "10px 16px",
+                      fontSize: 13,
+                      fontWeight: 500,
+                      cursor: enrichingIndex === reviewIndex ? "wait" : "pointer",
+                      width: "fit-content",
+                      opacity: enrichingIndex === reviewIndex ? 0.75 : 1,
+                    }}
+                  >
+                    {enrichingIndex === reviewIndex ? "Enriching..." : "✦ Enrich with AI"}
+                  </button>
+                  {enrichErrorIndex === reviewIndex ? (
+                    <p style={{ fontSize: 12, color: "#e55a5a", marginTop: 8, marginBottom: 0 }}>
+                      Enrichment failed, try again
+                    </p>
+                  ) : null}
+                  {hasCurrentEnrichment ? (
+                    (() => {
+                      const en = currentEnrichment as Record<string, unknown>;
+                      const fitRaw = en.icp_fit_score;
+                      const fit =
+                        typeof fitRaw === "number"
+                          ? fitRaw
+                          : typeof fitRaw === "string"
+                            ? Number(fitRaw)
+                            : null;
+                      const fitNum = fit != null && !Number.isNaN(Number(fit)) ? Number(fit) : null;
+                      const fitColor =
+                        fitNum == null
+                          ? "#2d6a1f"
+                          : fitNum >= 7
+                            ? "#2d6a1f"
+                            : fitNum >= 4
+                              ? "#b07020"
+                              : "#e55a5a";
+                      const reason = typeof en.icp_fit_reason === "string" ? en.icp_fit_reason : null;
+                      const summary = typeof en.summary === "string" ? en.summary : null;
+                      const shortSummary =
+                        summary && summary.includes(". ")
+                          ? `${summary.split(". ")[0]}.`
+                          : summary;
+                      const ptsRaw = en.talking_points;
+                      const points = (
+                        Array.isArray(ptsRaw)
+                          ? (ptsRaw as unknown[]).filter((x) => typeof x === "string")
+                          : []
+                      ).slice(0, 3);
+                      const redRaw = en.red_flags;
+                      const redFlags = Array.isArray(redRaw)
+                        ? (redRaw as unknown[]).filter((x) => typeof x === "string")
+                        : [];
+
+                      return (
+                        <div
+                          style={{
+                            background: "#f8fdf4",
+                            border: "1px solid #d4edbc",
+                            borderRadius: 12,
+                            padding: "12px 14px",
+                            marginTop: 12,
+                          }}
+                        >
+                          {fitNum != null || reason ? (
+                            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline" }}>
+                              {fitNum != null ? (
+                                <span style={{ fontSize: 13, fontWeight: 600, color: fitColor }}>
+                                  ICP fit: {fitNum}/10
+                                </span>
+                              ) : null}
+                              {reason ? (
+                                <span style={{ fontSize: 12, color: "#888", marginLeft: 6 }}>{reason}</span>
+                              ) : null}
+                            </div>
+                          ) : null}
+
+                          {!isExpanded ? (
+                            summary ? (
+                              <p
+                                style={{
+                                  fontSize: 13,
+                                  color: "#444",
+                                  marginTop: 8,
+                                  lineHeight: 1.5,
+                                  marginBottom: 0,
+                                }}
+                              >
+                                {shortSummary}{" "}
+                                <span
+                                  role="button"
+                                  onClick={() =>
+                                    setEnrichmentExpanded((prev) => ({ ...prev, [reviewIndex]: true }))
+                                  }
+                                  style={{
+                                    color: "#7dde3c",
+                                    fontSize: 12,
+                                    cursor: "pointer",
+                                    fontWeight: 500,
+                                  }}
+                                >
+                                  ... See more
+                                </span>
+                              </p>
+                            ) : null
+                          ) : (
+                            <>
+                              {summary ? (
+                                <p
+                                  style={{
+                                    fontSize: 13,
+                                    color: "#444",
+                                    marginTop: 8,
+                                    lineHeight: 1.5,
+                                    marginBottom: 0,
+                                  }}
+                                >
+                                  {summary}
+                                </p>
+                              ) : null}
+                              {points.length > 0 ? (
+                                <div>
+                                  <p
+                                    style={{
+                                      fontSize: 11,
+                                      fontWeight: 600,
+                                      color: "#999",
+                                      marginTop: 10,
+                                      marginBottom: 4,
+                                    }}
+                                  >
+                                    Talking points
+                                  </p>
+                                  {points.map((t, i) => (
+                                    <div key={i} style={{ display: "flex", alignItems: "flex-start" }}>
+                                      <span
+                                        style={{
+                                          width: 5,
+                                          height: 5,
+                                          borderRadius: 99,
+                                          background: "#7dde3c",
+                                          marginRight: 8,
+                                          marginTop: 5,
+                                          flexShrink: 0,
+                                        }}
+                                      />
+                                      <span style={{ fontSize: 12, color: "#444" }}>{t}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : null}
+                              {redFlags.length > 0 ? (
+                                <div>
+                                  <p
+                                    style={{
+                                      fontSize: 11,
+                                      fontWeight: 600,
+                                      color: "#e55a5a",
+                                      marginTop: 8,
+                                      marginBottom: 4,
+                                    }}
+                                  >
+                                    Red flags
+                                  </p>
+                                  {redFlags.map((t, i) => (
+                                    <div key={i} style={{ display: "flex", alignItems: "flex-start" }}>
+                                      <span
+                                        style={{
+                                          width: 5,
+                                          height: 5,
+                                          borderRadius: 99,
+                                          background: "#e55a5a",
+                                          marginRight: 8,
+                                          marginTop: 5,
+                                          flexShrink: 0,
+                                        }}
+                                      />
+                                      <span style={{ fontSize: 12, color: "#e55a5a" }}>{t}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : null}
+                              <p style={{ marginTop: 10, marginBottom: 0 }}>
+                                <span
+                                  role="button"
+                                  onClick={() =>
+                                    setEnrichmentExpanded((prev) => ({ ...prev, [reviewIndex]: false }))
+                                  }
+                                  style={{ color: "#999", fontSize: 12, cursor: "pointer" }}
+                                >
+                                  See less
+                                </span>
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })()
+                  ) : null}
+                </div>
+
+                <div style={{ marginBottom: 20 }}>
                   <div
                     style={{
                       fontSize: 12,
@@ -1808,217 +1986,6 @@ export default function ScanPage() {
                       {ls}
                     </span>
                   </div>
-                </div>
-
-                <div style={{ marginBottom: 20 }}>
-                  <button
-                    type="button"
-                    onClick={() => void handleBulkReviewEnrich()}
-                    disabled={enrichingReviewIndex === reviewIndex}
-                    style={{
-                      background: "#f0f7eb",
-                      border: "1px solid #c8e6b0",
-                      color: "#2d6a1f",
-                      borderRadius: 10,
-                      padding: "10px 16px",
-                      fontSize: 13,
-                      fontWeight: 500,
-                      cursor: enrichingReviewIndex === reviewIndex ? "wait" : "pointer",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 8,
-                      opacity: enrichingReviewIndex === reviewIndex ? 0.75 : 1,
-                    }}
-                  >
-                    {enrichingReviewIndex === reviewIndex ? (
-                      <>
-                        <div
-                          style={{
-                            width: 14,
-                            height: 14,
-                            border: "2px solid #e8e8e8",
-                            borderTop: "2px solid #7dde3c",
-                            borderRadius: "50%",
-                            animation: "spin 0.8s linear infinite",
-                          }}
-                        />
-                        Enriching...
-                      </>
-                    ) : (
-                      "✦ Enrich with AI"
-                    )}
-                  </button>
-                  {reviewEnrichFeedback === "error" && (
-                    <p style={{ fontSize: 12, color: "#e55a5a", margin: "8px 0 0 0" }}>
-                      Enrichment failed, try again
-                    </p>
-                  )}
-                  {currentItem?.enrichment &&
-                  typeof currentItem.enrichment === "object" &&
-                  !Array.isArray(currentItem.enrichment) ? (
-                    (() => {
-                      const en = currentItem.enrichment as Record<string, unknown>;
-                      const fitRaw = en.icp_fit_score;
-                      const fit =
-                        typeof fitRaw === "number"
-                          ? fitRaw
-                          : typeof fitRaw === "string"
-                            ? Number(fitRaw)
-                            : null;
-                      const fitNum =
-                        fit != null && !Number.isNaN(Number(fit)) ? Number(fit) : null;
-                      const fitColor =
-                        fitNum == null
-                          ? "#2d6a1f"
-                          : fitNum >= 7
-                            ? "#2d6a1f"
-                            : fitNum >= 4
-                              ? "#b07020"
-                              : "#e55a5a";
-                      const reason =
-                        typeof en.icp_fit_reason === "string" ? en.icp_fit_reason : null;
-                      const summary = typeof en.summary === "string" ? en.summary : null;
-                      const ptsRaw = en.talking_points;
-                      const points = (
-                        Array.isArray(ptsRaw)
-                          ? (ptsRaw as unknown[]).filter((x) => typeof x === "string")
-                          : []
-                      ).slice(0, 3);
-                      const redRaw = en.red_flags;
-                      const redFlags = Array.isArray(redRaw)
-                        ? (redRaw as unknown[]).filter((x) => typeof x === "string")
-                        : [];
-                      return (
-                        <div
-                          style={{
-                            marginTop: 12,
-                            padding: "12px 14px",
-                            background: "#f8fdf4",
-                            border: "1px solid #d4edbc",
-                            borderRadius: 12,
-                          }}
-                        >
-                          {fitNum != null || reason ? (
-                            <div
-                              style={{
-                                display: "flex",
-                                flexWrap: "wrap",
-                                alignItems: "baseline",
-                              }}
-                            >
-                              {fitNum != null ? (
-                                <span
-                                  style={{
-                                    fontSize: 13,
-                                    fontWeight: 600,
-                                    color: fitColor,
-                                  }}
-                                >
-                                  ICP fit: {fitNum}/10
-                                </span>
-                              ) : null}
-                              {reason ? (
-                                <span
-                                  style={{
-                                    fontSize: 12,
-                                    color: "#888",
-                                    marginLeft: fitNum != null ? 6 : 0,
-                                  }}
-                                >
-                                  {reason}
-                                </span>
-                              ) : null}
-                            </div>
-                          ) : null}
-                          {summary ? (
-                            <p
-                              style={{
-                                fontSize: 13,
-                                color: "#444",
-                                marginTop: 8,
-                                lineHeight: 1.5,
-                                marginBottom: 0,
-                              }}
-                            >
-                              {summary}
-                            </p>
-                          ) : null}
-                          {points.length > 0 ? (
-                            <div>
-                              <p
-                                style={{
-                                  fontSize: 11,
-                                  fontWeight: 600,
-                                  color: "#999",
-                                  marginTop: 10,
-                                  marginBottom: 4,
-                                  marginLeft: 0,
-                                  marginRight: 0,
-                                }}
-                              >
-                                Talking points
-                              </p>
-                              {points.map((t, i) => (
-                                <div
-                                  key={i}
-                                  style={{ display: "flex", alignItems: "flex-start" }}
-                                >
-                                  <span
-                                    style={{
-                                      width: 5,
-                                      height: 5,
-                                      borderRadius: 99,
-                                      background: "#7dde3c",
-                                      marginRight: 8,
-                                      marginTop: 5,
-                                      flexShrink: 0,
-                                    }}
-                                  />
-                                  <span style={{ fontSize: 12, color: "#444" }}>{t}</span>
-                                </div>
-                              ))}
-                            </div>
-                          ) : null}
-                          {redFlags.length > 0 ? (
-                            <div>
-                              <p
-                                style={{
-                                  fontSize: 11,
-                                  fontWeight: 600,
-                                  color: "#e55a5a",
-                                  marginTop: 8,
-                                  marginBottom: 4,
-                                  marginLeft: 0,
-                                  marginRight: 0,
-                                }}
-                              >
-                                Red flags
-                              </p>
-                              {redFlags.map((t, i) => (
-                                <div
-                                  key={i}
-                                  style={{ display: "flex", alignItems: "flex-start" }}
-                                >
-                                  <span
-                                    style={{
-                                      width: 5,
-                                      height: 5,
-                                      borderRadius: 99,
-                                      background: "#e55a5a",
-                                      marginRight: 8,
-                                      marginTop: 5,
-                                      flexShrink: 0,
-                                    }}
-                                  />
-                                  <span style={{ fontSize: 12, color: "#e55a5a" }}>{t}</span>
-                                </div>
-                              ))}
-                            </div>
-                          ) : null}
-                        </div>
-                      );
-                    })()
-                  ) : null}
                 </div>
 
                 <div style={{ marginBottom: 20 }}>
@@ -2204,6 +2171,10 @@ export default function ScanPage() {
                     setShowNewEventInput(false);
                     setNewEventName("");
                     setNewEventDate("");
+                    setEnrichingIndex(null);
+                    setContactEnrichments({});
+                    setEnrichmentExpanded({});
+                    setEnrichErrorIndex(null);
                   }}
                   style={{
                     background: "#fff",
@@ -2867,7 +2838,6 @@ export default function ScanPage() {
                       dataUrl: s.dataUrl,
                       status: "pending" as const,
                       contact: null,
-                      enrichment: null,
                     }));
                     setBulkFiles(newBulk);
                     setBulkMode(true);
@@ -3014,70 +2984,6 @@ export default function ScanPage() {
               <div style={{ borderRadius: 16, overflow: "hidden", border: "1px solid #ebebeb", aspectRatio: "16/10", background: "#f7f7f5" }}>
                 <img src={uploadedImage} alt="Scanned badge full" className="w-full h-full object-cover" />
               </div>
-              {!enriched ? (
-                <button
-                  type="button"
-                  onClick={handleEnrich}
-                  disabled={enriching}
-                  style={{
-                    width: "100%",
-                    marginTop: 12,
-                    padding: "10px 16px",
-                    border: "1px solid #e8e8e8",
-                    borderRadius: 10,
-                    fontSize: 14,
-                    color: "#555",
-                    background: "#fff",
-                    cursor: enriching ? "wait" : "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                  }}
-                >
-                  {enriching ? (
-                    <>
-                      <div
-                        className="animate-spin"
-                        style={{
-                          width: 16,
-                          height: 16,
-                          border: "2px solid #e8e8e8",
-                          borderTopColor: "#7ab648",
-                          borderRadius: "50%",
-                        }}
-                      />
-                      Enriching via Apollo.io...
-                    </>
-                  ) : (
-                    "Enrich Contact"
-                  )}
-                </button>
-              ) : (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    marginTop: 12,
-                    padding: "10px 14px",
-                    background: "#f0f7eb",
-                    border: "1px solid #c8e0b0",
-                    borderRadius: 10,
-                    fontSize: 13,
-                    color: "#2d6a1f",
-                  }}
-                >
-                  <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  Enriched · email, phone & LinkedIn verified
-                </div>
-              )}
             </div>
           )}
             </div>

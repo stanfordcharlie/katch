@@ -1,7 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { enrichContact } from "@/lib/enrichContact";
 
 const anthropic = new Anthropic();
 
@@ -146,17 +145,7 @@ export async function POST(req: NextRequest) {
       linkedin: result.linkedin,
     };
 
-    let enrichmentResult: Record<string, unknown> | null = null;
-
     if (userId) {
-      const { data: settings } = await supabaseAdmin
-        .from("user_settings")
-        .select("icp_profile")
-        .eq("user_id", userId)
-        .single();
-      const icpProfile = settings?.icp_profile || null;
-      void icpProfile;
-
       const { data: insertedData, error: insertError } = await supabaseAdmin
         .from("contacts")
         .insert({
@@ -178,23 +167,12 @@ export async function POST(req: NextRequest) {
         .select()
         .single();
 
-      if (!insertError && insertedData?.id) {
-        await enrichContact(insertedData.id as string, userId as string);
-        const { data: enrichedRow } = await supabaseAdmin
-          .from("contacts")
-          .select("ai_enrichment")
-          .eq("id", insertedData.id as string)
-          .single();
-        enrichmentResult =
-          (enrichedRow?.ai_enrichment as Record<string, unknown> | null | undefined) || null;
-
-        if (!persistContact) {
-          await supabaseAdmin.from("contacts").delete().eq("id", insertedData.id as string);
-        }
+      if (!insertError && insertedData?.id && !persistContact) {
+        await supabaseAdmin.from("contacts").delete().eq("id", insertedData.id as string);
       }
     }
 
-    return NextResponse.json({ contact, enrichment: enrichmentResult });
+    return NextResponse.json({ contact });
   } catch (err) {
     console.error("Scan error:", err);
     return NextResponse.json({ error: "Failed to scan image" }, { status: 500 });
