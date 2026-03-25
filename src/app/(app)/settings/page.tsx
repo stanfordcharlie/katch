@@ -77,6 +77,14 @@ function parseIcpProfile(raw: unknown): IcpProfileForm {
 
 const TONE_OPTIONS = ["professional", "casual", "friendly", "bold", "funny"] as const;
 
+const TONE_DESCRIPTORS: Record<(typeof TONE_OPTIONS)[number], string> = {
+  professional: "Formal and polished",
+  casual: "Relaxed and natural",
+  friendly: "Warm and approachable",
+  bold: "Direct and confident",
+  funny: "Light and witty",
+};
+
 function titleCaseTone(tone: string) {
   if (tone === "professional") return "Professional";
   if (tone === "casual") return "Casual";
@@ -574,7 +582,8 @@ export default function SettingsPage() {
                 onClick={() => setActiveSection(tab.id)}
                 style={{
                   background: "transparent",
-                  borderBottom: active ? "2px solid #7ab648" : "2px solid transparent",
+                  border: "none",
+                  borderBottom: active ? "2px solid #1a3a2a" : "2px solid transparent",
                   padding: isMobile ? "10px 14px" : "8px 16px",
                   fontSize: isMobile ? 13 : 14,
                   cursor: "pointer",
@@ -582,6 +591,7 @@ export default function SettingsPage() {
                   fontWeight: active ? 500 : 400,
                   flexShrink: 0,
                   minHeight: isMobile ? 44 : undefined,
+                  outline: "none",
                 }}
               >
                 {tab.label}
@@ -1000,41 +1010,94 @@ export default function SettingsPage() {
                   Email Tone Defaults
                 </h2>
                 <p
-                  className="mb-4"
-                  style={{ fontSize: 12, color: "rgba(26,35,50,0.6)", fontFamily: "'Geist', sans-serif" }}
+                  style={{ fontSize: 12, color: "rgba(26,35,50,0.6)", fontFamily: "'Geist', sans-serif", margin: 0 }}
                 >
                   Default email tone for new sequences.
                 </p>
                 <div
-                  className="rounded-2xl p-4"
-                  style={{ border: "1px solid #dce8d0", backgroundColor: "#ffffff" }}
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 12,
+                    marginTop: 16,
+                  }}
                 >
-                  <div className="flex flex-wrap gap-2" style={{ width: "100%" }}>
-                    {TONE_OPTIONS.map((tone) => {
-                      const active = defaultTone === tone;
-                      return (
-                        <button
-                          key={tone}
-                          type="button"
-                          onClick={() => setDefaultTone(tone)}
-                          className="px-3 py-1.5 text-xs font-medium rounded-full border transition-colors"
+                  {TONE_OPTIONS.map((tone) => {
+                    const active = defaultTone === tone;
+                    return (
+                      <button
+                        key={tone}
+                        type="button"
+                        onClick={() => setDefaultTone(tone)}
+                        onMouseEnter={(e) => {
+                          if (defaultTone === tone) return;
+                          e.currentTarget.style.border = "1px solid #ccc";
+                          e.currentTarget.style.background = "#fafafa";
+                        }}
+                        onMouseLeave={(e) => {
+                          if (defaultTone === tone) return;
+                          e.currentTarget.style.border = "1px solid #ebebeb";
+                          e.currentTarget.style.background = "#ffffff";
+                        }}
+                        style={{
+                          position: "relative",
+                          background: active ? "#f0f7eb" : "#ffffff",
+                          border: active ? "1.5px solid #1a3a2a" : "1px solid #ebebeb",
+                          borderRadius: 12,
+                          padding: "16px 20px",
+                          cursor: "pointer",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 6,
+                          minWidth: 120,
+                          transition: "all 0.15s ease",
+                          textAlign: "left",
+                          fontFamily: "'Geist', sans-serif",
+                          width: isMobile ? "100%" : undefined,
+                          outline: "none",
+                          boxSizing: "border-box",
+                        }}
+                      >
+                        {active ? (
+                          <div
+                            style={{
+                              position: "absolute",
+                              top: 12,
+                              right: 12,
+                              width: 18,
+                              height: 18,
+                              borderRadius: 99,
+                              background: "#1a3a2a",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <svg width="10" height="8" viewBox="0 0 10 8" fill="none" aria-hidden>
+                              <path
+                                d="M1 4L3.5 6.5L9 1"
+                                stroke="white"
+                                strokeWidth="1.8"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </div>
+                        ) : null}
+                        <span
                           style={{
-                            borderColor: active ? "#7ab648" : "#dce8d0",
-                            backgroundColor: active ? "#1a3a2a" : "#f0f0ec",
-                            color: active ? "#a8d878" : "#1a2e1a",
-                            fontFamily: "'Geist', sans-serif",
-                            width: isMobile ? "100%" : undefined,
-                            padding: isMobile ? "14px" : undefined,
-                            fontSize: isMobile ? 14 : undefined,
-                            minHeight: isMobile ? 44 : undefined,
-                            borderRadius: isMobile ? 12 : undefined,
+                            fontSize: 14,
+                            fontWeight: 600,
+                            color: active ? "#1a3a2a" : "#111",
+                            paddingRight: active ? 24 : 0,
                           }}
                         >
                           {titleCaseTone(tone)}
-                        </button>
-                      );
-                    })}
-                  </div>
+                        </span>
+                        <span style={{ fontSize: 12, color: "#999" }}>{TONE_DESCRIPTORS[tone]}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </section>
             )}

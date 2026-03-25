@@ -196,15 +196,14 @@ export default function SequencesPage() {
                 type="button"
                 onClick={handleHeaderGenerateSequence}
                 style={{
-                  fontSize: "13px",
-                  fontWeight: 600,
-                  letterSpacing: "-0.01em",
-                  background: "#7dde3c",
-                  color: "#0a1a0a",
-                  cursor: "pointer",
+                  background: "#1a3a2a",
+                  color: "#ffffff",
                   border: "none",
-                  borderRadius: 999,
+                  borderRadius: 10,
                   padding: "10px 20px",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: "pointer",
                   flexShrink: 0,
                   alignSelf: "flex-start",
                 }}
@@ -238,15 +237,14 @@ export default function SequencesPage() {
                   type="button"
                   onClick={() => router.push("/scan")}
                   style={{
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    letterSpacing: "-0.01em",
-                    background: "#7dde3c",
-                    color: "#0a1a0a",
-                    cursor: "pointer",
+                    background: "#1a3a2a",
+                    color: "#ffffff",
                     border: "none",
-                    borderRadius: 999,
+                    borderRadius: 10,
                     padding: "10px 24px",
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: "pointer",
                   }}
                 >
                   Generate Sequence

@@ -274,18 +274,26 @@ export default function DashboardPage() {
                   <select
                     value={selectedEventId}
                     onChange={(e) => setSelectedEventId(e.target.value)}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "rgba(255,255,255,0.18)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "rgba(255,255,255,0.12)";
+                    }}
                     style={{
-                      background: "#ffffff",
-                      color: "#111111",
-                      border: "1px solid #e8e8e8",
-                      borderRadius: "999px",
-                      padding: "8px 32px 8px 16px",
-                      fontSize: "13px",
+                      background: "rgba(255,255,255,0.12)",
+                      color: "#ffffff",
+                      border: "1px solid rgba(255,255,255,0.25)",
+                      borderRadius: 10,
+                      padding: "8px 16px",
+                      fontSize: 14,
                       fontWeight: 500,
                       cursor: "pointer",
                       outline: "none",
                       appearance: "none",
                       WebkitAppearance: "none",
+                      backdropFilter: "blur(4px)",
+                      WebkitBackdropFilter: "blur(4px)",
                     }}
                   >
                     <option value="" style={{ background: "#1a3a2a", color: "#fff" }}>All events</option>
@@ -310,7 +318,7 @@ export default function DashboardPage() {
                   >
                     <path
                       d="M2 4l4 4 4-4"
-                      stroke="#111111"
+                      stroke="#ffffff"
                       strokeWidth="1.5"
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -423,14 +431,13 @@ export default function DashboardPage() {
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                padding: "8px 18px",
-                borderRadius: 999,
-                border: "1px solid #0d1f0d",
-                background: "#ffffff",
-                fontSize: "14px",
-                fontWeight: 400,
-                lineHeight: 1.5,
-                color: "#0d1f0d",
+                background: "#1a3a2a",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: 10,
+                padding: "10px 24px",
+                fontSize: 14,
+                fontWeight: 600,
                 textDecoration: "none",
                 cursor: "pointer",
               }}
