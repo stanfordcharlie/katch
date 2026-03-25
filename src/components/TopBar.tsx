@@ -83,7 +83,7 @@ export function TopBar({
   const [open, setOpen] = useState(false);
   const [contacts, setContacts] = useState<ContactRow[]>([]);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [screenName, setScreenName] = useState<string | null>(null);
+  const [screenName, setScreenName] = useState<string>("");
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [searchFocused, setSearchFocused] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -91,43 +91,41 @@ export function TopBar({
   const wrapRef = useRef<HTMLDivElement>(null);
   const accountWrapRef = useRef<HTMLDivElement>(null);
 
-  const displayName = useMemo(() => getDisplayName(user, screenName), [user, screenName]);
-  const accountDropdownName = useMemo(() => {
-    if (screenName?.trim()) return screenName.trim();
-    const meta = user.user_metadata as Record<string, unknown> | undefined;
-    const full = typeof meta?.full_name === "string" ? meta.full_name.trim() : "";
-    if (full) return full;
-    return user.email?.split("@")[0] ?? "";
-  }, [screenName, user]);
-  const initial = displayName.trim().charAt(0).toUpperCase() || "U";
+  const avatarDisplayName = useMemo(() => getDisplayName(user, screenName), [user, screenName]);
+  const metaName = (user?.user_metadata as Record<string, unknown> | undefined)?.name;
+  const displayName =
+    screenName ||
+    (typeof metaName === "string" ? metaName : "") ||
+    user?.email?.split("@")[0] ||
+    "Account";
+  const initial = avatarDisplayName.trim().charAt(0).toUpperCase() || "U";
 
   useEffect(() => {
     let mounted = true;
-    supabase.auth.getUser().then(({ data }) => {
+    void (async () => {
+      const { data: authData } = await supabase.auth.getUser();
       if (!mounted) return;
-      const u = data.user as User | null;
-      if (!u) return;
-      const meta = u.user_metadata as Record<string, unknown> | undefined;
-      const url = (meta?.avatar_url as string | undefined) || null;
-      if (url) setAvatarUrl(url);
-    });
-    return () => {
-      mounted = false;
-    };
-  }, []);
+      const u = authData.user as User | null;
+      if (u) {
+        const meta = u.user_metadata as Record<string, unknown> | undefined;
+        const url = (meta?.avatar_url as string | undefined) || null;
+        if (url) setAvatarUrl(url);
+      }
 
-  useEffect(() => {
-    let mounted = true;
-    supabase
-      .from("user_settings")
-      .select("screen_name")
-      .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (!mounted || !data) return;
-        const sn = (data as { screen_name?: string | null }).screen_name;
-        if (typeof sn === "string" && sn.trim()) setScreenName(sn.trim());
-      });
+      const { data: settings, error } = await supabase
+        .from("user_settings")
+        .select("screen_name")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!mounted) return;
+      if (error && error.code !== "PGRST116") {
+        console.error("user_settings load:", error);
+      }
+      if (settings?.screen_name) {
+        setScreenName(settings.screen_name);
+      }
+    })();
     return () => {
       mounted = false;
     };
@@ -509,7 +507,7 @@ export function TopBar({
             >
               <div style={{ padding: "16px", borderBottom: "1px solid #f0f0f0" }}>
                 <div style={{ fontSize: "14px", fontWeight: 600, color: "#111" }}>
-                  {accountDropdownName}
+                  {displayName}
                 </div>
                 <div style={{ fontSize: "12px", color: "#999", marginTop: "2px" }}>{user?.email}</div>
               </div>
