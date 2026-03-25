@@ -1680,6 +1680,12 @@ export default function ScanPage() {
             currentEnrichment != null &&
             typeof currentEnrichment === "object" &&
             !Array.isArray(currentEnrichment);
+          const isEnriched = !!(
+            contactEnrichments &&
+            contactEnrichments[reviewIndex] &&
+            ((contactEnrichments[reviewIndex] as Record<string, unknown>).icp_fit_score ||
+              (contactEnrichments[reviewIndex] as Record<string, unknown>).summary)
+          );
           const isExpanded = enrichmentExpanded[reviewIndex] === true;
 
           return (
@@ -1989,7 +1995,7 @@ export default function ScanPage() {
                   ) : null}
                 </div>
 
-                {!hasCurrentEnrichment ? (
+                {!isEnriched && (
                   <div style={{ marginBottom: 20 }}>
                     <div
                       style={{
@@ -2028,7 +2034,7 @@ export default function ScanPage() {
                       </span>
                     </div>
                   </div>
-                ) : null}
+                )}
 
                 <div style={{ marginBottom: 20 }}>
                   <div
@@ -3337,31 +3343,40 @@ export default function ScanPage() {
                 ) : null}
               </div>
 
-              <div style={{ marginTop: 16, marginBottom: 12 }}>
-                <p style={{ fontSize: 13, color: "#666", marginBottom: 8, fontWeight: 500 }}>Lead Score</p>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <input
-                    type="range"
-                    min={1}
-                    max={10}
-                    value={leadScore}
-                    style={{
-                      ["--val" as string]: `${((leadScore - 1) / 9) * 100}%`,
-                      flex: 1,
-                      touchAction: "none",
-                      height: 6,
-                      borderRadius: 3,
-                    }}
-                    onChange={(e) => setLeadScore(Number(e.target.value))}
-                    onInput={(e) => {
-                      const val = ((Number(e.currentTarget.value) - 1) / 9) * 100;
-                      e.currentTarget.style.setProperty("--val", `${val}%`);
-                      e.currentTarget.style.background = `linear-gradient(to right, #7ab648 ${val}%, #dce8d0 ${val}%)`;
-                    }}
-                  />
-                  <span style={{ fontSize: 14, color: "#111", width: 24, textAlign: "right" }}>{leadScore}</span>
-                </div>
-              </div>
+              {(() => {
+                const isEnriched = !!(
+                  singleEnrichment &&
+                  (singleEnrichment.icp_fit_score || singleEnrichment.summary)
+                );
+                if (isEnriched) return null;
+                return (
+                  <div style={{ marginTop: 16, marginBottom: 12 }}>
+                    <p style={{ fontSize: 13, color: "#666", marginBottom: 8, fontWeight: 500 }}>Lead Score</p>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <input
+                        type="range"
+                        min={1}
+                        max={10}
+                        value={leadScore}
+                        style={{
+                          ["--val" as string]: `${((leadScore - 1) / 9) * 100}%`,
+                          flex: 1,
+                          touchAction: "none",
+                          height: 6,
+                          borderRadius: 3,
+                        }}
+                        onChange={(e) => setLeadScore(Number(e.target.value))}
+                        onInput={(e) => {
+                          const val = ((Number(e.currentTarget.value) - 1) / 9) * 100;
+                          e.currentTarget.style.setProperty("--val", `${val}%`);
+                          e.currentTarget.style.background = `linear-gradient(to right, #7ab648 ${val}%, #dce8d0 ${val}%)`;
+                        }}
+                      />
+                      <span style={{ fontSize: 14, color: "#111", width: 24, textAlign: "right" }}>{leadScore}</span>
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div style={{ marginBottom: 16 }}>
                 <p style={{ fontSize: 13, color: "#666", marginBottom: 10, fontWeight: 500 }}>Conversation Signals</p>
