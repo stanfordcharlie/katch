@@ -73,7 +73,8 @@ export default function ContactsPage() {
 
   const [signalLabels, setSignalLabels] = useState<string[]>(DEFAULT_SIGNAL_LABELS);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [isSyncing, setIsSyncing] = useState(false);
+  const [isSyncing, setIsSyncing] = useState<string | null>(null);
+  const [isBulkSyncing, setIsBulkSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ succeeded: number; failed: number } | null>(null);
   const [events, setEvents] = useState<Array<{ id: string; name: string }>>([]);
   const [isMobile, setIsMobile] = useState(false);
@@ -251,9 +252,36 @@ export default function ContactsPage() {
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+  const syncSingleContact = async (contactId: string) => {
+    setIsSyncing(contactId);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const res = await fetch('/api/hubspot/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contactIds: [contactId], userId: user?.id }),
+      });
+      const data = await res.json();
+      if (res.status === 401) {
+        showToast('HubSpot not connected. Go to Settings → Integrations.', 'error');
+        return;
+      }
+      if (data.succeeded > 0) {
+        showToast('Synced to HubSpot!', 'success');
+        await fetchContacts();
+      } else {
+        showToast(`Sync failed: ${data.results?.[0]?.error || 'Unknown error'}`, 'error');
+      }
+    } catch (err) {
+      showToast('Sync failed. Please try again.', 'error');
+    } finally {
+      setIsSyncing(null);
+    }
+  };
+
   const syncToHubSpot = async () => {
     if (selectedIds.length === 0) return;
-    setIsSyncing(true);
+    setIsBulkSyncing(true);
 
     try {
       const {
@@ -310,7 +338,7 @@ export default function ContactsPage() {
       console.error('HubSpot sync error:', err);
       showToast('Sync failed. Please try again.', 'error');
     } finally {
-      setIsSyncing(false);
+      setIsBulkSyncing(false);
     }
   };
 
@@ -887,6 +915,16 @@ export default function ContactsPage() {
             .charAt(0)
             .toUpperCase();
 
+          const expandedDetailInitials = (() => {
+            const n = (contact.name || '').trim();
+            if (!n) return '?';
+            const parts = n.split(/\s+/).filter(Boolean);
+            if (parts.length >= 2) {
+              return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+            }
+            return n.charAt(0).toUpperCase();
+          })();
+
           const eventLabel = getEventName(contact.event);
 
           return (
@@ -1189,10 +1227,10 @@ export default function ContactsPage() {
               {selected?.id === contact.id && (
                 <div
                   style={{
-                    padding: '0 18px 18px',
+                    padding: editingContactId === contact.id ? '0 18px 18px' : '20px 24px',
                     borderTop: '1px solid rgba(0,0,0,0.05)',
                     marginTop: 8,
-                    paddingTop: 16,
+                    paddingTop: editingContactId === contact.id ? 16 : undefined,
                     cursor: 'default',
                   }}
                   onClick={(e) => e.stopPropagation()}
@@ -1471,22 +1509,88 @@ export default function ContactsPage() {
                     </div>
                   ) : (
                     <>
-                      {contact.image && (
-                        <img
-                          src={contact.image as string}
-                          alt={contact.name || 'Contact'}
-                          style={{
-                            width: '100%',
-                            maxHeight: 300,
-                            objectFit: 'contain',
-                            objectPosition: 'center center',
-                            borderRadius: 12,
-                            marginBottom: 16,
-                            display: 'block',
-                            background: '#f7f7f5',
-                          }}
-                        />
-                      )}
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: isMobile ? '1fr' : '200px 1fr',
+                          gap: 24,
+                          alignItems: 'start',
+                        }}
+                      >
+                        <div style={{ width: '100%' }}>
+                          {contact.image ? (
+                            <img
+                              src={contact.image as string}
+                              alt={contact.name || 'Contact'}
+                              style={{
+                                width: '100%',
+                                borderRadius: 12,
+                                objectFit: 'cover',
+                                display: 'block',
+                              }}
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                width: 200,
+                                height: 200,
+                                maxWidth: '100%',
+                                borderRadius: '50%',
+                                background: '#f0f0f0',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                margin: isMobile ? '0 auto' : undefined,
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontSize: 48,
+                                  fontWeight: 600,
+                                  color: '#999',
+                                }}
+                              >
+                                {expandedDetailInitials}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ marginBottom: 16 }}>
+                            <h3
+                              style={{
+                                fontSize: 20,
+                                fontWeight: 700,
+                                color: '#111',
+                                margin: 0,
+                                lineHeight: 1.2,
+                              }}
+                            >
+                              {contact.name || '—'}
+                            </h3>
+                            {contact.title ? (
+                              <p
+                                style={{
+                                  fontSize: 14,
+                                  color: '#555',
+                                  margin: '6px 0 0 0',
+                                }}
+                              >
+                                {contact.title}
+                              </p>
+                            ) : null}
+                            {contact.company ? (
+                              <p
+                                style={{
+                                  fontSize: 14,
+                                  color: '#666',
+                                  margin: '4px 0 0 0',
+                                }}
+                              >
+                                {contact.company}
+                              </p>
+                            ) : null}
+                          </div>
                       {contact.synced_to_hubspot === true && (
                         <div style={{ marginBottom: 12 }}>
                           <span
@@ -2131,6 +2235,37 @@ export default function ContactsPage() {
                           type='button'
                           onClick={(e) => {
                             e.stopPropagation();
+                            void syncSingleContact(contact.id);
+                          }}
+                          disabled={isSyncing === contact.id}
+                          style={{
+                            background: isSyncing === contact.id ? '#f5f5f5' : '#fff3ee',
+                            border: '1px solid #ffd4c2',
+                            color: '#ff7a59',
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            borderRadius: '999px',
+                            padding: '8px 16px',
+                            cursor: isSyncing === contact.id ? 'not-allowed' : 'pointer',
+                            opacity: isSyncing === contact.id ? 0.6 : 1,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            width: isMobile ? '100%' : 'auto',
+                            minHeight: isMobile ? 44 : undefined,
+                          }}
+                        >
+                          <span style={{ fontWeight: 700, fontSize: '12px' }}>H</span>
+                          {isSyncing === contact.id
+                            ? 'Syncing...'
+                            : contact.synced_to_hubspot
+                              ? 'Re-sync'
+                              : 'Sync to HubSpot'}
+                        </button>
+                        <button
+                          type='button'
+                          onClick={(e) => {
+                            e.stopPropagation();
                             startEditing(contact);
                           }}
                           style={{
@@ -2233,6 +2368,8 @@ export default function ContactsPage() {
                           </button>
                         )}
                       </div>
+                        </div>
+                      </div>
                     </>
                   )}
                 </div>
@@ -2334,7 +2471,7 @@ export default function ContactsPage() {
           <button
             type='button'
             onClick={() => void syncToHubSpot()}
-            disabled={isSyncing}
+            disabled={isBulkSyncing}
             style={{
               background: '#ff7a59',
               color: '#ffffff',
@@ -2343,7 +2480,7 @@ export default function ContactsPage() {
               borderRadius: '999px',
               padding: '8px 16px',
               border: 'none',
-              cursor: isSyncing ? 'not-allowed' : 'pointer',
+              cursor: isBulkSyncing ? 'not-allowed' : 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
@@ -2351,11 +2488,11 @@ export default function ContactsPage() {
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
-              opacity: isSyncing ? 0.7 : 1,
+              opacity: isBulkSyncing ? 0.7 : 1,
             }}
           >
             <span style={{ fontWeight: 700, fontSize: '13px' }}>H</span>
-            {isSyncing ? 'Syncing...' : 'Sync to HubSpot'}
+            {isBulkSyncing ? 'Syncing...' : 'Sync to HubSpot'}
           </button>
           <button
             type='button'
