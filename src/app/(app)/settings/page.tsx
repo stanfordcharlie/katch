@@ -707,6 +707,7 @@ export default function SettingsPage() {
                       display: "flex",
                       alignItems: "center",
                       flexDirection: isMobile ? "column" : "row",
+                      gap: 8,
                     }}
                   >
                     <input
@@ -717,8 +718,9 @@ export default function SettingsPage() {
                       onFocus={() => setSignalInputFocused(true)}
                       onBlur={() => setSignalInputFocused(false)}
                       style={{
-                        flex: 1,
+                        flex: isMobile ? undefined : 1,
                         width: isMobile ? "100%" : undefined,
+                        minWidth: 0,
                         background: "#fff",
                         border: signalInputFocused ? "1px solid #1a3a2a" : "1px solid #ebebeb",
                         borderRadius: 10,
@@ -733,35 +735,57 @@ export default function SettingsPage() {
                         if (e.key === "Enter") addSignal();
                       }}
                     />
-                    <button
-                      type="button"
-                      onClick={addSignal}
+                    <div
                       style={{
-                        background: "#1a3a2a",
-                        color: "#fff",
-                        border: "none",
-                        borderRadius: 8,
-                        padding: "10px 18px",
-                        fontSize: 14,
-                        fontWeight: 500,
-                        cursor: "pointer",
-                        marginLeft: isMobile ? 0 : 8,
-                        marginTop: isMobile ? 8 : 0,
-                        minHeight: isMobile ? 44 : undefined,
-                        width: isMobile ? "100%" : undefined,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        flexShrink: 0,
+                        width: isMobile ? "100%" : "auto",
                       }}
                     >
-                      Add
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => setSignals(DEFAULT_SIGNALS)}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.color = "#999";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.color = "#bbb";
+                        }}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#bbb",
+                          fontSize: 13,
+                          fontWeight: 400,
+                          cursor: "pointer",
+                          padding: "0 8px",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        Restore defaults
+                      </button>
+                      <button
+                        type="button"
+                        onClick={addSignal}
+                        style={{
+                          background: "#1a3a2a",
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: 8,
+                          padding: "10px 18px",
+                          fontSize: 14,
+                          fontWeight: 500,
+                          cursor: "pointer",
+                          minHeight: isMobile ? 44 : undefined,
+                          flex: isMobile ? 1 : undefined,
+                        }}
+                      >
+                        Add
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setSignals(DEFAULT_SIGNALS)}
-                    className="text-xs"
-                    style={{ color: "#c47c4a" }}
-                  >
-                    Restore defaults
-                  </button>
                 </div>
               </section>
             )}
@@ -880,6 +904,7 @@ export default function SettingsPage() {
                       display: "flex",
                       alignItems: "center",
                       flexDirection: isMobile ? "column" : "row",
+                      gap: 8,
                     }}
                   >
                     <input
@@ -890,8 +915,9 @@ export default function SettingsPage() {
                       onFocus={() => setFieldInputFocused(true)}
                       onBlur={() => setFieldInputFocused(false)}
                       style={{
-                        flex: 1,
+                        flex: isMobile ? undefined : 1,
                         width: isMobile ? "100%" : undefined,
+                        minWidth: 0,
                         background: "#fff",
                         border: fieldInputFocused ? "1px solid #1a3a2a" : "1px solid #ebebeb",
                         borderRadius: 10,
@@ -907,35 +933,57 @@ export default function SettingsPage() {
                         if (e.key === "Enter") addField();
                       }}
                     />
-                    <button
-                      type="button"
-                      onClick={addField}
+                    <div
                       style={{
-                        background: "#1a3a2a",
-                        color: "#fff",
-                        border: "none",
-                        borderRadius: 8,
-                        padding: "10px 18px",
-                        fontSize: 14,
-                        fontWeight: 500,
-                        cursor: "pointer",
-                        marginLeft: isMobile ? 0 : 8,
-                        marginTop: isMobile ? 8 : 0,
-                        minHeight: isMobile ? 44 : undefined,
-                        width: isMobile ? "100%" : undefined,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        flexShrink: 0,
+                        width: isMobile ? "100%" : "auto",
                       }}
                     >
-                      Add
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => setFields(DEFAULT_FIELDS)}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.color = "#999";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.color = "#bbb";
+                        }}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#bbb",
+                          fontSize: 13,
+                          fontWeight: 400,
+                          cursor: "pointer",
+                          padding: "0 8px",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        Restore defaults
+                      </button>
+                      <button
+                        type="button"
+                        onClick={addField}
+                        style={{
+                          background: "#1a3a2a",
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: 8,
+                          padding: "10px 18px",
+                          fontSize: 14,
+                          fontWeight: 500,
+                          cursor: "pointer",
+                          minHeight: isMobile ? 44 : undefined,
+                          flex: isMobile ? 1 : undefined,
+                        }}
+                      >
+                        Add
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setFields(DEFAULT_FIELDS)}
-                    className="text-xs"
-                    style={{ color: "#c47c4a" }}
-                  >
-                    Restore defaults
-                  </button>
                 </div>
               </section>
             )}

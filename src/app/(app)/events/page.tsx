@@ -222,13 +222,13 @@ export default function EventsPage() {
               }
             }}
             style={{
-              fontSize: 13,
-              color: "#7dde3c",
-              cursor: "pointer",
-              background: "none",
+              background: "transparent",
               border: "none",
+              color: "#1a3a2a",
+              fontSize: 14,
               fontWeight: 500,
-              padding: "0 12px",
+              cursor: "pointer",
+              padding: "8px 12px",
             }}
           >
             {(() => {
@@ -246,13 +246,11 @@ export default function EventsPage() {
               setShowEventForm(true);
             }}
             style={{
-              background: "#7dde3c",
-              color: "#0a1a0a",
+              background: "#1a3a2a",
+              color: "#ffffff",
               border: "none",
-              borderRadius: "10px",
-              height: isMobile ? 40 : undefined,
-              minHeight: isMobile ? 44 : undefined,
-              padding: isMobile ? "0 14px" : "10px 18px",
+              borderRadius: 10,
+              padding: "10px 20px",
               fontSize: 14,
               fontWeight: 600,
               cursor: "pointer",

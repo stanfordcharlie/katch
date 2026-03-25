@@ -910,12 +910,17 @@ export default function ContactsPage() {
           </p>
           <Link
             href='/scan'
-            className='px-4 py-2 rounded-full border border-[#1a3a2a] bg-[#f0f0ec] hover:bg-[#f7faf4] hover:text-[#1a2e1a] transition-colors inline-block'
             style={{
-              color: '#1a2e1a',
-              fontSize: '13px',
+              display: 'inline-block',
+              background: '#1a3a2a',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: 10,
+              padding: '10px 24px',
+              fontSize: 14,
               fontWeight: 600,
-              letterSpacing: '-0.01em',
+              cursor: 'pointer',
+              textDecoration: 'none',
             }}
           >
             Scan first contact
