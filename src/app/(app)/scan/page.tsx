@@ -70,9 +70,9 @@ export default function ScanPage() {
     Array<{
       id: string;
       dataUrl: string;
-      status: "pending" | "scanning" | "done" | "failed";
+      status: "pending" | "scanning" | "retrying" | "done" | "failed";
       contact: any | null;
-      failureReason?: "scan_failed" | "other";
+      failureReason?: "scan_failed" | "timeout" | "other";
     }>
   >([]);
   const [bulkProcessing, setBulkProcessing] = useState(false);
@@ -197,15 +197,16 @@ export default function ScanPage() {
     filesOverride?: Array<{
       id: string;
       dataUrl: string;
-      status: "pending" | "scanning" | "done" | "failed";
+      status: "pending" | "scanning" | "retrying" | "done" | "failed";
       contact: any | null;
-      failureReason?: "scan_failed" | "other";
+      failureReason?: "scan_failed" | "timeout" | "other";
     }>
   ) => {
     bulkProcessCancelRequestedRef.current = false;
     const queue = filesOverride ?? bulkFiles;
     setBulkProcessing(true);
     let scanFailedExtractCount = 0;
+    const retryQueue: number[] = [];
     for (let i = 0; i < queue.length; i++) {
       if (bulkProcessCancelRequestedRef.current) break;
       const item = queue[i];
@@ -223,6 +224,29 @@ export default function ScanPage() {
         if (bulkProcessCancelRequestedRef.current) break;
         const data = await res.json();
         if (bulkProcessCancelRequestedRef.current) break;
+        if (data?.error === "failed") {
+          const isTimeout = data.reason === "timeout";
+          if (isTimeout) {
+            retryQueue.push(i);
+            setBulkFiles((prev) =>
+              prev.map((x) =>
+                x.id === item.id
+                  ? { ...x, status: "retrying" as const, contact: null, failureReason: "timeout" as const }
+                  : x
+              )
+            );
+            continue;
+          }
+          scanFailedExtractCount += 1;
+          setBulkFiles((prev) =>
+            prev.map((x) =>
+              x.id === item.id
+                ? { ...x, status: "failed" as const, contact: null, failureReason: "scan_failed" as const }
+                : x
+            )
+          );
+          continue;
+        }
         if (res.status === 422 && data.error === "scan_failed") {
           scanFailedExtractCount += 1;
           setBulkFiles((prev) =>
@@ -252,6 +276,49 @@ export default function ScanPage() {
           prev.map((x) =>
             x.id === item.id
               ? { ...x, status: "failed" as const, contact: null, failureReason: "other" as const }
+              : x
+          )
+        );
+      }
+    }
+
+    for (const idx of retryQueue) {
+      if (bulkProcessCancelRequestedRef.current) break;
+      const item = queue[idx];
+      if (!item) continue;
+      setBulkFiles((prev) => prev.map((x) => (x.id === item.id ? { ...x, status: "scanning" } : x)));
+      try {
+        const base64 = item.dataUrl.split(",")[1];
+        const mediaType = item.dataUrl.split(";")[0].split(":")[1];
+        const res = await fetch("/api/scan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ imageBase64: base64, mediaType }),
+        });
+        if (bulkProcessCancelRequestedRef.current) break;
+        const data = await res.json();
+        if (bulkProcessCancelRequestedRef.current) break;
+        if (data?.contact) {
+          setBulkFiles((prev) =>
+            prev.map((x) =>
+              x.id === item.id ? { ...x, status: "done" as const, contact: data.contact, failureReason: undefined } : x
+            )
+          );
+        } else {
+          setBulkFiles((prev) =>
+            prev.map((x) =>
+              x.id === item.id
+                ? { ...x, status: "failed" as const, contact: null, failureReason: "scan_failed" as const }
+                : x
+            )
+          );
+        }
+      } catch {
+        if (bulkProcessCancelRequestedRef.current) break;
+        setBulkFiles((prev) =>
+          prev.map((x) =>
+            x.id === item.id
+              ? { ...x, status: "failed" as const, contact: null, failureReason: "scan_failed" as const }
               : x
           )
         );
@@ -289,9 +356,9 @@ export default function ScanPage() {
     item: {
       id: string;
       dataUrl: string;
-      status: "pending" | "scanning" | "done" | "failed";
+      status: "pending" | "scanning" | "retrying" | "done" | "failed";
       contact: any;
-      failureReason?: "scan_failed" | "other";
+      failureReason?: "scan_failed" | "timeout" | "other";
     },
     sessionUser: User,
     eventId: string | null
@@ -968,6 +1035,9 @@ export default function ScanPage() {
                           <span style={{ color: "#ffffff" }}>Scanning...</span>
                         </>
                       )}
+                      {item.status === 'retrying' && (
+                        <span style={{ color: "#ffffff" }}>Retrying later...</span>
+                      )}
                       {item.status === 'done' && (
                         <>
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -977,8 +1047,8 @@ export default function ScanPage() {
                         </>
                       )}
                       {item.status === "failed" && (
-                        <span style={{ color: item.failureReason === "scan_failed" ? "#e55a5a" : "#ffd1d1" }}>
-                          {item.failureReason === "scan_failed" ? "Could not scan" : "Failed"}
+                        <span style={{ color: "#e55a5a" }}>
+                          Failed — could not scan
                         </span>
                       )}
                     </div>

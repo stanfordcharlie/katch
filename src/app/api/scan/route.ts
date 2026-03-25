@@ -69,13 +69,14 @@ export async function POST(req: NextRequest) {
 
     let result: ParsedContact | null = null;
     let attempt = 0;
+    let lastFailureReason: "timeout" | "failed" = "failed";
 
     while (attempt < MAX_ATTEMPTS) {
       attempt++;
       const prompt = getPromptForAttempt(attempt);
 
       try {
-        const response = await anthropic.messages.create({
+        const claudeApiCall = anthropic.messages.create({
           model: "claude-opus-4-5",
           max_tokens: 1000,
           messages: [
@@ -95,6 +96,10 @@ export async function POST(req: NextRequest) {
             },
           ],
         });
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Scan timeout")), 15000)
+        );
+        const response = await Promise.race([claudeApiCall, timeoutPromise]);
 
         const parsedRaw = parseResult(response);
         if (!parsedRaw) continue;
@@ -114,18 +119,21 @@ export async function POST(req: NextRequest) {
         }
       } catch (err) {
         console.error(`Scan attempt ${attempt} error:`, err);
+        if (err instanceof Error && err.message === "Scan timeout") {
+          lastFailureReason = "timeout";
+        } else {
+          lastFailureReason = "failed";
+        }
       }
     }
 
     if (!result) {
       return NextResponse.json(
         {
-          success: false,
-          error: "scan_failed",
-          message:
-            "Could not extract contact information from this image after multiple attempts. Please try a clearer photo.",
+          error: "failed",
+          reason: lastFailureReason,
         },
-        { status: 422 }
+        { status: 200 }
       );
     }
 
