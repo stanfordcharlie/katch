@@ -92,6 +92,13 @@ export function TopBar({
   const accountWrapRef = useRef<HTMLDivElement>(null);
 
   const displayName = useMemo(() => getDisplayName(user, screenName), [user, screenName]);
+  const accountDropdownName = useMemo(() => {
+    if (screenName?.trim()) return screenName.trim();
+    const meta = user.user_metadata as Record<string, unknown> | undefined;
+    const full = typeof meta?.full_name === "string" ? meta.full_name.trim() : "";
+    if (full) return full;
+    return user.email?.split("@")[0] ?? "";
+  }, [screenName, user]);
   const initial = displayName.trim().charAt(0).toUpperCase() || "U";
 
   useEffect(() => {
@@ -502,7 +509,7 @@ export function TopBar({
             >
               <div style={{ padding: "16px", borderBottom: "1px solid #f0f0f0" }}>
                 <div style={{ fontSize: "14px", fontWeight: 600, color: "#111" }}>
-                  {screenName || user?.email?.split("@")[0]}
+                  {accountDropdownName}
                 </div>
                 <div style={{ fontSize: "12px", color: "#999", marginTop: "2px" }}>{user?.email}</div>
               </div>
@@ -526,11 +533,10 @@ export function TopBar({
               </div>
               {(
                 [
-                  { label: "Account settings", icon: "⚙", path: "/account" },
-                  { label: "Settings", icon: "🔧", path: "/settings" },
+                  { label: "Account settings", path: "/account" },
+                  { label: "Settings", path: "/settings" },
                   {
                     label: "Help & Support",
-                    icon: "?",
                     onClick: () => {
                       setHelpOpen(true);
                       setAccountOpen(false);
@@ -549,10 +555,9 @@ export function TopBar({
                     setAccountOpen(false);
                   }}
                   style={{
-                    padding: "10px 16px",
+                    padding: "12px 16px",
                     display: "flex",
                     alignItems: "center",
-                    gap: "10px",
                     fontSize: "13px",
                     fontWeight: 500,
                     color: "#111",
@@ -566,7 +571,6 @@ export function TopBar({
                     e.currentTarget.style.background = "transparent";
                   }}
                 >
-                  <span style={{ fontSize: "14px" }}>{item.icon}</span>
                   {item.label}
                 </div>
               ))}
@@ -577,10 +581,9 @@ export function TopBar({
                   setAccountOpen(false);
                 }}
                 style={{
-                  padding: "10px 16px",
+                  padding: "12px 16px",
                   display: "flex",
                   alignItems: "center",
-                  gap: "10px",
                   fontSize: "13px",
                   fontWeight: 500,
                   color: "#e55a5a",
@@ -593,7 +596,7 @@ export function TopBar({
                   e.currentTarget.style.background = "transparent";
                 }}
               >
-                <span>→</span> Sign out
+                Sign out
               </div>
             </div>
           ) : null}

@@ -123,16 +123,17 @@ export default function AppAccountPage() {
 
       const { data: settings, error } = await supabase
         .from("user_settings")
-        .select("screen_name, company, phone, email_on_sequence_sent, weekly_lead_summary")
+        .select("*")
         .eq("user_id", u.id)
-        .maybeSingle();
+        .single();
 
       if (!mounted) return;
 
-      const row = (settings || {}) as UserSettingsRow;
-      if (error) {
+      if (error && error.code !== "PGRST116") {
         console.error("user_settings load:", error);
       }
+
+      const row = (settings || {}) as UserSettingsRow;
 
       const sn =
         (typeof row.screen_name === "string" && row.screen_name.trim()
