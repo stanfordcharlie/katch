@@ -54,6 +54,7 @@ export default function ScanPage() {
 
   const [scanMode, setScanMode] = useState("idle");
   const [extracted, setExtracted] = useState<any>(null);
+  const [scanEnrichment, setScanEnrichment] = useState<Record<string, unknown> | null>(null);
   const [enriching, setEnriching] = useState(false);
   const [enriched, setEnriched] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
@@ -72,6 +73,7 @@ export default function ScanPage() {
       dataUrl: string;
       status: "pending" | "scanning" | "retrying" | "done" | "failed";
       contact: any | null;
+      enrichment?: Record<string, unknown> | null;
       failureReason?: "scan_failed" | "timeout" | "other";
     }>
   >([]);
@@ -179,6 +181,7 @@ export default function ScanPage() {
     setExtracted(null);
     setEnriching(false);
     setEnriched(false);
+    setScanEnrichment(null);
     setUploadedImage(null);
     setChecks({});
     setFreeNote("");
@@ -199,6 +202,7 @@ export default function ScanPage() {
       dataUrl: string;
       status: "pending" | "scanning" | "retrying" | "done" | "failed";
       contact: any | null;
+      enrichment?: Record<string, unknown> | null;
       failureReason?: "scan_failed" | "timeout" | "other";
     }>
   ) => {
@@ -219,7 +223,7 @@ export default function ScanPage() {
         const res = await fetch("/api/scan", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ imageBase64: base64, mediaType }),
+          body: JSON.stringify({ imageBase64: base64, mediaType, userId: user?.id }),
         });
         if (bulkProcessCancelRequestedRef.current) break;
         const data = await res.json();
@@ -265,6 +269,7 @@ export default function ScanPage() {
                   ...x,
                   status: data.contact ? ("done" as const) : ("failed" as const),
                   contact: data.contact || null,
+                  enrichment: (data.enrichment as Record<string, unknown> | null) || null,
                   ...(data.contact ? {} : { failureReason: "other" as const }),
                 }
               : x
@@ -293,7 +298,7 @@ export default function ScanPage() {
         const res = await fetch("/api/scan", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ imageBase64: base64, mediaType }),
+          body: JSON.stringify({ imageBase64: base64, mediaType, userId: user?.id }),
         });
         if (bulkProcessCancelRequestedRef.current) break;
         const data = await res.json();
@@ -301,7 +306,15 @@ export default function ScanPage() {
         if (data?.contact) {
           setBulkFiles((prev) =>
             prev.map((x) =>
-              x.id === item.id ? { ...x, status: "done" as const, contact: data.contact, failureReason: undefined } : x
+              x.id === item.id
+                ? {
+                    ...x,
+                    status: "done" as const,
+                    contact: data.contact,
+                    enrichment: (data.enrichment as Record<string, unknown> | null) || null,
+                    failureReason: undefined,
+                  }
+                : x
             )
           );
         } else {
@@ -358,6 +371,7 @@ export default function ScanPage() {
       dataUrl: string;
       status: "pending" | "scanning" | "retrying" | "done" | "failed";
       contact: any;
+      enrichment?: Record<string, unknown> | null;
       failureReason?: "scan_failed" | "timeout" | "other";
     },
     sessionUser: User,
@@ -404,7 +418,9 @@ export default function ScanPage() {
       checks,
       free_note,
       event: eventId,
-      enriched: false,
+      ai_enrichment: item.enrichment || null,
+      enriched: true,
+      enriched_at: new Date().toISOString(),
       image: imageUrl,
     });
     if (error) throw error;
@@ -470,7 +486,7 @@ export default function ScanPage() {
       const res = await fetch("/api/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: base64, mediaType }),
+        body: JSON.stringify({ imageBase64: base64, mediaType, userId: user?.id }),
       });
       const data = await res.json();
       if (res.status === 422 && data.error === "scan_failed") {
@@ -485,6 +501,8 @@ export default function ScanPage() {
       }
       if (data.contact) {
         setExtracted(data.contact);
+        setScanEnrichment((data.enrichment as Record<string, unknown> | null) || null);
+        setEnriched(!!data.enrichment);
         setScanMode("review");
         try {
           const imageDataUrl = uploadedImage || `data:${mediaType};base64,${base64}`;
@@ -683,7 +701,9 @@ export default function ScanPage() {
       checks: activeChecks,
       free_note: freeNote,
       event: eventTag || "Untagged",
-      enriched: !!enriched,
+      ai_enrichment: scanEnrichment,
+      enriched: true,
+      enriched_at: new Date().toISOString(),
     };
 
     if (imageUrl) {
@@ -2452,6 +2472,7 @@ export default function ScanPage() {
                       dataUrl: s.dataUrl,
                       status: "pending" as const,
                       contact: null,
+                      enrichment: null,
                     }));
                     setBulkFiles(newBulk);
                     setBulkMode(true);

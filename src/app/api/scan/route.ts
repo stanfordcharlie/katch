@@ -146,7 +146,9 @@ export async function POST(req: NextRequest) {
       linkedin: result.linkedin,
     };
 
-    if (userId && persistContact) {
+    let enrichmentResult: Record<string, unknown> | null = null;
+
+    if (userId) {
       const { data: insertedData, error: insertError } = await supabaseAdmin
         .from("contacts")
         .insert({
@@ -161,19 +163,30 @@ export async function POST(req: NextRequest) {
           checks: [],
           free_note: "",
           event: null,
+          ai_enrichment: null,
+          enriched_at: null,
           enriched: false,
         })
         .select()
         .single();
 
-      if (!insertError && insertedData?.id && userId) {
-        enrichContact(insertedData.id as string, userId as string).catch((err) =>
-          console.error("Background enrichment failed:", err)
-        );
+      if (!insertError && insertedData?.id) {
+        await enrichContact(insertedData.id as string, userId as string);
+        const { data: enrichedRow } = await supabaseAdmin
+          .from("contacts")
+          .select("ai_enrichment")
+          .eq("id", insertedData.id as string)
+          .single();
+        enrichmentResult =
+          (enrichedRow?.ai_enrichment as Record<string, unknown> | null | undefined) || null;
+
+        if (!persistContact) {
+          await supabaseAdmin.from("contacts").delete().eq("id", insertedData.id as string);
+        }
       }
     }
 
-    return NextResponse.json({ contact });
+    return NextResponse.json({ contact, enrichment: enrichmentResult });
   } catch (err) {
     console.error("Scan error:", err);
     return NextResponse.json({ error: "Failed to scan image" }, { status: 500 });
