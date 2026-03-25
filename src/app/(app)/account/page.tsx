@@ -5,81 +5,209 @@ import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 
-function firstNameFromEmail(email: string | undefined): string {
-  if (!email) return "there";
-  const beforeAt = email.split("@")[0]?.trim() || "";
-  if (!beforeAt) return "there";
-  return beforeAt.charAt(0).toUpperCase() + beforeAt.slice(1).toLowerCase();
-}
+type AccountTab = "profile" | "notifications" | "billing";
 
-function getDisplayName(user: User): string {
+const Toggle = ({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) => (
+  <div
+    onClick={() => onChange(!checked)}
+    style={{
+      width: "51px",
+      height: "31px",
+      minWidth: "51px",
+      borderRadius: "999px",
+      background: checked ? "#7dde3c" : "#e5e5ea",
+      position: "relative",
+      cursor: "pointer",
+      transition: "background 0.2s ease",
+      flexShrink: 0,
+    }}
+  >
+    <div
+      style={{
+        position: "absolute",
+        top: "2px",
+        left: checked ? "22px" : "2px",
+        width: "27px",
+        height: "27px",
+        borderRadius: "50%",
+        background: "#ffffff",
+        boxShadow: "0 2px 4px rgba(0,0,0,0.25)",
+        transition: "left 0.2s ease",
+      }}
+    />
+  </div>
+);
+
+function resolvedNameFromUser(user: User): string {
   const meta = user.user_metadata as Record<string, unknown> | undefined;
-  const display = (meta?.display_name as string)?.trim();
-  const full = (meta?.full_name as string)?.trim();
-  const name = (meta?.name as string)?.trim();
+  const display = (meta?.display_name as string | undefined)?.trim();
+  const full = (meta?.full_name as string | undefined)?.trim();
+  const name = (meta?.name as string | undefined)?.trim();
   if (display) return display;
   if (full) return full;
   if (name) return name;
-  return firstNameFromEmail(user.email ?? undefined);
+  const email = user.email ?? "";
+  const beforeAt = email.split("@")[0]?.trim() || "";
+  return beforeAt ? beforeAt.charAt(0).toUpperCase() + beforeAt.slice(1).toLowerCase() : "";
 }
+
+function headerDisplayName(screenName: string, user: User): string {
+  const s = screenName.trim();
+  if (s) return s;
+  return resolvedNameFromUser(user) || "Your account";
+}
+
+function avatarInitials(name: string, email: string | null): string {
+  if (name.trim()) {
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  }
+  if (email) return email.charAt(0).toUpperCase();
+  return "?";
+}
+
+type UserSettingsRow = {
+  screen_name?: string | null;
+  company?: string | null;
+  phone?: string | null;
+  email_on_sequence_sent?: boolean | null;
+  weekly_lead_summary?: boolean | null;
+};
 
 export default function AppAccountPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [displayName, setDisplayName] = useState("");
-  const [savingName, setSavingName] = useState(false);
-  const [nameError, setNameError] = useState<string | null>(null);
-  const [resetSent, setResetSent] = useState(false);
-  const [activeSection, setActiveSection] = useState<"profile" | "plan-billing" | "security">("profile");
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<AccountTab>("profile");
+  const [isMobile, setIsMobile] = useState(false);
+
+  const [screenName, setScreenName] = useState("");
+  const [company, setCompany] = useState("");
+  const [phone, setPhone] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
+  const [notifEmailSequence, setNotifEmailSequence] = useState(true);
+  const [notifWeeklySummary, setNotifWeeklySummary] = useState(false);
+
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [notifSaving, setNotifSaving] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [notifError, setNotifError] = useState<string | null>(null);
+
   useEffect(() => {
-    let active = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (!active) return;
-      if (!data.session?.user) {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!mounted) return;
+      if (!session?.user) {
         router.replace("/landing");
         return;
       }
-      const u = data.session.user as User;
+      const u = session.user as User;
       setUser(u);
-      setDisplayName(
-        (u.user_metadata?.display_name as string | undefined) ||
-          (u.user_metadata?.full_name as string | undefined) ||
-          ""
-      );
+      setUserEmail(u.email ?? null);
       const meta = u.user_metadata as Record<string, unknown> | undefined;
       const metaAvatar = (meta?.avatar_url as string | undefined) || "";
       if (metaAvatar) setAvatarUrl(metaAvatar);
-    });
-    return () => { active = false; };
+
+      const { data: settings, error } = await supabase
+        .from("user_settings")
+        .select("screen_name, company, phone, email_on_sequence_sent, weekly_lead_summary")
+        .eq("user_id", u.id)
+        .maybeSingle();
+
+      if (!mounted) return;
+
+      const row = (settings || {}) as UserSettingsRow;
+      if (error) {
+        console.error("user_settings load:", error);
+      }
+
+      const sn =
+        (typeof row.screen_name === "string" && row.screen_name.trim()
+          ? row.screen_name.trim()
+          : null) ?? resolvedNameFromUser(u);
+      setScreenName(sn);
+      setCompany(typeof row.company === "string" ? row.company : "");
+      setPhone(typeof row.phone === "string" ? row.phone : "");
+      if (row.email_on_sequence_sent != null) {
+        setNotifEmailSequence(!!row.email_on_sequence_sent);
+      }
+      if (row.weekly_lead_summary != null) {
+        setNotifWeeklySummary(!!row.weekly_lead_summary);
+      }
+
+      setLoading(false);
+    })();
+    return () => {
+      mounted = false;
+    };
   }, [router]);
 
-  const handleSaveName = async (e?: React.FormEvent) => {
-    e?.preventDefault();
+  const handleSaveProfile = async () => {
     if (!user) return;
-    setSavingName(true);
-    setNameError(null);
+    setProfileSaving(true);
+    setProfileError(null);
     try {
-      const { error } = await supabase.auth.updateUser({ data: { display_name: displayName } });
-      if (error) setNameError(error.message);
-    } catch (err: unknown) {
-      setNameError(err instanceof Error ? err.message : "Failed to update name.");
+      const { error: upErr } = await supabase.from("user_settings").upsert(
+        {
+          user_id: user.id,
+          screen_name: screenName.trim(),
+          company: company.trim() || null,
+          phone: phone.trim() || null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" }
+      );
+      if (upErr) {
+        setProfileError(upErr.message);
+        return;
+      }
+      const { error: authErr } = await supabase.auth.updateUser({
+        data: { display_name: screenName.trim() || undefined },
+      });
+      if (authErr) {
+        setProfileError(authErr.message);
+        return;
+      }
+    } catch (e) {
+      setProfileError(e instanceof Error ? e.message : "Failed to save profile.");
     } finally {
-      setSavingName(false);
+      setProfileSaving(false);
     }
   };
 
-  const handlePasswordReset = async () => {
-    if (!user?.email) return;
-    setResetSent(false);
-    await supabase.auth.resetPasswordForEmail(user.email, { redirectTo: `${window.location.origin}/login` });
-    setResetSent(true);
-  };
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push("/landing");
+  const handleSaveNotifications = async () => {
+    if (!user) return;
+    setNotifSaving(true);
+    setNotifError(null);
+    try {
+      const { error } = await supabase.from("user_settings").upsert(
+        {
+          user_id: user.id,
+          email_on_sequence_sent: notifEmailSequence,
+          weekly_lead_summary: notifWeeklySummary,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" }
+      );
+      if (error) setNotifError(error.message);
+    } catch (e) {
+      setNotifError(e instanceof Error ? e.message : "Failed to save notifications.");
+    } finally {
+      setNotifSaving(false);
+    }
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -91,12 +219,12 @@ export default function AppAccountPage() {
     }
 
     const {
-      data: { user },
+      data: { user: u },
     } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!u) return;
 
     const fileExt = file.name.split(".").pop();
-    const filePath = `${user.id}/avatar.${fileExt}`;
+    const filePath = `${u.id}/avatar.${fileExt}`;
 
     const { error: uploadError } = await supabase.storage
       .from("avatars")
@@ -108,7 +236,6 @@ export default function AppAccountPage() {
     }
 
     const { data } = supabase.storage.from("avatars").getPublicUrl(filePath);
-
     const newAvatarUrl = data.publicUrl;
 
     await supabase.auth.updateUser({
@@ -118,64 +245,80 @@ export default function AppAccountPage() {
     setAvatarUrl(newAvatarUrl);
   };
 
-  if (!user) {
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push("/landing");
+  };
+
+  if (loading || !user) {
     return (
       <div
         style={{
-          backgroundColor: "#f0f0ec",
+          backgroundColor: "#f7f7f5",
           minHeight: "100vh",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontFamily: "'Geist', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-          color: "#1a2e1a",
+          fontFamily: "Inter, -apple-system, sans-serif",
+          color: "#111",
         }}
       >
-        <span style={{ fontSize: 14, color: "#1a2e1a" }}>Loading…</span>
+        <span style={{ fontSize: 14, color: "#999" }}>Loading…</span>
       </div>
     );
   }
 
-  const greetingName = getDisplayName(user);
-  const initial = (displayName.trim() || greetingName.trim() || user.email || "?").charAt(0).toUpperCase();
+  const nameForHeader = headerDisplayName(screenName, user);
+  const initials = avatarInitials(nameForHeader, userEmail);
   const email = user.email ?? "";
-  const plan = "Free Trial";
-  const isPro = (plan as string) === "Pro"
-  const scansText = isPro ? "Unlimited scans" : "10 scans per month";
 
   return (
     <div
       style={{
-        backgroundColor: "#f7f7f5",
         minHeight: "100vh",
+        backgroundColor: "#f7f7f5",
+        overflowX: "hidden",
+        maxWidth: "100vw",
         fontFamily: "Inter, -apple-system, sans-serif",
         color: "#111",
       }}
     >
-      <div style={{ maxWidth: 960, margin: "0 auto", padding: "32px 36px 48px" }}>
+      <style>{`
+        .account-tabs-scroll::-webkit-scrollbar{display:none}
+        @media (max-width: 767px) {
+          .account-page input, .account-page textarea { min-height: 44px; font-size: 15px; width: 100%; }
+        }
+      `}</style>
+      <div
+        className="account-page max-w-3xl mx-auto"
+        style={{
+          padding: isMobile ? "20px 16px 100px" : "32px 36px 48px 36px",
+        }}
+      >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <div>
-            <h1 style={{ fontSize: 26, fontWeight: 700, color: "#111", margin: 0 }}>Account</h1>
-            <p style={{ fontSize: 14, color: "#999", marginTop: 4, marginBottom: 0 }}>Manage your profile and plan.</p>
+            <h1
+              style={{
+                fontSize: isMobile ? 22 : 28,
+                fontWeight: 700,
+                color: "#111",
+                letterSpacing: "-0.5px",
+                margin: 0,
+              }}
+            >
+              Account Settings
+            </h1>
+            <p
+              style={{
+                fontSize: 13,
+                color: "#999",
+                marginTop: 4,
+                marginBottom: 0,
+              }}
+            >
+              Manage your profile, notifications and billing.
+            </p>
           </div>
-          <button
-            type="button"
-            onClick={() => handleSaveName()}
-            disabled={savingName}
-            style={{
-              background: "#7dde3c",
-              color: "#0a1a0a",
-              fontWeight: 700,
-              borderRadius: 10,
-              height: 40,
-              padding: "0 20px",
-              fontSize: 14,
-              border: "none",
-              cursor: "pointer",
-            }}
-          >
-            {savingName ? "Saving..." : "Save"}
-          </button>
         </div>
 
         <div
@@ -184,386 +327,446 @@ export default function AppAccountPage() {
             alignItems: "center",
             gap: 12,
             marginBottom: 20,
+            padding: isMobile ? "4px 0" : undefined,
           }}
         >
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: "999px",
-              backgroundColor: "#1a3a2a",
-              color: "#f7f7f5",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 14,
-              fontWeight: 600,
-            }}
-          >
-            {initial}
-          </div>
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt=""
+              width={40}
+              height={40}
+              style={{ borderRadius: "999px", objectFit: "cover", display: "block", flexShrink: 0 }}
+            />
+          ) : (
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: "999px",
+                backgroundColor: "#1a3a2a",
+                color: "#f7f7f5",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 14,
+                fontWeight: 600,
+                flexShrink: 0,
+              }}
+            >
+              {initials}
+            </div>
+          )}
           <div style={{ minWidth: 0 }}>
-            <p style={{ fontSize: 15, fontWeight: 600, color: "#111", margin: 0 }}>{greetingName}</p>
-            <p style={{ fontSize: 13, color: "#999", margin: 0 }}>{email || "—"}</p>
+            <p style={{ fontSize: 14, fontWeight: 600, color: "#111", margin: 0 }}>{nameForHeader}</p>
+            {userEmail ? (
+              <p style={{ fontSize: 12, color: "#999", margin: 0 }}>{userEmail}</p>
+            ) : null}
           </div>
         </div>
 
         <div
           style={{
             display: "flex",
+            flexDirection: "row",
+            overflowX: isMobile ? "auto" : "visible",
+            WebkitOverflowScrolling: "touch",
             borderBottom: "1px solid #ebebeb",
             marginBottom: 24,
             gap: 0,
+            scrollbarWidth: "none",
           }}
+          className="account-tabs-scroll"
         >
-          {[
-            { id: "profile", label: "Profile" },
-            { id: "plan-billing", label: "Plan & Billing" },
-            { id: "security", label: "Security" },
-          ].map((item) => {
-            const isActive = activeSection === item.id;
+          {(
+            [
+              { id: "profile" as const, label: "Profile" },
+              { id: "notifications" as const, label: "Notifications" },
+              { id: "billing" as const, label: "Billing" },
+            ] as const
+          ).map((tab) => {
+            const active = activeTab === tab.id;
             return (
               <button
-                key={item.id}
+                key={tab.id}
                 type="button"
-                onClick={() => setActiveSection(item.id as typeof activeSection)}
+                onClick={() => setActiveTab(tab.id)}
                 style={{
-                  padding: "10px 16px",
-                  fontSize: 14,
-                  cursor: "pointer",
-                  border: "none",
                   background: "transparent",
-                  borderBottom: isActive ? "2px solid #111" : "2px solid transparent",
-                  color: isActive ? "#111" : "#999",
-                  fontWeight: isActive ? 500 : 400,
+                  border: "none",
+                  borderBottom: active ? "2px solid #7ab648" : "2px solid transparent",
+                  padding: isMobile ? "10px 14px" : "8px 16px",
+                  fontSize: isMobile ? 13 : 14,
+                  cursor: "pointer",
+                  color: active ? "#111" : "#888",
+                  fontWeight: active ? 500 : 400,
+                  flexShrink: 0,
+                  minHeight: isMobile ? 44 : undefined,
                 }}
               >
-                {item.label}
+                {tab.label}
               </button>
             );
           })}
         </div>
 
-          {activeSection === "profile" && (
-            <section>
-              <div
+        {activeTab === "profile" && (
+          <section>
+            <h2
+              className="text-lg font-semibold mb-3"
+              style={{
+                color: "#1a2e1a",
+                fontFamily: "'Playfair Display', serif",
+              }}
+            >
+              Profile
+            </h2>
+            <p
+              className="mb-4"
+              style={{ fontSize: 12, color: "rgba(26,35,50,0.6)", fontFamily: "'Geist', sans-serif" }}
+            >
+              Update how you appear in Katch and your contact details.
+            </p>
+            <div
+              className="rounded-2xl p-4 space-y-4"
+              style={{ border: "1px solid #dce8d0", backgroundColor: "#ffffff" }}
+            >
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    width={64}
+                    height={64}
+                    style={{ borderRadius: "50%", objectFit: "cover" }}
+                    alt=""
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: 64,
+                      height: 64,
+                      borderRadius: "50%",
+                      backgroundColor: "#1a3a2a",
+                      color: "#f7f7f5",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 20,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {initials}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const input = document.getElementById("account-avatar-input") as HTMLInputElement | null;
+                    input?.click();
+                  }}
+                  style={{
+                    fontSize: 13,
+                    color: "#7ab648",
+                    fontWeight: 500,
+                    border: "none",
+                    background: "none",
+                    cursor: "pointer",
+                    padding: 0,
+                  }}
+                >
+                  Upload avatar
+                </button>
+                <input
+                  id="account-avatar-input"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  style={{ display: "none" }}
+                  onChange={handleAvatarUpload}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs mb-1" style={{ color: "#6b6157", fontSize: isMobile ? 13 : undefined }}>
+                  Screen name
+                </label>
+                <input
+                  type="text"
+                  value={screenName}
+                  onChange={(e) => setScreenName(e.target.value)}
+                  className="w-full px-3 py-2 text-sm rounded border outline-none"
+                  style={{
+                    borderColor: "#dce8d0",
+                    backgroundColor: "#f0f0ec",
+                    color: "#1a2e1a",
+                    height: isMobile ? 44 : undefined,
+                    fontSize: isMobile ? 15 : undefined,
+                  }}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs mb-1" style={{ color: "#6b6157", fontSize: isMobile ? 13 : undefined }}>
+                  Company
+                </label>
+                <input
+                  type="text"
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                  className="w-full px-3 py-2 text-sm rounded border outline-none"
+                  style={{
+                    borderColor: "#dce8d0",
+                    backgroundColor: "#f0f0ec",
+                    color: "#1a2e1a",
+                    height: isMobile ? 44 : undefined,
+                    fontSize: isMobile ? 15 : undefined,
+                  }}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs mb-1" style={{ color: "#6b6157", fontSize: isMobile ? 13 : undefined }}>
+                  Phone
+                </label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full px-3 py-2 text-sm rounded border outline-none"
+                  style={{
+                    borderColor: "#dce8d0",
+                    backgroundColor: "#f0f0ec",
+                    color: "#1a2e1a",
+                    height: isMobile ? 44 : undefined,
+                    fontSize: isMobile ? 15 : undefined,
+                  }}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs mb-1" style={{ color: "#6b6157", fontSize: isMobile ? 13 : undefined }}>
+                  Email
+                </label>
+                <div
+                  className="px-3 py-2 text-sm rounded border"
+                  style={{
+                    borderColor: "#dce8d0",
+                    backgroundColor: "#f4f1eb",
+                    color: "#1a2e1a",
+                    minHeight: isMobile ? 44 : undefined,
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    fontSize: isMobile ? 15 : undefined,
+                  }}
+                >
+                  {email || "—"}
+                </div>
+              </div>
+
+              {profileError ? (
+                <p className="text-xs" style={{ color: "#c53030" }}>
+                  {profileError}
+                </p>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={() => void handleSaveProfile()}
+                className="px-4 py-2 text-xs font-medium rounded-full border transition-colors"
                 style={{
-                  backgroundColor: "#fff",
-                  border: "1px solid #ebebeb",
-                  borderRadius: 16,
-                  padding: 24,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 18,
+                  borderColor: "#1a2e1a",
+                  backgroundColor: "#7dde3c",
+                  color: "#0a1a0a",
+                  minHeight: isMobile ? 44 : undefined,
+                  width: isMobile ? "100%" : undefined,
+                  fontWeight: 600,
+                  cursor: profileSaving ? "not-allowed" : "pointer",
+                  opacity: profileSaving ? 0.7 : 1,
                 }}
+                disabled={profileSaving}
               >
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
-                  {avatarUrl ? (
-                    <img
-                      src={avatarUrl}
-                      width={64}
-                      height={64}
+                {profileSaving ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </section>
+        )}
+
+        {activeTab === "notifications" && (
+          <section>
+            <h2
+              className="text-lg font-semibold mb-3"
+              style={{
+                color: "#1a2e1a",
+                fontFamily: "'Playfair Display', serif",
+              }}
+            >
+              Notifications
+            </h2>
+            <p
+              className="mb-4"
+              style={{ fontSize: 12, color: "rgba(26,35,50,0.6)", fontFamily: "'Geist', sans-serif" }}
+            >
+              Choose which updates you want to receive.
+            </p>
+            <div
+              className="rounded-2xl p-4 space-y-3"
+              style={{ border: "1px solid #dce8d0", backgroundColor: "#ffffff" }}
+            >
+              <label
+                className="flex items-center justify-between gap-3 text-sm"
+                style={{ width: "100%", padding: isMobile ? "12px 0" : undefined, fontSize: isMobile ? 14 : undefined }}
+                onClick={() => setNotifEmailSequence((v) => !v)}
+              >
+                <span>Email me when a sequence is sent</span>
+                <div onClick={(e) => e.stopPropagation()}>
+                  <Toggle checked={notifEmailSequence} onChange={setNotifEmailSequence} />
+                </div>
+              </label>
+              <label
+                className="flex items-center justify-between gap-3 text-sm"
+                style={{ width: "100%", padding: isMobile ? "12px 0" : undefined, fontSize: isMobile ? 14 : undefined }}
+                onClick={() => setNotifWeeklySummary((v) => !v)}
+              >
+                <span>Weekly lead summary</span>
+                <div onClick={(e) => e.stopPropagation()}>
+                  <Toggle checked={notifWeeklySummary} onChange={setNotifWeeklySummary} />
+                </div>
+              </label>
+            </div>
+
+            {notifError ? (
+              <p className="text-xs mt-3" style={{ color: "#c53030" }}>
+                {notifError}
+              </p>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={() => void handleSaveNotifications()}
+              className="mt-4 px-4 py-2 text-xs font-medium rounded-full border transition-colors"
+              style={{
+                borderColor: "#1a2e1a",
+                backgroundColor: "#7dde3c",
+                color: "#0a1a0a",
+                minHeight: isMobile ? 44 : undefined,
+                width: isMobile ? "100%" : undefined,
+                fontWeight: 600,
+                cursor: notifSaving ? "not-allowed" : "pointer",
+                opacity: notifSaving ? 0.7 : 1,
+              }}
+              disabled={notifSaving}
+            >
+              {notifSaving ? "Saving..." : "Save"}
+            </button>
+          </section>
+        )}
+
+        {activeTab === "billing" && (
+          <section>
+            <h2
+              className="text-lg font-semibold mb-3"
+              style={{
+                color: "#1a2e1a",
+                fontFamily: "'Playfair Display', serif",
+              }}
+            >
+              Billing
+            </h2>
+            <p
+              className="mb-4"
+              style={{ fontSize: 12, color: "rgba(26,35,50,0.6)", fontFamily: "'Geist', sans-serif" }}
+            >
+              Your subscription and usage.
+            </p>
+            <div
+              className="rounded-2xl p-4 space-y-4"
+              style={{ border: "1px solid #dce8d0", backgroundColor: "#ffffff" }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: "#111", margin: 0 }}>Free Plan</p>
+                  <p style={{ fontSize: 12, color: "#6b6157", marginTop: 4, marginBottom: 0 }}>
+                    Core scanning and lead capture for individuals.
+                  </p>
+                </div>
+                <span
+                  style={{
+                    background: "#f0f7eb",
+                    color: "#2d6a1f",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                    borderRadius: "999px",
+                    padding: "2px 10px",
+                    letterSpacing: "0.02em",
+                    flexShrink: 0,
+                  }}
+                >
+                  FREE
+                </span>
+              </div>
+              <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                {[
+                  "AI badge and business card scanning",
+                  "Contact management and lead scores",
+                  "Email sequences and HubSpot sync",
+                ].map((feature) => (
+                  <li
+                    key={feature}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      fontSize: 13,
+                      color: "#1a2e1a",
+                      marginBottom: 6,
+                    }}
+                  >
+                    <span
                       style={{
+                        width: 16,
+                        height: 16,
                         borderRadius: "50%",
-                        objectFit: "cover",
-                      }}
-                      alt={displayName || greetingName || "Avatar"}
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        width: 64,
-                        height: 64,
-                        borderRadius: "50%",
-                        backgroundColor: "#1a3a2a",
-                        color: "#f7f7f5",
-                        display: "flex",
+                        backgroundColor: "#7ab648",
+                        display: "inline-flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        fontSize: 20,
-                        fontWeight: 600,
+                        color: "#ffffff",
+                        fontSize: 11,
+                        flexShrink: 0,
                       }}
                     >
-                      {initial}
-                    </div>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const input = document.getElementById(
-                        "account-avatar-input"
-                      ) as HTMLInputElement | null;
-                      input?.click();
-                    }}
-                    style={{
-                      marginTop: 10,
-                      fontSize: 13,
-                      color: "#7ab648",
-                      fontWeight: 500,
-                      border: "none",
-                      background: "none",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Change photo
-                  </button>
-                  <input
-                    id="account-avatar-input"
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    style={{ display: "none" }}
-                    onChange={handleAvatarUpload}
-                  />
-                </div>
-
-                <form onSubmit={handleSaveName} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                  <div>
-                    <label
-                      style={{
-                        display: "block",
-                        fontSize: 13,
-                        color: "#666",
-                        marginBottom: 6,
-                        fontWeight: 500,
-                      }}
-                    >
-                      Display name
-                    </label>
-                    <input
-                      type="text"
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
-                      placeholder="How we refer to you"
-                      style={{
-                        width: "100%",
-                        height: 40,
-                        padding: "0 12px",
-                        borderRadius: 8,
-                        border: "1px solid #e8e8e8",
-                        backgroundColor: "#f7f7f5",
-                        color: "#111",
-                        fontSize: 14,
-                      }}
-                    />
-                  </div>
-
-                  <div>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        marginBottom: 6,
-                      }}
-                    >
-                      <label
-                        style={{
-                          fontSize: 13,
-                          color: "#666",
-                          fontWeight: 500,
-                        }}
-                      >
-                        Email
-                      </label>
-                      <span
-                        style={{
-                          fontSize: 10,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.08em",
-                          color: "#999",
-                        }}
-                      >
-                        Read only
-                      </span>
-                    </div>
-                    <div
-                      style={{
-                        height: 40,
-                        padding: "0 12px",
-                        borderRadius: 8,
-                        border: "1px solid #e8e8e8",
-                        backgroundColor: "#f7f7f5",
-                        fontSize: 14,
-                        color: "#111",
-                        display: "flex",
-                        alignItems: "center",
-                      }}
-                    >
-                      {email || "—"}
-                    </div>
-                  </div>
-
-                  {nameError && (
-                    <p style={{ fontSize: 12, color: "#c47c4a" }}>{nameError}</p>
-                  )}
-                </form>
-              </div>
-            </section>
-          )}
-
-          {activeSection === "plan-billing" && (
-            <section>
-              <div
+                      ✓
+                    </span>
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                onClick={() => router.push("/signup")}
                 style={{
-                  backgroundColor: "#fff",
-                  border: "1px solid #ebebeb",
-                  borderRadius: 16,
-                  padding: 24,
-                  maxWidth: 520,
+                  background: "#7dde3c",
+                  color: "#0a1a0a",
+                  border: "none",
+                  borderRadius: 10,
+                  padding: "10px 20px",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  width: isMobile ? "100%" : "auto",
+                  minHeight: isMobile ? 44 : undefined,
                 }}
               >
-                <h2
-                  style={{
-                    fontSize: 20,
-                    fontWeight: 600,
-                    color: "#111",
-                    marginBottom: 4,
-                  }}
-                >
-                  {plan}
-                </h2>
-                <p
-                  style={{
-                    fontSize: 14,
-                    color: "#666",
-                    marginBottom: 16,
-                  }}
-                >
-                  {scansText}
-                </p>
-
-                {!isPro && (
-                  <button
-                    type="button"
-                    onClick={() => router.push("/signup")}
-                    style={{
-                      background: "#7dde3c",
-                      color: "#0a1a0a",
-                      padding: "0 20px",
-                      height: 40,
-                      borderRadius: 10,
-                      border: "none",
-                      fontSize: 14,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      marginBottom: 20,
-                    }}
-                  >
-                    Upgrade to Pro
-                  </button>
-                )}
-
-                <div>
-                  <p
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 500,
-                      marginBottom: 8,
-                      color: "#111",
-                    }}
-                  >
-                    Pro includes:
-                  </p>
-                  <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-                    {[
-                      "Unlimited scans",
-                      "Priority AI generation speed",
-                      "Advanced lead insights and filters",
-                    ].map((feature) => (
-                      <li
-                        key={feature}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                          fontSize: 13,
-                          color: isPro ? "#111" : "#666",
-                          marginBottom: 4,
-                        }}
-                      >
-                        <span
-                          style={{
-                            width: 16,
-                            height: 16,
-                            borderRadius: "50%",
-                            backgroundColor: isPro ? "#7ab648" : "#dce8d0",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: "#ffffff",
-                            fontSize: 11,
-                          }}
-                        >
-                          ✓
-                        </span>
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </section>
-          )}
-
-          {activeSection === "security" && (
-            <section>
-              <div
-                style={{
-                  backgroundColor: "#fff",
-                  border: "1px solid #ebebeb",
-                  borderRadius: 16,
-                  padding: 24,
-                  maxWidth: 520,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 16,
-                }}
-              >
-                <div>
-                  <button
-                    type="button"
-                    onClick={handlePasswordReset}
-                    style={{
-                      height: 40,
-                      padding: "0 20px",
-                      borderRadius: 10,
-                      border: "1px solid #e8e8e8",
-                      backgroundColor: "#fff",
-                      color: "#666",
-                      fontSize: 14,
-                      cursor: "pointer",
-                    }}
-                  >
-                    Change password
-                  </button>
-                  <p
-                    style={{
-                      marginTop: 6,
-                      fontSize: 13,
-                      color: "#666",
-                    }}
-                  >
-                    We&apos;ll send a secure link to {email || "your email address"} to reset your password.
-                  </p>
-                  {resetSent && (
-                    <p
-                      style={{
-                        marginTop: 4,
-                        fontSize: 12,
-                        color: "#7ab648",
-                      }}
-                    >
-                      Check your email for the reset link.
-                    </p>
-                  )}
-                </div>
-              </div>
-            </section>
-          )}
+                Upgrade to Pro →
+              </button>
+              <p style={{ fontSize: 12, color: "#999", margin: 0 }}>Billing management coming soon.</p>
+            </div>
+          </section>
+        )}
 
         <button
           type="button"
-          onClick={handleSignOut}
+          onClick={() => void handleSignOut()}
           style={{
             background: "#fff",
             border: "1px solid #e8e8e8",
@@ -574,6 +777,8 @@ export default function AppAccountPage() {
             fontSize: 14,
             cursor: "pointer",
             marginTop: 24,
+            width: isMobile ? "100%" : "auto",
+            minHeight: isMobile ? 44 : undefined,
           }}
         >
           Sign out

@@ -32,10 +32,7 @@ type SectionId =
   | "email-tone"
   | "sequence-templates"
   | "integrations"
-  | "icp-profile"
-  | "profile"
-  | "notifications"
-  | "billing";
+  | "icp-profile";
 
 type IcpProfileForm = {
   what_we_sell: string;
@@ -126,8 +123,6 @@ export default function SettingsPage() {
   const [user, setUser] = useState<User | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState("");
-  const [displayNameInput, setDisplayNameInput] = useState("");
-  const [profileSaving, setProfileSaving] = useState(false);
   const [signals, setSignals] = useState<Signal[]>(DEFAULT_SIGNALS);
   const [fields, setFields] = useState<Field[]>(DEFAULT_FIELDS);
   const [defaultTone, setDefaultTone] = useState<string>("professional");
@@ -136,8 +131,6 @@ export default function SettingsPage() {
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [activeSection, setActiveSection] = useState<SectionId>("conversation-signals");
-  const [notifEmailSequence, setNotifEmailSequence] = useState(true);
-  const [notifWeeklySummary, setNotifWeeklySummary] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [hubspotConnected, setHubspotConnected] = useState(false);
   const [hubId, setHubId] = useState<string | null>(null);
@@ -258,7 +251,6 @@ export default function SettingsPage() {
         resolvedName = beforeAt ? beforeAt.charAt(0).toUpperCase() + beforeAt.slice(1).toLowerCase() : "";
       }
       setDisplayName(resolvedName);
-      setDisplayNameInput(resolvedName);
       setUserEmail(email);
 
       const { data, error } = await supabase
@@ -389,43 +381,6 @@ export default function SettingsPage() {
     setFieldInput("");
   };
 
-  const handleSaveProfile = async () => {
-    const name = displayNameInput.trim();
-    setProfileSaving(true);
-    await supabase.auth.updateUser({ data: { display_name: name } });
-    setDisplayName(name);
-    setProfileSaving(false);
-  };
-
-  const currentPlan = "Free Trial";
-
-  const navGroups: { title: string; items: { id: SectionId; label: string }[] }[] = [
-    {
-      title: "Contacts",
-      items: [
-        { id: "conversation-signals", label: "Conversation Signals" },
-        { id: "contact-fields", label: "Contact Fields" },
-      ],
-    },
-    {
-      title: "Sequences",
-      items: [
-        { id: "email-tone", label: "Email Tone Defaults" },
-        { id: "sequence-templates", label: "Sequence Templates" },
-      ],
-    },
-    {
-      title: "Preferences",
-      items: [
-        { id: "integrations", label: "Integrations" },
-        { id: "icp-profile", label: "ICP Profile" },
-        { id: "profile", label: "Profile" },
-        { id: "notifications", label: "Notifications" },
-        { id: "billing", label: "Billing" },
-      ],
-    },
-  ];
-
   const tabs: { id: SectionId; label: string }[] = [
     { id: "conversation-signals", label: "Conversation Signals" },
     { id: "contact-fields", label: "Contact Fields" },
@@ -433,9 +388,6 @@ export default function SettingsPage() {
     { id: "sequence-templates", label: "Sequence Templates" },
     { id: "integrations", label: "Integrations" },
     { id: "icp-profile", label: "ICP Profile" },
-    { id: "profile", label: "Profile" },
-    { id: "notifications", label: "Notifications" },
-    { id: "billing", label: "Billing" },
   ];
 
   return (
@@ -1382,198 +1334,6 @@ export default function SettingsPage() {
               </section>
             )}
 
-            {activeSection === "profile" && (
-              <section>
-                <h2
-                  className="text-lg font-semibold mb-3"
-                  style={{
-                    color: "#1a2e1a",
-                    fontFamily: "'Playfair Display', serif",
-                  }}
-                >
-                  Profile
-                </h2>
-                <p
-                  className="mb-4"
-                  style={{ fontSize: 12, color: "rgba(26,35,50,0.6)", fontFamily: "'Geist', sans-serif" }}
-                >
-                  Update how your name appears in Katch.
-                </p>
-                <div
-                  className="rounded-2xl p-4 space-y-4"
-                  style={{ border: "1px solid #dce8d0", backgroundColor: "#ffffff" }}
-                >
-                  <div>
-                    <label className="block text-xs mb-1" style={{ color: "#6b6157", fontSize: isMobile ? 13 : undefined }}>
-                      Display name
-                    </label>
-                    <input
-                      type="text"
-                      value={displayNameInput}
-                      onChange={(e) => setDisplayNameInput(e.target.value)}
-                      className="w-full px-3 py-2 text-sm rounded border outline-none"
-                      style={{
-                        borderColor: "#dce8d0",
-                        backgroundColor: "#f0f0ec",
-                        color: "#1a2e1a",
-                        height: isMobile ? 44 : undefined,
-                        fontSize: isMobile ? 15 : undefined,
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs mb-1" style={{ color: "#6b6157", fontSize: isMobile ? 13 : undefined }}>
-                      Email
-                    </label>
-                    <div
-                      className="px-3 py-2 text-sm rounded border"
-                      style={{
-                        borderColor: "#dce8d0",
-                        backgroundColor: "#f4f1eb",
-                        color: "#1a2e1a",
-                        minHeight: isMobile ? 44 : undefined,
-                        width: "100%",
-                        display: "flex",
-                        alignItems: "center",
-                        fontSize: isMobile ? 15 : undefined,
-                      }}
-                    >
-                      {userEmail || "—"}
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "center", width: "100%" }}>
-                    <button
-                      type="button"
-                      style={{
-                        width: isMobile ? "100%" : "auto",
-                        minHeight: isMobile ? 44 : undefined,
-                        border: "1px dashed #dce8d0",
-                        borderRadius: 12,
-                        background: "#f7f7f5",
-                        color: "#6b6157",
-                        fontSize: 13,
-                        cursor: "pointer",
-                        padding: "10px 12px",
-                      }}
-                    >
-                      Upload avatar (coming soon)
-                    </button>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleSaveProfile}
-                    className="px-4 py-2 text-xs font-medium rounded-full border hover:bg-[#1a3a2a] hover:text-[#1a2e1a] transition-colors"
-                    style={{
-                      borderColor: "#1a2e1a",
-                      backgroundColor: "#f0f0ec",
-                      color: "#1a2e1a",
-                      minHeight: isMobile ? 44 : undefined,
-                      width: isMobile ? "100%" : undefined,
-                    }}
-                    disabled={profileSaving}
-                  >
-                    {profileSaving ? "Saving..." : "Save changes"}
-                  </button>
-                </div>
-              </section>
-            )}
-
-            {activeSection === "notifications" && (
-              <section>
-                <h2
-                  className="text-lg font-semibold mb-3"
-                  style={{
-                    color: "#1a2e1a",
-                    fontFamily: "'Playfair Display', serif",
-                  }}
-                >
-                  Notifications
-                </h2>
-                <p
-                  className="mb-4"
-                  style={{ fontSize: 12, color: "rgba(26,35,50,0.6)", fontFamily: "'Geist', sans-serif" }}
-                >
-                  Control which updates you receive. (UI only for now.)
-                </p>
-                <div
-                  className="rounded-2xl p-4 space-y-3"
-                  style={{ border: "1px solid #dce8d0", backgroundColor: "#ffffff" }}
-                >
-                  <label
-                    className="flex items-center justify-between gap-3 text-sm"
-                    style={{ width: "100%", padding: isMobile ? "12px 0" : undefined, fontSize: isMobile ? 14 : undefined }}
-                    onClick={() => setNotifEmailSequence((v) => !v)}
-                  >
-                    <span>Email me when a sequence is sent</span>
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <Toggle checked={notifEmailSequence} onChange={setNotifEmailSequence} />
-                    </div>
-                  </label>
-                  <label
-                    className="flex items-center justify-between gap-3 text-sm"
-                    style={{ width: "100%", padding: isMobile ? "12px 0" : undefined, fontSize: isMobile ? 14 : undefined }}
-                    onClick={() => setNotifWeeklySummary((v) => !v)}
-                  >
-                    <span>Weekly lead summary</span>
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <Toggle checked={notifWeeklySummary} onChange={setNotifWeeklySummary} />
-                    </div>
-                  </label>
-                </div>
-              </section>
-            )}
-
-            {activeSection === "billing" && (
-              <section>
-                <h2
-                  className="text-lg font-semibold mb-3"
-                  style={{
-                    color: "#1a2e1a",
-                    fontFamily: "'Playfair Display', serif",
-                  }}
-                >
-                  Billing
-                </h2>
-                <p
-                  className="mb-4"
-                  style={{ fontSize: 12, color: "rgba(26,35,50,0.6)", fontFamily: "'Geist', sans-serif" }}
-                >
-                  Manage your plan and billing details.
-                </p>
-                <div
-                  className="rounded-2xl p-4 flex items-center justify-between"
-                  style={{
-                    border: "1px solid #dce8d0",
-                    backgroundColor: "#ffffff",
-                    width: "100%",
-                    padding: isMobile ? "16px" : undefined,
-                    fontSize: isMobile ? 14 : undefined,
-                  }}
-                >
-                  <div>
-                    <p className="text-sm font-medium" style={{ color: "#1a2e1a" }}>
-                      Current plan
-                    </p>
-                    <p className="text-xs mt-0.5" style={{ color: "#6b6157" }}>
-                      {currentPlan}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => router.push("/signup")}
-                    className="px-4 py-2 text-xs font-medium rounded-full border hover:bg-[#1a3a2a] hover:text-[#1a2e1a] transition-colors"
-                    style={{
-                      borderColor: "#1a2e1a",
-                      backgroundColor: "#f0f0ec",
-                      color: "#1a2e1a",
-                      minHeight: isMobile ? 44 : undefined,
-                    }}
-                  >
-                    Upgrade
-                  </button>
-                </div>
-              </section>
-            )}
           </>
         )}
       </div>
