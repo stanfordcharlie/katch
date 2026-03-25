@@ -87,7 +87,9 @@ export function TopBar({
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [searchFocused, setSearchFocused] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const accountWrapRef = useRef<HTMLDivElement>(null);
 
   const displayName = useMemo(() => getDisplayName(user, screenName), [user, screenName]);
   const initial = displayName.trim().charAt(0).toUpperCase() || "U";
@@ -169,6 +171,17 @@ export function TopBar({
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
+
+  useEffect(() => {
+    if (!accountOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (accountWrapRef.current && !accountWrapRef.current.contains(e.target as Node)) {
+        setAccountOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [accountOpen]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -434,43 +447,157 @@ export function TopBar({
         >
           ?
         </button>
-        <button
-          type="button"
-          onClick={() => router.push("/account")}
-          style={{
-            border: "none",
-            background: "transparent",
-            cursor: "pointer",
-            flexShrink: 0,
-          }}
-        >
-          {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt=""
-              width={32}
-              height={32}
-              style={{ borderRadius: "50%", objectFit: "cover", display: "block" }}
-            />
-          ) : (
-            <span
+        <div ref={accountWrapRef} style={{ position: "relative", flexShrink: 0 }}>
+          <button
+            type="button"
+            onClick={() => setAccountOpen(!accountOpen)}
+            style={{
+              border: "none",
+              background: "transparent",
+              cursor: "pointer",
+              flexShrink: 0,
+            }}
+          >
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt=""
+                width={32}
+                height={32}
+                style={{ borderRadius: "50%", objectFit: "cover", display: "block" }}
+              />
+            ) : (
+              <span
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  backgroundColor: "#1a3a2a",
+                  color: "#7dde3c",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                {initial}
+              </span>
+            )}
+          </button>
+          {accountOpen ? (
+            <div
               style={{
-                width: 32,
-                height: 32,
-                borderRadius: "50%",
-                backgroundColor: "#1a3a2a",
-                color: "#7dde3c",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 13,
-                fontWeight: 600,
+                position: "absolute",
+                top: "44px",
+                right: 0,
+                width: "240px",
+                background: "#ffffff",
+                border: "1px solid #ebebeb",
+                borderRadius: "16px",
+                boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
+                zIndex: 200,
+                overflow: "hidden",
               }}
             >
-              {initial}
-            </span>
-          )}
-        </button>
+              <div style={{ padding: "16px", borderBottom: "1px solid #f0f0f0" }}>
+                <div style={{ fontSize: "14px", fontWeight: 600, color: "#111" }}>
+                  {screenName || user?.email?.split("@")[0]}
+                </div>
+                <div style={{ fontSize: "12px", color: "#999", marginTop: "2px" }}>{user?.email}</div>
+              </div>
+              <div style={{ padding: "12px 16px", borderBottom: "1px solid #f0f0f0" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: "12px", color: "#999" }}>Plan</span>
+                  <span
+                    style={{
+                      background: "#f0f7eb",
+                      color: "#2d6a1f",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      borderRadius: "999px",
+                      padding: "2px 10px",
+                      letterSpacing: "0.02em",
+                    }}
+                  >
+                    FREE
+                  </span>
+                </div>
+              </div>
+              {(
+                [
+                  { label: "Account settings", icon: "⚙", path: "/account" },
+                  { label: "Settings", icon: "🔧", path: "/settings" },
+                  {
+                    label: "Help & Support",
+                    icon: "?",
+                    onClick: () => {
+                      setHelpOpen(true);
+                      setAccountOpen(false);
+                    },
+                  },
+                ] as const
+              ).map((item, i) => (
+                <div
+                  key={i}
+                  onClick={() => {
+                    if ("onClick" in item) {
+                      item.onClick();
+                      return;
+                    }
+                    router.push(item.path);
+                    setAccountOpen(false);
+                  }}
+                  style={{
+                    padding: "10px 16px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    fontSize: "13px",
+                    fontWeight: 500,
+                    color: "#111",
+                    cursor: "pointer",
+                    borderBottom: "1px solid #f5f5f5",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#f9f9f9";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                  }}
+                >
+                  <span style={{ fontSize: "14px" }}>{item.icon}</span>
+                  {item.label}
+                </div>
+              ))}
+              <div
+                onClick={async () => {
+                  await supabase.auth.signOut();
+                  router.push("/landing");
+                  setAccountOpen(false);
+                }}
+                style={{
+                  padding: "10px 16px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  color: "#e55a5a",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#fde8e8";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                }}
+              >
+                <span>→</span> Sign out
+              </div>
+            </div>
+          ) : null}
+        </div>
       </div>
       <HelpDrawer isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
     </header>
