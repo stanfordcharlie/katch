@@ -1284,10 +1284,7 @@ export default function ScanPage() {
                       type="text"
                       placeholder="Event name"
                       value={newEventName}
-                      onChange={(e) => {
-                        setNewEventName(e.target.value);
-                        if (e.target.value.trim()) setSelectedEventId(null);
-                      }}
+                      onChange={(e) => setNewEventName(e.target.value)}
                       autoFocus
                       style={{
                         border: "1.5px solid #7dde3c",
@@ -1355,12 +1352,7 @@ export default function ScanPage() {
                     if (user?.id && showNewEventInput && newEventName.trim()) {
                       const { data, error } = await supabase
                         .from("events")
-                        .insert({
-                          user_id: user.id,
-                          name: newEventName.trim(),
-                          date: newEventDate || new Date().toISOString(),
-                          type: "conference",
-                        })
+                        .insert({ user_id: user.id, name: newEventName.trim(), date: newEventDate || new Date().toISOString(), type: "conference" })
                         .select()
                         .single();
 
@@ -1371,6 +1363,8 @@ export default function ScanPage() {
                         });
                         return;
                       }
+
+                      console.log("Created event — id:", data.id, "name:", data.name);
 
                       setSelectedEventId(data.id as string);
                       setSelectedEventName(

@@ -77,6 +77,10 @@ export default function ContactsPage() {
   const [isBulkSyncing, setIsBulkSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ succeeded: number; failed: number } | null>(null);
   const [events, setEvents] = useState<Array<{ id: string; name: string }>>([]);
+  const [eventsMap, setEventsMap] = useState<Record<string, string>>({});
+  const [showDeleteWarning, setShowDeleteWarning] = useState(false);
+  const [isDeleteAllWarning, setIsDeleteAllWarning] = useState(false);
+  const [pendingDeleteCount, setPendingDeleteCount] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
   const [isEnriching, setIsEnriching] = useState<string | null>(null);
 
@@ -98,6 +102,11 @@ export default function ContactsPage() {
 
     setContacts(((data as unknown) as Contact[]) || []);
     setEvents(eventsData || []);
+    const map: Record<string, string> = {};
+    ((eventsData as Array<{ id: string; name: string }>) || []).forEach((e) => {
+      map[e.id] = e.name;
+    });
+    setEventsMap(map);
   }, [user?.id]);
 
   const reEnrichContact = async (contactId: string) => {
@@ -216,7 +225,7 @@ export default function ContactsPage() {
 
   const getEventName = (eventId: string | null | undefined) => {
     if (!eventId) return null;
-    return events.find((e) => e.id === eventId)?.name || null;
+    return eventsMap[eventId] || null;
   };
 
   const formatHubSpotSyncedAt = (iso: string | null | undefined) => {
@@ -358,10 +367,11 @@ export default function ContactsPage() {
     });
   }, [contacts, searchQuery, filterEvent]);
 
-  const allEventNames = useMemo(
-    () => Array.from(new Set(contacts.map((c) => c.event).filter(Boolean))) as string[],
-    [contacts]
-  );
+  const allEventNames = useMemo(() => {
+    const uniqueEventIds = Array.from(new Set(contacts.map((c) => c.event).filter(Boolean))) as string[];
+    const validEventIds = uniqueEventIds.filter((id) => eventsMap[id]);
+    return validEventIds;
+  }, [contacts, eventsMap]);
 
   const startEditing = (contact: Contact) => {
     const checksArray = Array.isArray(contact.checks)
@@ -447,7 +457,7 @@ export default function ContactsPage() {
     showToast('Contact updated', 'success');
   };
 
-  const handleBulkDelete = async () => {
+  const confirmBulkDelete = async () => {
     if (!selectedIds.length) return;
     const idsToDelete = [...selectedIds];
     const { error } = await supabase.from('contacts').delete().in('id', idsToDelete);
@@ -457,7 +467,19 @@ export default function ContactsPage() {
     }
     setContacts((prev) => prev.filter((c) => !idsToDelete.includes(c.id)));
     setSelectedIds([]);
+    setShowDeleteWarning(false);
+    setPendingDeleteCount(0);
+    setIsDeleteAllWarning(false);
     showToast(`${idsToDelete.length} contacts deleted`, 'success');
+  };
+
+  const handleBulkDelete = async () => {
+    if (!selectedIds.length) return;
+    const totalContactCount = contacts.length;
+    const deleteAllScenario = selectedIds.length === totalContactCount;
+    setIsDeleteAllWarning(deleteAllScenario);
+    setPendingDeleteCount(selectedIds.length);
+    setShowDeleteWarning(true);
   };
 
   const handleDeleteContact = async (contact: Contact) => {
@@ -759,7 +781,7 @@ export default function ContactsPage() {
                 flexShrink: isMobile ? 0 : 1,
               }}
             >
-              {getEventName(eventId) || eventId}
+              {eventsMap[eventId]}
             </button>
           ))}
         </div>
@@ -925,7 +947,7 @@ export default function ContactsPage() {
             return n.charAt(0).toUpperCase();
           })();
 
-          const eventLabel = getEventName(contact.event);
+          const eventLabel = contact.event ? eventsMap[contact.event] || null : null;
 
           return (
             <div
@@ -1790,7 +1812,7 @@ export default function ContactsPage() {
                               margin: 0,
                             }}
                           >
-                            {getEventName(contact.event) || '—'}
+                            {contact.event ? eventsMap[contact.event] || '—' : '—'}
                           </p>
                         </div>
                         <div>
@@ -2378,6 +2400,74 @@ export default function ContactsPage() {
           );
         })}
       </div>
+      )}
+
+      {showDeleteWarning && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.45)',
+            zIndex: 120,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+          onClick={() => setShowDeleteWarning(false)}
+        >
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: 16,
+              padding: 24,
+              width: '100%',
+              maxWidth: 420,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ fontSize: 20, fontWeight: 700, color: '#111', margin: 0, marginBottom: 8 }}>
+              {isDeleteAllWarning ? 'Delete all contacts?' : `Delete ${pendingDeleteCount} contacts?`}
+            </h3>
+            <p style={{ fontSize: 14, color: '#666', margin: 0, marginBottom: 20, lineHeight: 1.5 }}>
+              {isDeleteAllWarning
+                ? `You're about to permanently delete all ${pendingDeleteCount} contacts. This cannot be undone.`
+                : `Delete ${pendingDeleteCount} contacts? This cannot be undone.`}
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button
+                type='button'
+                onClick={() => setShowDeleteWarning(false)}
+                style={{
+                  background: '#fff',
+                  border: '1px solid #e8e8e8',
+                  color: '#111',
+                  borderRadius: 10,
+                  padding: '10px 14px',
+                  fontSize: 13,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type='button'
+                onClick={() => void confirmBulkDelete()}
+                style={{
+                  background: '#fff',
+                  border: '1px solid #fde8e8',
+                  color: '#e55a5a',
+                  borderRadius: 10,
+                  padding: '10px 14px',
+                  fontSize: 13,
+                  cursor: 'pointer',
+                }}
+              >
+                {isDeleteAllWarning ? 'Yes, delete all' : 'Yes, delete'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {selectedIds.length > 0 && (
