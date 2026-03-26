@@ -48,6 +48,81 @@ async function getValidAccessToken(userId: string): Promise<string | null> {
   return refreshed.access_token;
 }
 
+const KATCH_HUBSPOT_PROPERTY_DEFS: { name: string; label: string }[] = [
+  { name: "katch_lead_score", label: "Katch Lead Score" },
+  { name: "katch_icp_fit_score", label: "Katch ICP Fit Score" },
+  { name: "katch_icp_fit_reason", label: "Katch ICP Fit Reason" },
+  { name: "katch_summary", label: "Katch Summary" },
+  { name: "katch_talking_points", label: "Katch Talking Points" },
+  { name: "katch_red_flags", label: "Katch Red Flags" },
+  { name: "katch_signals", label: "Katch Signals" },
+  { name: "katch_event", label: "Katch Event" },
+  { name: "katch_enriched", label: "Katch Enriched" },
+];
+
+async function createKatchPropertiesIfNeeded(accessToken: string): Promise<void> {
+  for (const { name, label } of KATCH_HUBSPOT_PROPERTY_DEFS) {
+    const res = await fetch("https://api.hubapi.com/crm/v3/properties/contacts", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        name,
+        label,
+        type: "string",
+        fieldType: "text",
+        groupName: "contactinformation",
+      }),
+    });
+    if (res.status === 409) continue;
+    if (!res.ok) {
+      const errBody = await res.text();
+      console.error("HubSpot create property failed:", name, res.status, errBody);
+    }
+  }
+}
+
+function appendKatchProperties(properties: Record<string, string>, contact: Record<string, unknown>) {
+  const rawAe = contact["ai_enrichment"];
+  const en =
+    rawAe != null && typeof rawAe === "object" && !Array.isArray(rawAe)
+      ? (rawAe as Record<string, unknown>)
+      : undefined;
+
+  properties.katch_lead_score =
+    contact["lead_score"] != null ? String(contact["lead_score"]) : "";
+
+  properties.katch_icp_fit_score =
+    en?.icp_fit_score != null ? String(en.icp_fit_score) : "";
+
+  properties.katch_icp_fit_reason = String(en?.icp_fit_reason ?? "");
+
+  let summary = String(en?.summary ?? "");
+  if (summary.length > 500) summary = summary.substring(0, 500);
+  properties.katch_summary = summary;
+
+  let talkingPoints = Array.isArray(en?.talking_points)
+    ? (en.talking_points as unknown[]).map((x) => String(x)).join(" | ")
+    : "";
+  if (talkingPoints.length > 500) talkingPoints = talkingPoints.substring(0, 500);
+  properties.katch_talking_points = talkingPoints;
+
+  properties.katch_red_flags = Array.isArray(en?.red_flags)
+    ? (en.red_flags as unknown[]).map((x) => String(x)).join(" | ")
+    : "";
+
+  const checks = contact["checks"];
+  properties.katch_signals = Array.isArray(checks)
+    ? (checks as unknown[]).map((x) => String(x)).join(" | ")
+    : "";
+
+  properties.katch_event = String(contact["event"] ?? "");
+
+  properties.katch_enriched = contact["enriched"] === true ? "true" : "false";
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { contactIds, userId } = await req.json();
@@ -58,6 +133,12 @@ export async function POST(req: NextRequest) {
         { error: "not_connected", message: "HubSpot not connected" },
         { status: 401 }
       );
+    }
+
+    try {
+      await createKatchPropertiesIfNeeded(accessToken);
+    } catch (e) {
+      console.error("Property setup failed, continuing sync:", e);
     }
 
     const { data: contacts } = await supabaseAdmin
@@ -110,6 +191,8 @@ export async function POST(req: NextRequest) {
 
         if (ownerId) properties.hubspot_owner_id = String(ownerId);
 
+        appendKatchProperties(properties, contact as Record<string, unknown>);
+
         const res = await fetch("https://api.hubapi.com/crm/v3/objects/contacts", {
           method: "POST",
           headers: {
@@ -119,7 +202,13 @@ export async function POST(req: NextRequest) {
           body: JSON.stringify({ properties }),
         });
 
-        const data = await res.json();
+        const rawBody = await res.text();
+        let data: { id?: string; message?: string; status?: string; [key: string]: unknown } = {};
+        try {
+          if (rawBody) data = JSON.parse(rawBody) as typeof data;
+        } catch {
+          data = { raw: rawBody };
+        }
         if (res.ok) {
           await supabaseAdmin
             .from("contacts")
@@ -130,7 +219,14 @@ export async function POST(req: NextRequest) {
             .eq("id", contact.id);
           return { contactId: contact.id, success: true, hubspotId: data.id };
         }
-        console.error("HubSpot contact create failed:", contact.name, JSON.stringify(data));
+        console.error(
+          "HubSpot contact create failed:",
+          contact.name,
+          "status:",
+          res.status,
+          "full HubSpot API response body:",
+          rawBody
+        );
         return {
           contactId: contact.id,
           success: false,
