@@ -73,62 +73,79 @@ async function fetchHubSpotOwnerId(accessToken: string, userEmail: string): Prom
   return id != null ? String(id) : null;
 }
 
-function shouldCreateKatchNote(contact: { lead_score?: unknown; ai_enrichment?: unknown }): boolean {
-  if (contact.lead_score != null && contact.lead_score !== "") return true;
+function shouldCreateKatchNote(contact: {
+  lead_score?: unknown;
+  ai_enrichment?: unknown;
+  checks?: unknown;
+}): boolean {
   if (contact.ai_enrichment != null) return true;
+  if (contact.lead_score != null && contact.lead_score !== "") return true;
+  if (Array.isArray(contact.checks) && contact.checks.length > 0) return true;
   return false;
 }
 
-function buildKatchNoteBody(contact: Record<string, unknown>): string {
-  const lines: string[] = [];
-  lines.push("--- Katch Contact Summary ---");
-  lines.push("");
-  const ls = contact.lead_score;
-  lines.push(`Lead Score: ${ls != null && ls !== "" ? String(ls) : "—"}/10`);
-
+function getAiEnrichment(contact: Record<string, unknown>): Record<string, unknown> | null {
   const raw = contact.ai_enrichment;
-  const en =
-    raw != null && typeof raw === "object" && !Array.isArray(raw)
-      ? (raw as Record<string, unknown>)
-      : null;
-
-  const icp = en?.icp_fit_score;
-  lines.push(`ICP Fit Score: ${icp != null ? String(icp) : "—"}/10`);
-  lines.push(
-    `ICP Fit Reason: ${en && typeof en.icp_fit_reason === "string" ? en.icp_fit_reason : "—"}`
-  );
-  lines.push(`Summary: ${en && typeof en.summary === "string" ? en.summary : "—"}`);
-  lines.push("Talking Points:");
-  if (en && Array.isArray(en.talking_points) && en.talking_points.length > 0) {
-    for (const t of en.talking_points) lines.push(`- ${String(t)}`);
-  } else {
-    lines.push("- —");
+  if (raw != null && typeof raw === "object" && !Array.isArray(raw)) {
+    return raw as Record<string, unknown>;
   }
-  lines.push("Red Flags:");
-  if (en && Array.isArray(en.red_flags) && en.red_flags.length > 0) {
-    for (const t of en.red_flags) lines.push(`- ${String(t)}`);
-  } else {
-    lines.push("- —");
+  return null;
+}
+
+async function buildKatchHubSpotNote(contact: Record<string, unknown>): Promise<string> {
+  let eventName = "—";
+  if (contact.event != null && String(contact.event).trim() !== "") {
+    const { data: eventData } = await supabaseAdmin
+      .from("events")
+      .select("name")
+      .eq("id", contact.event)
+      .single();
+    eventName = eventData?.name || "Unknown event";
+  }
+
+  const ae = getAiEnrichment(contact);
+
+  const noteLines: string[] = [
+    "KATCH CONTACT SUMMARY",
+    "─────────────────────────",
+    "",
+    `Lead Score: ${contact.lead_score ?? "N/A"}/10`,
+    `ICP Fit Score: ${ae?.icp_fit_score ?? "N/A"}/10`,
+    `ICP Fit Reason: ${typeof ae?.icp_fit_reason === "string" ? ae.icp_fit_reason : "—"}`,
+    "",
+    "SUMMARY",
+    typeof ae?.summary === "string" ? ae.summary : "—",
+    "",
+  ];
+
+  const talkingPoints = ae?.talking_points;
+  if (Array.isArray(talkingPoints) && talkingPoints.length > 0) {
+    noteLines.push("TALKING POINTS");
+    talkingPoints.forEach((tp: unknown) => noteLines.push(`  - ${String(tp)}`));
+    noteLines.push("");
+  }
+
+  const redFlags = ae?.red_flags;
+  if (Array.isArray(redFlags) && redFlags.length > 0) {
+    noteLines.push("RED FLAGS");
+    redFlags.forEach((rf: unknown) => noteLines.push(`  - ${String(rf)}`));
+    noteLines.push("");
   }
 
   const checks = contact.checks;
-  const signals =
-    Array.isArray(checks) && checks.length > 0 ? checks.map((x) => String(x)).join(", ") : "—";
-  lines.push(`Signals: ${signals}`);
-  lines.push(`Event: ${contact.event != null && contact.event !== "" ? String(contact.event) : "—"}`);
-  lines.push(`Enriched: ${contact.enriched === true ? "Yes" : "No"}`);
+  if (Array.isArray(checks) && checks.length > 0) {
+    noteLines.push("CONVERSATION SIGNALS");
+    checks.forEach((s: unknown) => noteLines.push(`  - ${String(s)}`));
+    noteLines.push("");
+  }
 
-  const created = contact.created_at;
-  const scannedAt =
-    created != null && String(created).trim() !== ""
-      ? new Date(String(created)).toLocaleString("en-US", {
-          dateStyle: "medium",
-          timeStyle: "short",
-        })
-      : new Date().toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
-  lines.push(`Scanned with Katch on ${scannedAt}`);
+  noteLines.push(`Event: ${eventName}`);
+  noteLines.push(`Enriched: ${contact.enriched ? "Yes" : "No"}`);
+  noteLines.push(
+    `Scanned with Katch on ${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
+  );
 
-  return lines.join("\n");
+  return noteLines.join("\n");
 }
 
 async function attachKatchNoteToContact(
@@ -257,7 +274,7 @@ export async function POST(req: NextRequest) {
           const hubspotContactId = data.id != null ? String(data.id) : "";
           if (hubspotContactId && shouldCreateKatchNote(contact)) {
             try {
-              const noteText = buildKatchNoteBody(contact as Record<string, unknown>);
+              const noteText = await buildKatchHubSpotNote(contact as Record<string, unknown>);
               await attachKatchNoteToContact(accessToken, hubspotContactId, noteText);
             } catch (noteErr) {
               console.error("HubSpot Katch note error:", noteErr);
