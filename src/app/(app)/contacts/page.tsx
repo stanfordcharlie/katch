@@ -52,6 +52,95 @@ const scoreAccent = (score: number | null | undefined): 'high' | 'mid' | 'low' =
   return 'low';
 };
 
+
+const normalizeText = (v: string | null | undefined) => (v ?? '').toLowerCase().trim();
+
+const levenshteinDistance = (a: string, b: string) => {
+  const aa = normalizeText(a);
+  const bb = normalizeText(b);
+  const dp: number[][] = Array.from({ length: aa.length + 1 }, () => Array(bb.length + 1).fill(0));
+  for (let i = 0; i <= aa.length; i++) dp[i][0] = i;
+  for (let j = 0; j <= bb.length; j++) dp[0][j] = j;
+  for (let i = 1; i <= aa.length; i++) {
+    for (let j = 1; j <= bb.length; j++) {
+      const cost = aa[i - 1] === bb[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + cost
+      );
+    }
+  }
+  return dp[aa.length][bb.length];
+};
+
+const areSimilarNames = (a: string, b: string) => {
+  const normalize = (str: string) => str.toLowerCase().trim();
+  if (normalize(a) === normalize(b)) return true;
+  const aWords = normalize(a).split(' ').filter(Boolean);
+  const bWords = normalize(b).split(' ').filter(Boolean);
+  if (!aWords.length || !bWords.length) return false;
+  if (aWords[0] === bWords[0] && aWords[aWords.length - 1] === bWords[bWords.length - 1]) {
+    return true;
+  }
+  return levenshteinDistance(a, b) <= 1;
+};
+
+const findDuplicateGroups = (list: Contact[]): Contact[][] => {
+  if (list.length < 2) return [];
+
+  const parent = list.map((_, i) => i);
+  const find = (x: number): number => {
+    let r = x;
+    while (parent[r] !== r) r = parent[r];
+    let c = x;
+    while (parent[c] !== c) {
+      const n = parent[c];
+      parent[c] = r;
+      c = n;
+    }
+    return r;
+  };
+  const union = (a: number, b: number) => {
+    const ra = find(a);
+    const rb = find(b);
+    if (ra !== rb) parent[rb] = ra;
+  };
+
+  for (let i = 0; i < list.length; i++) {
+    for (let j = i + 1; j < list.length; j++) {
+      const a = list[i];
+      const b = list[j];
+      const emailMatch =
+        normalizeText(a.email) !== '' &&
+        normalizeText(b.email) !== '' &&
+        normalizeText(a.email) === normalizeText(b.email);
+      const nameMatch =
+        normalizeText(a.name) !== '' &&
+        normalizeText(b.name) !== '' &&
+        areSimilarNames(a.name ?? '', b.name ?? '');
+      const sameNameAndCompany =
+        normalizeText(a.name) !== '' &&
+        normalizeText(a.company) !== '' &&
+        normalizeText(a.name) === normalizeText(b.name) &&
+        normalizeText(a.company) === normalizeText(b.company);
+
+      if (emailMatch || nameMatch || sameNameAndCompany) {
+        union(i, j);
+      }
+    }
+  }
+
+  const buckets: Record<string, Contact[]> = {};
+  list.forEach((c, i) => {
+    const r = String(find(i));
+    if (!buckets[r]) buckets[r] = [];
+    buckets[r].push(c);
+  });
+
+  return Object.values(buckets).filter((g) => g.length >= 2);
+};
+
 export default function ContactsPage() {
   const searchParams = useSearchParams();
   const eventFromUrl = searchParams.get('event');
@@ -85,6 +174,10 @@ export default function ContactsPage() {
   const [isDeleteAllWarning, setIsDeleteAllWarning] = useState(false);
   const [pendingDeleteCount, setPendingDeleteCount] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
+  const [duplicateGroups, setDuplicateGroups] = useState<Contact[][]>([]);
+  const [showDuplicateBanner, setShowDuplicateBanner] = useState(true);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [duplicateGroupIndex, setDuplicateGroupIndex] = useState(0);
   const [reEnrichingId, setReEnrichingId] = useState<string | null>(null);
   const [reEnrichErrorForId, setReEnrichErrorForId] = useState<string | null>(null);
 
@@ -104,7 +197,10 @@ export default function ContactsPage() {
       return;
     }
 
-    setContacts(((data as unknown) as Contact[]) || []);
+    const nextContacts = (((data as unknown) as Contact[]) || []);
+    setContacts(nextContacts);
+    setDuplicateGroups(findDuplicateGroups(nextContacts));
+    setShowDuplicateBanner(true);
     setEvents(eventsData || []);
     const map: Record<string, string> = {};
     ((eventsData as Array<{ id: string; name: string }>) || []).forEach((e) => {
@@ -186,7 +282,10 @@ export default function ContactsPage() {
               console.error('Contacts refresh error:', error);
               return;
             }
-            setContacts(((data as unknown) as Contact[]) || []);
+            const nextContacts = (((data as unknown) as Contact[]) || []);
+    setContacts(nextContacts);
+    setDuplicateGroups(findDuplicateGroups(nextContacts));
+    setShowDuplicateBanner(true);
           });
       }
     };
@@ -568,6 +667,130 @@ export default function ContactsPage() {
     setEditForm(null);
   };
 
+  const resolveDuplicateGroup = (index: number) => {
+    const remaining = duplicateGroups.filter((_, i) => i !== index);
+    setDuplicateGroups(remaining);
+    if (remaining.length === 0) {
+      setShowDuplicateModal(false);
+      setShowDuplicateBanner(false);
+      setDuplicateGroupIndex(0);
+      showToast('All duplicates resolved', 'success');
+      return;
+    }
+    setDuplicateGroupIndex((prev) => Math.max(0, Math.min(prev, remaining.length - 1)));
+  };
+
+  const handleKeepSeparate = (index: number) => {
+    resolveDuplicateGroup(index);
+  };
+
+  const handleMergeDuplicateGroup = async (group: Contact[], index: number) => {
+    if (!group.length) return;
+
+    const leadNum = (c: Contact) => {
+      const v = c.lead_score ?? c.leadScore;
+      return v == null || Number.isNaN(Number(v)) ? -1 : Number(v);
+    };
+
+    const baseContact = [...group].sort((a, b) => leadNum(b) - leadNum(a))[0];
+    const nonBase = group.filter((c) => c.id !== baseContact.id);
+
+    const pickFirstValue = (...vals: Array<string | null | undefined>) => {
+      for (const v of vals) {
+        if (v != null && String(v).trim() !== '') return v;
+      }
+      return null;
+    };
+
+    const latestByCreated = [...group].sort((a, b) => {
+      const ta = new Date(a.created_at ?? 0).getTime();
+      const tb = new Date(b.created_at ?? 0).getTime();
+      return tb - ta;
+    })[0];
+
+    const allChecks = Array.from(
+      new Set(
+        group.flatMap((c) => (Array.isArray(c.checks) ? c.checks : []))
+      )
+    );
+
+    const enrichedCandidates = group.filter((c) => c.enriched === true && c.ai_enrichment);
+    const bestEnrichmentContact = [...enrichedCandidates].sort((a, b) => {
+      const aScore = Number((a.ai_enrichment as Record<string, unknown> | null)?.icp_fit_score ?? -1);
+      const bScore = Number((b.ai_enrichment as Record<string, unknown> | null)?.icp_fit_score ?? -1);
+      return (Number.isNaN(bScore) ? -1 : bScore) - (Number.isNaN(aScore) ? -1 : aScore);
+    })[0] ?? null;
+
+    const freeNoteCombined = group
+      .map((c) => (c.free_note ?? c.freeNote ?? '').toString().trim())
+      .filter(Boolean)
+      .join(' | ');
+
+    const mergedFields = {
+      name: pickFirstValue(baseContact.name, ...group.map((c) => c.name)) ?? null,
+      title: pickFirstValue(baseContact.title, ...group.map((c) => c.title)) ?? null,
+      company: pickFirstValue(baseContact.company, ...group.map((c) => c.company)) ?? null,
+      email: pickFirstValue(baseContact.email, ...group.map((c) => c.email)) ?? null,
+      phone: pickFirstValue(baseContact.phone, ...group.map((c) => c.phone)) ?? null,
+      linkedin: pickFirstValue(baseContact.linkedin, ...group.map((c) => c.linkedin)) ?? null,
+      checks: allChecks,
+      ai_enrichment: bestEnrichmentContact?.ai_enrichment ?? null,
+      enriched: bestEnrichmentContact ? true : false,
+      free_note: freeNoteCombined || null,
+      event: latestByCreated?.event ?? null,
+      lead_score: leadNum(baseContact) >= 0 ? leadNum(baseContact) : null,
+    };
+
+    const { error: updateError } = await supabase
+      .from('contacts')
+      .update(mergedFields)
+      .eq('id', baseContact.id);
+
+    if (updateError) {
+      console.error('Merge update error:', updateError);
+      showToast('Merge failed. Please try again.', 'error');
+      return;
+    }
+
+    const otherContactIds = nonBase.map((c) => c.id);
+    if (otherContactIds.length > 0) {
+      const { error: deleteError } = await supabase
+        .from('contacts')
+        .delete()
+        .in('id', otherContactIds);
+      if (deleteError) {
+        console.error('Merge delete error:', deleteError);
+        showToast('Merge failed. Please try again.', 'error');
+        return;
+      }
+    }
+
+    const mergedContact: Contact = { ...baseContact, ...mergedFields };
+    const nextContacts = contacts
+      .filter((c) => !otherContactIds.includes(c.id))
+      .map((c) => (c.id === baseContact.id ? mergedContact : c));
+    setContacts(nextContacts);
+
+    const remaining = duplicateGroups
+      .filter((_, i) => i !== index)
+      .map((g) => g.filter((c) => !otherContactIds.includes(c.id)).map((c) => (c.id === baseContact.id ? mergedContact : c)))
+      .filter((g) => g.length >= 2);
+
+    if (remaining.length === 0) {
+      setDuplicateGroups([]);
+      setShowDuplicateModal(false);
+      setShowDuplicateBanner(false);
+      setDuplicateGroupIndex(0);
+      showToast('Contacts merged successfully', 'success');
+      showToast('All duplicates resolved', 'success');
+      return;
+    }
+
+    setDuplicateGroups(remaining);
+    setDuplicateGroupIndex((prev) => Math.max(0, Math.min(prev, remaining.length - 1)));
+    showToast('Contacts merged successfully', 'success');
+  };
+
   if (!user) {
     return <div style={{ minHeight: '100vh', backgroundColor: '#f0f2f0' }} />;
   }
@@ -812,6 +1035,62 @@ export default function ContactsPage() {
           />
         </div>
       </div>
+
+      {showDuplicateBanner && duplicateGroups.length > 0 && (
+        <div
+          style={{
+            background: '#fffbeb',
+            border: '1px solid #fde68a',
+            borderRadius: 10,
+            padding: '12px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 12,
+            gap: 12,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            <span style={{ color: '#b45309', fontSize: 14 }}>⚠</span>
+            <span style={{ fontSize: 13, color: '#92400e' }}>
+              {duplicateGroups.length} duplicate contacts detected.
+            </span>
+            <button
+              type='button'
+              onClick={() => {
+                setShowDuplicateModal(true);
+                setDuplicateGroupIndex(0);
+              }}
+              style={{
+                color: '#b45309',
+                fontWeight: 600,
+                cursor: 'pointer',
+                background: 'transparent',
+                border: 'none',
+                fontSize: 13,
+                padding: 0,
+              }}
+            >
+              Review & merge
+            </button>
+          </div>
+          <button
+            type='button'
+            onClick={() => setShowDuplicateBanner(false)}
+            style={{
+              color: '#b45309',
+              cursor: 'pointer',
+              background: 'transparent',
+              border: 'none',
+              fontSize: 16,
+              lineHeight: 1,
+              padding: 0,
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <div style={{ marginBottom: 8, width: '100%', maxWidth: '100%', overflow: 'hidden' }}>
         <div
@@ -2618,6 +2897,171 @@ export default function ContactsPage() {
         })}
         </div>
       </div>
+      )}
+
+      {showDuplicateModal && duplicateGroups.length > 0 && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.4)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+          onClick={() => setShowDuplicateModal(false)}
+        >
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: 16,
+              padding: 28,
+              width: 560,
+              maxWidth: '90vw',
+              maxHeight: '80vh',
+              overflowY: 'auto',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div>
+                <h3 style={{ fontSize: 18, fontWeight: 700, color: '#111', margin: 0 }}>Review Duplicates</h3>
+                <p style={{ fontSize: 13, color: '#999', margin: '6px 0 0 0' }}>{duplicateGroups.length} groups found</p>
+              </div>
+              <button
+                type='button'
+                onClick={() => setShowDuplicateModal(false)}
+                style={{ background: 'transparent', border: 'none', color: '#999', fontSize: 18, cursor: 'pointer', lineHeight: 1 }}
+              >
+                ×
+              </button>
+            </div>
+
+            {(() => {
+              const group = duplicateGroups[duplicateGroupIndex];
+              if (!group) return null;
+              return (
+                <div
+                  style={{
+                    background: '#fafafa',
+                    border: '1px solid #ebebeb',
+                    borderRadius: 12,
+                    padding: 16,
+                    marginBottom: 16,
+                  }}
+                >
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#999', letterSpacing: '0.08em', marginBottom: 12 }}>
+                    Group {duplicateGroupIndex + 1} of {duplicateGroups.length}
+                  </div>
+
+                  {group.map((c) => {
+                    const score = c.lead_score ?? c.leadScore;
+                    const created = c.created_at ? new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+                    const initials = (c.name || '?').toString().trim().charAt(0).toUpperCase();
+                    return (
+                      <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid #f0f0f0' }}>
+                        {c.image ? (
+                          <img src={c.image as string} alt={c.name || 'Contact'} style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                        ) : (
+                          <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#f0f0f0', color: '#777', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600, flexShrink: 0 }}>
+                            {initials}
+                          </div>
+                        )}
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontSize: 14, fontWeight: 500, color: '#111' }}>{c.name || 'Unknown contact'}</div>
+                          <div style={{ fontSize: 12, color: '#999' }}>{[c.title, c.company].filter(Boolean).join(' · ') || '—'}</div>
+                        </div>
+                        {c.enriched && (
+                          <span style={{ background: '#f0f7eb', color: '#2d6a1f', borderRadius: 999, padding: '2px 8px', fontSize: 11, fontWeight: 600 }}>
+                            Enriched
+                          </span>
+                        )}
+                        <span style={{ fontSize: 11, fontWeight: 600, borderRadius: 999, padding: '2px 8px', background: '#f5f5f5', color: '#555' }}>
+                          {score == null ? '—' : score}
+                        </span>
+                        <span style={{ fontSize: 11, color: '#bbb' }}>{created}</span>
+                      </div>
+                    );
+                  })}
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14 }}>
+                    <button
+                      type='button'
+                      onClick={() => void handleMergeDuplicateGroup(group, duplicateGroupIndex)}
+                      style={{
+                        background: '#1a3a2a',
+                        color: '#fff',
+                        borderRadius: 8,
+                        padding: '8px 16px',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        border: 'none',
+                      }}
+                    >
+                      Merge into one
+                    </button>
+                    <button
+                      type='button'
+                      onClick={() => handleKeepSeparate(duplicateGroupIndex)}
+                      style={{
+                        background: 'transparent',
+                        border: '1px solid #e8e8e8',
+                        color: '#999',
+                        borderRadius: 8,
+                        padding: '8px 16px',
+                        fontSize: 13,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Keep separate
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {duplicateGroups.length > 1 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                <button
+                  type='button'
+                  onClick={() => setDuplicateGroupIndex((i) => Math.max(0, i - 1))}
+                  disabled={duplicateGroupIndex === 0}
+                  style={{
+                    background: '#fff',
+                    border: '1px solid #e8e8e8',
+                    color: duplicateGroupIndex === 0 ? '#ccc' : '#666',
+                    borderRadius: 8,
+                    padding: '8px 14px',
+                    fontSize: 13,
+                    cursor: duplicateGroupIndex === 0 ? 'default' : 'pointer',
+                  }}
+                >
+                  Previous group
+                </button>
+                <button
+                  type='button'
+                  onClick={() => setDuplicateGroupIndex((i) => Math.min(duplicateGroups.length - 1, i + 1))}
+                  disabled={duplicateGroupIndex >= duplicateGroups.length - 1}
+                  style={{
+                    background: '#fff',
+                    border: '1px solid #e8e8e8',
+                    color: duplicateGroupIndex >= duplicateGroups.length - 1 ? '#ccc' : '#666',
+                    borderRadius: 8,
+                    padding: '8px 14px',
+                    fontSize: 13,
+                    cursor: duplicateGroupIndex >= duplicateGroups.length - 1 ? 'default' : 'pointer',
+                  }}
+                >
+                  Next group
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {showDeleteWarning && (
