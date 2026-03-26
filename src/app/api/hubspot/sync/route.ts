@@ -105,47 +105,45 @@ async function buildKatchHubSpotNote(contact: Record<string, unknown>): Promise<
 
   const ae = getAiEnrichment(contact);
 
-  const noteLines: string[] = [
-    "KATCH CONTACT SUMMARY",
-    "─────────────────────────",
-    "",
-    `Lead Score: ${contact.lead_score ?? "N/A"}/10`,
-    `ICP Fit Score: ${ae?.icp_fit_score ?? "N/A"}/10`,
-    `ICP Fit Reason: ${typeof ae?.icp_fit_reason === "string" ? ae.icp_fit_reason : "—"}`,
-    "",
-    "SUMMARY",
-    typeof ae?.summary === "string" ? ae.summary : "—",
-    "",
-  ];
+  let html = "<strong>KATCH CONTACT SUMMARY</strong><br><hr>";
+  html += `<br><strong>Lead Score:</strong> ${contact.lead_score ?? "N/A"}/10`;
 
-  const talkingPoints = ae?.talking_points;
-  if (Array.isArray(talkingPoints) && talkingPoints.length > 0) {
-    noteLines.push("TALKING POINTS");
-    talkingPoints.forEach((tp: unknown) => noteLines.push(`  - ${String(tp)}`));
-    noteLines.push("");
+  if (ae?.icp_fit_score != null) {
+    html += `<br><strong>ICP Fit Score:</strong> ${ae.icp_fit_score}/10`;
   }
-
-  const redFlags = ae?.red_flags;
-  if (Array.isArray(redFlags) && redFlags.length > 0) {
-    noteLines.push("RED FLAGS");
-    redFlags.forEach((rf: unknown) => noteLines.push(`  - ${String(rf)}`));
-    noteLines.push("");
+  if (ae?.icp_fit_reason) {
+    html += `<br><strong>ICP Fit Reason:</strong> ${String(ae.icp_fit_reason)}`;
   }
-
+  if (ae?.summary) {
+    html += `<br><br><strong>SUMMARY</strong><br>${String(ae.summary)}`;
+  }
+  if (Array.isArray(ae?.talking_points) && ae.talking_points.length) {
+    html += `<br><br><strong>TALKING POINTS</strong><ul>`;
+    ae.talking_points.forEach((tp: unknown) => {
+      html += `<li>${String(tp)}</li>`;
+    });
+    html += "</ul>";
+  }
+  if (Array.isArray(ae?.red_flags) && ae.red_flags.length) {
+    html += `<br><strong>RED FLAGS</strong><ul>`;
+    ae.red_flags.forEach((rf: unknown) => {
+      html += `<li>${String(rf)}</li>`;
+    });
+    html += "</ul>";
+  }
   const checks = contact.checks;
   if (Array.isArray(checks) && checks.length > 0) {
-    noteLines.push("CONVERSATION SIGNALS");
-    checks.forEach((s: unknown) => noteLines.push(`  - ${String(s)}`));
-    noteLines.push("");
+    html += `<br><strong>CONVERSATION SIGNALS</strong><ul>`;
+    checks.forEach((s: unknown) => {
+      html += `<li>${String(s)}</li>`;
+    });
+    html += "</ul>";
   }
+  html += `<br><strong>Event:</strong> ${eventName}`;
+  html += `<br><strong>Enriched:</strong> ${contact.enriched ? "Yes" : "No"}`;
+  html += `<br><strong>Scanned with Katch on</strong> ${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`;
 
-  noteLines.push(`Event: ${eventName}`);
-  noteLines.push(`Enriched: ${contact.enriched ? "Yes" : "No"}`);
-  noteLines.push(
-    `Scanned with Katch on ${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
-  );
-
-  return noteLines.join("\n");
+  return html;
 }
 
 async function attachKatchNoteToContact(

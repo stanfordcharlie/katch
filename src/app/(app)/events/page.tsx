@@ -11,7 +11,7 @@ export default function EventsPage() {
   const [contacts, setContacts] = useState<any[]>([]);
   const [contactEventLinks, setContactEventLinks] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; variant: "success" | "error" } | null>(null);
   const [showEventForm, setShowEventForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any>(null);
   const [evForm, setEvForm] = useState({
@@ -93,8 +93,8 @@ export default function EventsPage() {
     return contactEventLinks?.filter((c) => c.event === eventId).length || 0;
   };
 
-  const showToast = (msg: string) => {
-    setToast(msg);
+  const showToast = (msg: string, variant: "success" | "error" = "success") => {
+    setToast({ message: msg, variant });
     setTimeout(() => setToast(null), 2500);
   };
 
@@ -108,12 +108,12 @@ export default function EventsPage() {
         .eq("user_id", user.id)
         .eq("event", eventId);
       if (error) {
-        showToast("Sync failed — check HubSpot connection");
+        showToast("Sync failed — check HubSpot connection", "error");
         return;
       }
       const contactIds = (rows || []).map((r) => r.id);
       if (contactIds.length === 0) {
-        showToast("No contacts tagged to this event");
+        showToast("No contacts tagged to this event", "success");
         return;
       }
       const res = await fetch("/api/hubspot/sync", {
@@ -123,21 +123,21 @@ export default function EventsPage() {
       });
       const data = await res.json();
       if (res.status === 401 || data.error === "not_connected") {
-        showToast("Sync failed — check HubSpot connection");
+        showToast("Sync failed — check HubSpot connection", "error");
         return;
       }
       if (!res.ok) {
-        showToast("Sync failed — check HubSpot connection");
+        showToast("Sync failed — check HubSpot connection", "error");
         return;
       }
       const n = typeof data.succeeded === "number" ? data.succeeded : 0;
       if (n > 0) {
-        showToast(`${n} contacts synced to HubSpot`);
+        showToast(`${n} contacts synced to HubSpot`, "success");
       } else {
-        showToast("Sync failed — check HubSpot connection");
+        showToast("Sync failed — check HubSpot connection", "error");
       }
     } catch {
-      showToast("Sync failed — check HubSpot connection");
+      showToast("Sync failed — check HubSpot connection", "error");
     } finally {
       setIsSyncingEvent(null);
     }
@@ -160,11 +160,11 @@ export default function EventsPage() {
         .single();
 
       if (error) {
-        showToast("Failed to update event");
+        showToast("Failed to update event", "error");
         return;
       }
       setEvents((prev) => prev.map((e) => (e.id === editingEvent ? { ...e, ...data } : e)));
-      showToast("Event updated");
+      showToast("Event updated", "success");
     } else {
       const { data, error } = await supabase
         .from("events")
@@ -173,11 +173,11 @@ export default function EventsPage() {
         .single();
 
       if (error || !data) {
-        showToast("Failed to create event");
+        showToast("Failed to create event", "error");
         return;
       }
       setEvents((prev) => [data, ...prev]);
-      showToast("Event created");
+      showToast("Event created", "success");
     }
     setShowEventForm(false);
     setEditingEvent(null);
@@ -187,7 +187,7 @@ export default function EventsPage() {
   const exportEventCsv = (eventName: string) => {
     const evContacts = contacts.filter((c) => c.event === eventName);
     if (evContacts.length === 0) {
-      showToast("No contacts for this event yet");
+      showToast("No contacts for this event yet", "success");
       return;
     }
     const headers = [
@@ -239,8 +239,23 @@ export default function EventsPage() {
         }
       `}</style>
       {toast && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white text-sm px-4 py-2 rounded-lg shadow-xl">
-          {toast}
+        <div
+          style={{
+            position: "fixed",
+            bottom: 32,
+            right: 32,
+            zIndex: 9999,
+            background: toast.variant === "error" ? "#e55a5a" : "#1a3a2a",
+            color: "#ffffff",
+            borderRadius: 10,
+            padding: "12px 16px",
+            fontSize: 14,
+            fontWeight: 500,
+            boxShadow: "0 4px 20px rgba(0,0,0,0.12)",
+            maxWidth: "calc(100vw - 64px)",
+          }}
+        >
+          {toast.message}
         </div>
       )}
       <div className="flex items-end justify-between mb-6" style={{ alignItems: "center" }}>
@@ -703,7 +718,7 @@ export default function EventsPage() {
                                   }
                                   setEvents((prev) => prev.filter((e) => e.id !== ev.id));
                                   setSelectedIds((prev) => prev.filter((id) => id !== ev.id));
-                                  showToast("Event deleted");
+                                  showToast("Event deleted", "success");
                                 }}
                                 style={{
                                   background: "#ffffff",
@@ -1017,7 +1032,7 @@ export default function EventsPage() {
                       }
                       setEvents((prev) => prev.filter((e) => e.id !== ev.id));
                       setSelectedIds((prev) => prev.filter((id) => id !== ev.id));
-                      showToast("Event deleted");
+                      showToast("Event deleted", "success");
                     }}
                     style={{
                       background: "#ffffff",
@@ -1233,7 +1248,7 @@ export default function EventsPage() {
               }
               setEvents((prev) => prev.filter((e) => !ids.includes(e.id)));
               setSelectedIds([]);
-              showToast(`${ids.length} events deleted`);
+              showToast(`${ids.length} events deleted`, "success");
             }}
             style={{
               background: "rgba(229,90,90,0.15)",
