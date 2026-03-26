@@ -1513,52 +1513,27 @@ export default function SettingsPage() {
         )}
       </div>
 
-      <div
+      <button
+        type="button"
+        onClick={handleSave}
         style={{
           position: "fixed",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          background: "rgba(255,255,255,0.92)",
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)",
-          borderTop: "1px solid #ebebeb",
-          padding: "14px 32px",
-          display: "flex",
-          justifyContent: "flex-end",
-          alignItems: "center",
+          bottom: 24,
+          right: 32,
           zIndex: 100,
+          background: "#1a3a2a",
+          color: "#ffffff",
+          border: "none",
+          borderRadius: 10,
+          padding: "10px 28px",
+          fontSize: 14,
+          fontWeight: 600,
+          cursor: "pointer",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
         }}
       >
-        <span
-          style={{
-            color: "#2d6a1f",
-            fontSize: 13,
-            marginRight: 16,
-            opacity: saveStatus === "saved" ? 1 : 0,
-            transition: "opacity 0.25s ease",
-            pointerEvents: "none",
-          }}
-        >
-          Changes saved
-        </span>
-        <button
-          type="button"
-          onClick={handleSave}
-          style={{
-            background: "#1a3a2a",
-            color: "#ffffff",
-            border: "none",
-            borderRadius: 10,
-            padding: "10px 28px",
-            fontSize: 14,
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
-        >
-          {saveStatus === "saving" ? "Saving..." : "Save"}
-        </button>
-      </div>
+        {saveStatus === "saving" ? "Saving..." : "Save"}
+      </button>
     </div>
   );
 }
