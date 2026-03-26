@@ -344,15 +344,20 @@ export default function ContactsPage() {
 
       if (data.succeeded === 0 && data.failed > 0) {
         showToast(
-          `Sync failed — HubSpot rejected all ${data.failed} contacts. Check that your contacts have valid emails.`,
+          data.message ||
+            data.results?.[0]?.error ||
+            `HubSpot rejected all ${data.failed} contacts.`,
           'error'
         );
         return;
       }
 
       if (data.failed > 0) {
+        const partialErr =
+          data.message ||
+          data.results?.find((r: { success?: boolean; error?: string }) => !r.success)?.error;
         showToast(
-          `${data.succeeded} synced, ${data.failed} failed — contacts may already exist in HubSpot or have missing emails.`,
+          `${data.succeeded} synced, ${data.failed} failed${partialErr ? ` — ${partialErr}` : '.'}`,
           'warning'
         );
         return;

@@ -48,79 +48,122 @@ async function getValidAccessToken(userId: string): Promise<string | null> {
   return refreshed.access_token;
 }
 
-const KATCH_HUBSPOT_PROPERTY_DEFS: { name: string; label: string }[] = [
-  { name: "katch_lead_score", label: "Katch Lead Score" },
-  { name: "katch_icp_fit_score", label: "Katch ICP Fit Score" },
-  { name: "katch_icp_fit_reason", label: "Katch ICP Fit Reason" },
-  { name: "katch_summary", label: "Katch Summary" },
-  { name: "katch_talking_points", label: "Katch Talking Points" },
-  { name: "katch_red_flags", label: "Katch Red Flags" },
-  { name: "katch_signals", label: "Katch Signals" },
-  { name: "katch_event", label: "Katch Event" },
-  { name: "katch_enriched", label: "Katch Enriched" },
-];
-
-async function createKatchPropertiesIfNeeded(accessToken: string): Promise<void> {
-  for (const { name, label } of KATCH_HUBSPOT_PROPERTY_DEFS) {
-    const res = await fetch("https://api.hubapi.com/crm/v3/properties/contacts", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        name,
-        label,
-        type: "string",
-        fieldType: "text",
-        groupName: "contactinformation",
-      }),
+function hubspotErrorMessage(responseText: string, data: Record<string, unknown>): string {
+  const msg = typeof data.message === "string" ? data.message : "";
+  const errs = data.errors;
+  if (Array.isArray(errs) && errs.length > 0) {
+    const parts = errs.map((e) => {
+      if (e && typeof e === "object" && "message" in e) {
+        return String((e as { message: unknown }).message);
+      }
+      return JSON.stringify(e);
     });
-    if (res.status === 409) continue;
-    if (!res.ok) {
-      const errBody = await res.text();
-      console.error("HubSpot create property failed:", name, res.status, errBody);
-    }
+    const combined = [msg, ...parts].filter(Boolean).join(" — ");
+    return combined || responseText || "Unknown HubSpot error";
   }
+  return msg || (typeof data.status === "string" ? data.status : "") || responseText || "Unknown HubSpot error";
 }
 
-function appendKatchProperties(properties: Record<string, string>, contact: Record<string, unknown>) {
-  const rawAe = contact["ai_enrichment"];
+async function fetchHubSpotOwnerId(accessToken: string, userEmail: string): Promise<string | null> {
+  const url = `https://api.hubapi.com/crm/v3/owners?email=${encodeURIComponent(userEmail)}`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!res.ok) return null;
+  const body = (await res.json()) as { results?: { id?: string }[] };
+  const id = body.results?.[0]?.id;
+  return id != null ? String(id) : null;
+}
+
+function shouldCreateKatchNote(contact: { lead_score?: unknown; ai_enrichment?: unknown }): boolean {
+  if (contact.lead_score != null && contact.lead_score !== "") return true;
+  if (contact.ai_enrichment != null) return true;
+  return false;
+}
+
+function buildKatchNoteBody(contact: Record<string, unknown>): string {
+  const lines: string[] = [];
+  lines.push("--- Katch Contact Summary ---");
+  lines.push("");
+  const ls = contact.lead_score;
+  lines.push(`Lead Score: ${ls != null && ls !== "" ? String(ls) : "—"}/10`);
+
+  const raw = contact.ai_enrichment;
   const en =
-    rawAe != null && typeof rawAe === "object" && !Array.isArray(rawAe)
-      ? (rawAe as Record<string, unknown>)
-      : undefined;
+    raw != null && typeof raw === "object" && !Array.isArray(raw)
+      ? (raw as Record<string, unknown>)
+      : null;
 
-  properties.katch_lead_score =
-    contact["lead_score"] != null ? String(contact["lead_score"]) : "";
+  const icp = en?.icp_fit_score;
+  lines.push(`ICP Fit Score: ${icp != null ? String(icp) : "—"}/10`);
+  lines.push(
+    `ICP Fit Reason: ${en && typeof en.icp_fit_reason === "string" ? en.icp_fit_reason : "—"}`
+  );
+  lines.push(`Summary: ${en && typeof en.summary === "string" ? en.summary : "—"}`);
+  lines.push("Talking Points:");
+  if (en && Array.isArray(en.talking_points) && en.talking_points.length > 0) {
+    for (const t of en.talking_points) lines.push(`- ${String(t)}`);
+  } else {
+    lines.push("- —");
+  }
+  lines.push("Red Flags:");
+  if (en && Array.isArray(en.red_flags) && en.red_flags.length > 0) {
+    for (const t of en.red_flags) lines.push(`- ${String(t)}`);
+  } else {
+    lines.push("- —");
+  }
 
-  properties.katch_icp_fit_score =
-    en?.icp_fit_score != null ? String(en.icp_fit_score) : "";
+  const checks = contact.checks;
+  const signals =
+    Array.isArray(checks) && checks.length > 0 ? checks.map((x) => String(x)).join(", ") : "—";
+  lines.push(`Signals: ${signals}`);
+  lines.push(`Event: ${contact.event != null && contact.event !== "" ? String(contact.event) : "—"}`);
+  lines.push(`Enriched: ${contact.enriched === true ? "Yes" : "No"}`);
 
-  properties.katch_icp_fit_reason = String(en?.icp_fit_reason ?? "");
+  const created = contact.created_at;
+  const scannedAt =
+    created != null && String(created).trim() !== ""
+      ? new Date(String(created)).toLocaleString("en-US", {
+          dateStyle: "medium",
+          timeStyle: "short",
+        })
+      : new Date().toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
+  lines.push(`Scanned with Katch on ${scannedAt}`);
 
-  let summary = String(en?.summary ?? "");
-  if (summary.length > 500) summary = summary.substring(0, 500);
-  properties.katch_summary = summary;
+  return lines.join("\n");
+}
 
-  let talkingPoints = Array.isArray(en?.talking_points)
-    ? (en.talking_points as unknown[]).map((x) => String(x)).join(" | ")
-    : "";
-  if (talkingPoints.length > 500) talkingPoints = talkingPoints.substring(0, 500);
-  properties.katch_talking_points = talkingPoints;
-
-  properties.katch_red_flags = Array.isArray(en?.red_flags)
-    ? (en.red_flags as unknown[]).map((x) => String(x)).join(" | ")
-    : "";
-
-  const checks = contact["checks"];
-  properties.katch_signals = Array.isArray(checks)
-    ? (checks as unknown[]).map((x) => String(x)).join(" | ")
-    : "";
-
-  properties.katch_event = String(contact["event"] ?? "");
-
-  properties.katch_enriched = contact["enriched"] === true ? "true" : "false";
+async function attachKatchNoteToContact(
+  accessToken: string,
+  hubspotContactId: string,
+  noteText: string
+): Promise<void> {
+  const res = await fetch("https://api.hubapi.com/crm/v3/objects/notes", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({
+      properties: {
+        hs_note_body: noteText,
+        hs_timestamp: new Date().toISOString(),
+      },
+      associations: [
+        {
+          to: { id: hubspotContactId },
+          types: [
+            {
+              associationCategory: "HUBSPOT_DEFINED",
+              associationTypeId: 202,
+            },
+          ],
+        },
+      ],
+    }),
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    console.error("HubSpot note create failed:", res.status, t);
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -135,12 +178,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    try {
-      await createKatchPropertiesIfNeeded(accessToken);
-    } catch (e) {
-      console.error("Property setup failed, continuing sync:", e);
-    }
-
     const { data: contacts } = await supabaseAdmin
       .from("contacts")
       .select("*")
@@ -150,17 +187,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "no_contacts" }, { status: 400 });
     }
 
-    const { data: tokenRow } = await supabaseAdmin
-      .from("hubspot_tokens")
-      .select("hub_id")
-      .eq("user_id", userId)
-      .single();
-
-    const ownersRes = await fetch("https://api.hubapi.com/crm/v3/owners?limit=1", {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    const ownersData = await ownersRes.json();
-    const ownerId = ownersData.results?.[0]?.id;
+    let hubspotOwnerId: string | null = null;
+    const { data: authData } = await supabaseAdmin.auth.admin.getUserById(userId);
+    const userEmail = authData.user?.email?.trim();
+    if (userEmail) {
+      try {
+        hubspotOwnerId = await fetchHubSpotOwnerId(accessToken, userEmail);
+      } catch {
+        hubspotOwnerId = null;
+      }
+    }
 
     const results = await Promise.all(
       contacts.map(async (contact) => {
@@ -185,15 +221,9 @@ export async function POST(req: NextRequest) {
           properties.company = company;
         }
         if (contact.title) properties.jobtitle = contact.title;
-        if (contact.linkedin) properties.linkedinbio = contact.linkedin;
-        if (contact.lead_score)
-          properties.hs_lead_status = contact.lead_score >= 7 ? "IN_PROGRESS" : "OPEN";
+        if (hubspotOwnerId) properties.hubspot_owner_id = hubspotOwnerId;
 
-        if (ownerId) properties.hubspot_owner_id = String(ownerId);
-
-        appendKatchProperties(properties, contact as Record<string, unknown>);
-
-        const res = await fetch("https://api.hubapi.com/crm/v3/objects/contacts", {
+        const response = await fetch("https://api.hubapi.com/crm/v3/objects/contacts", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -202,14 +232,20 @@ export async function POST(req: NextRequest) {
           body: JSON.stringify({ properties }),
         });
 
-        const rawBody = await res.text();
-        let data: { id?: string; message?: string; status?: string; [key: string]: unknown } = {};
-        try {
-          if (rawBody) data = JSON.parse(rawBody) as typeof data;
-        } catch {
-          data = { raw: rawBody };
+        const responseText = await response.clone().text();
+        if (!response.ok) {
+          console.error("HubSpot response status:", response.status);
+          console.error("HubSpot response body:", responseText);
         }
-        if (res.ok) {
+
+        let data: Record<string, unknown> = {};
+        try {
+          if (responseText) data = JSON.parse(responseText) as Record<string, unknown>;
+        } catch {
+          data = {};
+        }
+
+        if (response.ok) {
           await supabaseAdmin
             .from("contacts")
             .update({
@@ -217,28 +253,39 @@ export async function POST(req: NextRequest) {
               hubspot_synced_at: new Date().toISOString(),
             })
             .eq("id", contact.id);
-          return { contactId: contact.id, success: true, hubspotId: data.id };
+
+          const hubspotContactId = data.id != null ? String(data.id) : "";
+          if (hubspotContactId && shouldCreateKatchNote(contact)) {
+            try {
+              const noteText = buildKatchNoteBody(contact as Record<string, unknown>);
+              await attachKatchNoteToContact(accessToken, hubspotContactId, noteText);
+            } catch (noteErr) {
+              console.error("HubSpot Katch note error:", noteErr);
+            }
+          }
+
+          return { contactId: contact.id, success: true, hubspotId: data.id as string | undefined };
         }
-        console.error(
-          "HubSpot contact create failed:",
-          contact.name,
-          "status:",
-          res.status,
-          "full HubSpot API response body:",
-          rawBody
-        );
+
+        const errMsg = hubspotErrorMessage(responseText, data);
         return {
           contactId: contact.id,
           success: false,
-          error: data.message || data.status || "Unknown HubSpot error",
+          error: errMsg,
         };
       })
     );
 
     const succeeded = results.filter((r) => r.success).length;
     const failed = results.filter((r) => !r.success).length;
+    const firstFailure = results.find((r) => !r.success);
 
-    return NextResponse.json({ succeeded, failed, results });
+    return NextResponse.json({
+      succeeded,
+      failed,
+      results,
+      message: firstFailure?.error,
+    });
   } catch (err) {
     console.error("HubSpot sync error:", err);
     return NextResponse.json({ error: "sync_failed" }, { status: 500 });
