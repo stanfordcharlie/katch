@@ -25,6 +25,7 @@ export default function EventsPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [allContacts, setAllContacts] = useState<any[]>([]);
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
+  const [isSyncingEvent, setIsSyncingEvent] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -95,6 +96,51 @@ export default function EventsPage() {
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2500);
+  };
+
+  const syncEventToHubSpot = async (eventId: string) => {
+    if (!user?.id) return;
+    setIsSyncingEvent(eventId);
+    try {
+      const { data: rows, error } = await supabase
+        .from("contacts")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("event", eventId);
+      if (error) {
+        showToast("Sync failed — check HubSpot connection");
+        return;
+      }
+      const contactIds = (rows || []).map((r) => r.id);
+      if (contactIds.length === 0) {
+        showToast("No contacts tagged to this event");
+        return;
+      }
+      const res = await fetch("/api/hubspot/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contactIds, userId: user.id }),
+      });
+      const data = await res.json();
+      if (res.status === 401 || data.error === "not_connected") {
+        showToast("Sync failed — check HubSpot connection");
+        return;
+      }
+      if (!res.ok) {
+        showToast("Sync failed — check HubSpot connection");
+        return;
+      }
+      const n = typeof data.succeeded === "number" ? data.succeeded : 0;
+      if (n > 0) {
+        showToast(`${n} contacts synced to HubSpot`);
+      } else {
+        showToast("Sync failed — check HubSpot connection");
+      }
+    } catch {
+      showToast("Sync failed — check HubSpot connection");
+    } finally {
+      setIsSyncingEvent(null);
+    }
   };
 
   const resetEvForm = () => {
@@ -187,6 +233,11 @@ export default function EventsPage() {
         fontFamily: "Inter, -apple-system, sans-serif",
       }}
     >
+      <style>{`
+        @keyframes eventsHubSpotSpin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
       {toast && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white text-sm px-4 py-2 rounded-lg shadow-xl">
           {toast}
@@ -606,6 +657,44 @@ export default function EventsPage() {
                               </button>
                               <button
                                 type="button"
+                                disabled={isSyncingEvent === ev.id}
+                                onClick={() => void syncEventToHubSpot(ev.id)}
+                                style={{
+                                  background: "#fff3ee",
+                                  border: "1px solid #ffd4c2",
+                                  color: "#ff7a59",
+                                  borderRadius: 8,
+                                  padding: "8px 14px",
+                                  fontSize: 13,
+                                  fontWeight: 500,
+                                  cursor: isSyncingEvent === ev.id ? "default" : "pointer",
+                                  opacity: isSyncingEvent === ev.id ? 0.85 : 1,
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 8,
+                                }}
+                              >
+                                {isSyncingEvent === ev.id ? (
+                                  <>
+                                    <span
+                                      style={{
+                                        width: 14,
+                                        height: 14,
+                                        border: "2px solid #ffd4c2",
+                                        borderTopColor: "#ff7a59",
+                                        borderRadius: "50%",
+                                        animation: "eventsHubSpotSpin 0.8s linear infinite",
+                                        flexShrink: 0,
+                                      }}
+                                    />
+                                    Syncing...
+                                  </>
+                                ) : (
+                                  <>H  Sync to HubSpot</>
+                                )}
+                              </button>
+                              <button
+                                type="button"
                                 onClick={async () => {
                                   const { error } = await supabase.from("events").delete().eq("id", ev.id);
                                   if (error) {
@@ -874,6 +963,48 @@ export default function EventsPage() {
                     }}
                   >
                     Export CSV
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isSyncingEvent === ev.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void syncEventToHubSpot(ev.id);
+                    }}
+                    style={{
+                      background: "#fff3ee",
+                      border: "1px solid #ffd4c2",
+                      color: "#ff7a59",
+                      borderRadius: 8,
+                      padding: isMobile ? "6px 10px" : "8px 14px",
+                      fontSize: isMobile ? 12 : 13,
+                      height: isMobile ? 34 : undefined,
+                      fontWeight: 500,
+                      cursor: isSyncingEvent === ev.id ? "default" : "pointer",
+                      opacity: isSyncingEvent === ev.id ? 0.85 : 1,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    {isSyncingEvent === ev.id ? (
+                      <>
+                        <span
+                          style={{
+                            width: 12,
+                            height: 12,
+                            border: "2px solid #ffd4c2",
+                            borderTopColor: "#ff7a59",
+                            borderRadius: "50%",
+                            animation: "eventsHubSpotSpin 0.8s linear infinite",
+                            flexShrink: 0,
+                          }}
+                        />
+                        Syncing...
+                      </>
+                    ) : (
+                      <>H  Sync to HubSpot</>
+                    )}
                   </button>
                   <button
                     type="button"
