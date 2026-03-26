@@ -457,11 +457,11 @@ export default function SettingsPage() {
       <div
         className="max-w-3xl mx-auto"
         style={{
-          padding: isMobile ? "20px 16px 100px" : "32px 36px 48px 36px",
+          padding: isMobile ? "20px 16px 100px" : "32px 36px 80px 36px",
         }}
       >
         {/* Page header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
           <div>
             <h1
               style={{
@@ -485,27 +485,6 @@ export default function SettingsPage() {
               Fine-tune how Katch works for you.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={handleSave}
-            style={{
-              background: "#1a3a2a",
-              color: "#ffffff",
-              border: "none",
-              borderRadius: 10,
-              padding: "10px 28px",
-              minHeight: isMobile ? 44 : undefined,
-              fontWeight: 600,
-              fontSize: 14,
-              cursor: "pointer",
-              position: isMobile ? "fixed" : "static",
-              bottom: isMobile ? "80px" : undefined,
-              right: isMobile ? "16px" : undefined,
-              zIndex: isMobile ? 50 : undefined,
-            }}
-          >
-            {saveStatus === "saving" ? "Saving..." : saveStatus === "saved" ? "Saved!" : "Save"}
-          </button>
         </div>
 
         {/* Profile row */}
@@ -1532,6 +1511,53 @@ export default function SettingsPage() {
 
           </>
         )}
+      </div>
+
+      <div
+        style={{
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          background: "rgba(255,255,255,0.92)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          borderTop: "1px solid #ebebeb",
+          padding: "14px 32px",
+          display: "flex",
+          justifyContent: "flex-end",
+          alignItems: "center",
+          zIndex: 100,
+        }}
+      >
+        <span
+          style={{
+            color: "#2d6a1f",
+            fontSize: 13,
+            marginRight: 16,
+            opacity: saveStatus === "saved" ? 1 : 0,
+            transition: "opacity 0.25s ease",
+            pointerEvents: "none",
+          }}
+        >
+          Changes saved
+        </span>
+        <button
+          type="button"
+          onClick={handleSave}
+          style={{
+            background: "#1a3a2a",
+            color: "#ffffff",
+            border: "none",
+            borderRadius: 10,
+            padding: "10px 28px",
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          {saveStatus === "saving" ? "Saving..." : "Save"}
+        </button>
       </div>
     </div>
   );
