@@ -215,16 +215,13 @@ export async function POST(req: NextRequest) {
 
     const results = await Promise.all(
       contacts.map(async (contact) => {
-        const properties: Record<string, string> = {};
-        if (contact.name) {
-          const parts = contact.name.trim().split(" ");
-          properties.firstname = parts[0] || "";
-          properties.lastname = parts.slice(1).join(" ") || "";
-        }
-        if (contact.email) properties.email = contact.email;
-        if (contact.phone) properties.phone = contact.phone;
-        if (contact.company) {
-          let company = contact.company
+        const nameParts = (contact.name ?? "").split(" ");
+        const firstname = nameParts[0] ?? "";
+        const lastname = nameParts.slice(1).join(" ") ?? "";
+
+        let companyNorm = contact.company ?? "";
+        if (companyNorm) {
+          let company = String(companyNorm)
             .replace(/^https?:\/\//i, "")
             .replace(/^www\./i, "")
             .replace(/\.[a-z]{2,}(\/.*)?$/i, "")
@@ -233,9 +230,17 @@ export async function POST(req: NextRequest) {
             .split(/[\s-]+/)
             .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
             .join(" ");
-          properties.company = company;
+          companyNorm = company;
         }
-        if (contact.title) properties.jobtitle = contact.title;
+
+        const properties: Record<string, string> = {
+          firstname,
+          lastname,
+          email: contact.email ?? "",
+          phone: contact.phone ?? "",
+          jobtitle: contact.title ?? "",
+          company: companyNorm,
+        };
         if (hubspotOwnerId) properties.hubspot_owner_id = hubspotOwnerId;
 
         const response = await fetch("https://api.hubapi.com/crm/v3/objects/contacts", {
