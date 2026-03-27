@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState, useEffect } from "react";
+import { Fragment, useState, useEffect, useRef } from "react";
 import type { User } from "@supabase/supabase-js";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -26,6 +26,24 @@ export default function EventsPage() {
   const [allContacts, setAllContacts] = useState<any[]>([]);
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
   const [isSyncingEvent, setIsSyncingEvent] = useState<string | null>(null);
+  const [isParsingListEvent, setIsParsingListEvent] = useState<string | null>(null);
+  const [leadListResultsModal, setLeadListResultsModal] = useState<{
+    eventId: string;
+    eventName: string;
+    contacts: any[];
+  } | null>(null);
+  const [selectedLeadListIds, setSelectedLeadListIds] = useState<string[]>([]);
+  const [isSavingLeadList, setIsSavingLeadList] = useState(false);
+  const [enrichProgress, setEnrichProgress] = useState<{
+    open: boolean;
+    progress: number;
+    current: number;
+    total: number;
+    eventName: string;
+  }>({ open: false, progress: 0, current: 0, total: 0, eventName: "" });
+  const [importEventId, setImportEventId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const enrichAbortRef = useRef<AbortController | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -143,6 +161,194 @@ export default function EventsPage() {
     }
   };
 
+  const parseCSV = (text: string): string[][] => {
+    const results: string[][] = []
+    const lines = text.split("\n")
+    for (const line of lines) {
+      if (!line.trim()) continue
+      const row: string[] = []
+      let cell = ""
+      let inQuotes = false
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i]
+        if (ch === '"' && !inQuotes) {
+          inQuotes = true
+        } else if (ch === '"' && inQuotes) {
+          inQuotes = false
+        } else if (ch === "," && !inQuotes) {
+          row.push(cell.trim())
+          cell = ""
+        } else {
+          cell += ch
+        }
+      }
+      row.push(cell.trim())
+      results.push(row)
+    }
+    return results
+  }
+
+  const openImportLeadListPicker = (eventId: string) => {
+    setImportEventId(eventId);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleSaveLeadListSelected = async () => {
+    if (!leadListResultsModal || !user?.id) return;
+    const selectedRows = leadListResultsModal.contacts.filter((c) => selectedLeadListIds.includes(c.__id));
+    if (!selectedRows.length) {
+      showToast("No contacts selected", "error");
+      return;
+    }
+
+    setIsSavingLeadList(true);
+    let saved = 0;
+    let failed = 0;
+
+    for (const c of selectedRows) {
+      const payload = {
+        user_id: user.id,
+        name: c.name || null,
+        title: c.title || null,
+        company: c.company || null,
+        email: c.email || null,
+        phone: c.phone || null,
+        linkedin: c.linkedin || null,
+        event: leadListResultsModal.eventId,
+        lead_score: c.suggested_lead_score || 5,
+        ai_enrichment: c.ai_enrichment || null,
+        enriched: true,
+        enriched_at: new Date().toISOString(),
+      };
+      const { error } = await supabase.from("contacts").insert(payload);
+      if (error) {
+        failed += 1;
+      } else {
+        saved += 1;
+      }
+    }
+
+    setIsSavingLeadList(false);
+    if (saved > 0 && failed === 0) {
+      showToast(`${saved} contacts saved to ${leadListResultsModal.eventName}`, "success");
+    } else if (saved > 0 && failed > 0) {
+      showToast(`${saved} saved, ${failed} failed — check for duplicate emails`, "error");
+    } else {
+      showToast("Enrichment failed — try again", "error");
+    }
+
+    if (saved > 0) {
+      setLeadListResultsModal(null);
+      setSelectedLeadListIds([]);
+      const { data: contactsData } = await supabase
+        .from("contacts")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      if (contactsData) {
+        setContacts((contactsData as any[]) || []);
+        setAllContacts(
+          (contactsData as any[]).map((cc) => ({
+            id: cc.id,
+            name: cc.name,
+            title: cc.title,
+            company: cc.company,
+            lead_score: cc.lead_score,
+            email: cc.email,
+            image: cc.image,
+            event: cc.event,
+          })) || []
+        );
+      }
+      const { data: contactsByEvent } = await supabase
+        .from("contacts")
+        .select("id, event")
+        .eq("user_id", user.id);
+      if (contactsByEvent) setContactEventLinks((contactsByEvent as any[]) || []);
+    }
+  };
+
+  const handleLeadListFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !importEventId || !user?.id) return;
+
+    const event = events.find((ev) => ev.id === importEventId);
+    const eventName = event?.name || "event";
+
+    try {
+      setIsParsingListEvent(importEventId);
+      const csvText = await file.text();
+      const parsedRows = parseCSV(csvText);
+      if (parsedRows.length < 2) {
+        showToast("Could not parse this CSV — make sure it has name or email columns.", "error");
+        return;
+      }
+
+      const total = Math.max(1, parsedRows.length - 1);
+      setEnrichProgress({ open: true, progress: 2, current: 1, total, eventName });
+
+      const expectedMs = total * 2000;
+      const started = Date.now();
+      const interval = window.setInterval(() => {
+        const elapsed = Date.now() - started;
+        const pct = Math.min(90, Math.max(2, Math.floor((elapsed / expectedMs) * 90)));
+        const cur = Math.min(total, Math.max(1, Math.ceil((pct / 90) * total)));
+        setEnrichProgress((prev) => ({ ...prev, progress: pct, current: cur }));
+      }, 250);
+
+      const controller = new AbortController();
+      enrichAbortRef.current = controller;
+
+      const res = await fetch("/api/enrich-list", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ csvText, userId: user.id, eventId: importEventId }),
+        signal: controller.signal,
+      });
+
+      window.clearInterval(interval);
+      enrichAbortRef.current = null;
+
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data?.error || "Enrichment failed — try again.", "error");
+        setEnrichProgress({ open: false, progress: 0, current: 0, total: 0, eventName: "" });
+        return;
+      }
+
+      const items = Array.isArray(data.contacts) ? data.contacts : [];
+      if (!items.length) {
+        showToast("Could not parse this CSV — make sure it has name or email columns.", "error");
+        setEnrichProgress({ open: false, progress: 0, current: 0, total: 0, eventName: "" });
+        return;
+      }
+
+      const sorted = [...items]
+        .map((c: any, idx: number) => ({ ...c, __id: `${idx}-${(c.email || c.name || "lead").toString()}` }))
+        .sort((a, b) => Number(b.icp_fit_score || 0) - Number(a.icp_fit_score || 0));
+      const preselected = sorted
+        .filter((c) => Number(c.icp_fit_score || 0) >= 6)
+        .map((c) => c.__id);
+
+      setLeadListResultsModal({ eventId: importEventId, eventName, contacts: sorted });
+      setSelectedLeadListIds(preselected);
+      setEnrichProgress({ open: false, progress: 0, current: 0, total: 0, eventName: "" });
+    } catch (err: any) {
+      if (err?.name !== "AbortError") {
+        showToast("Enrichment failed — try again.", "error");
+      }
+      setEnrichProgress({ open: false, progress: 0, current: 0, total: 0, eventName: "" });
+      enrichAbortRef.current = null;
+    } finally {
+      setIsParsingListEvent(null);
+      setImportEventId(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   const resetEvForm = () => {
     setEvForm({ name: "", date: "", type: "Conference", location: "", notes: "", attendees: [] });
   };
@@ -233,6 +439,7 @@ export default function EventsPage() {
         fontFamily: "Inter, -apple-system, sans-serif",
       }}
     >
+      <input ref={fileInputRef} type="file" accept=".csv" style={{ display: "none" }} onChange={handleLeadListFileChange} />
       <style>{`
         @keyframes eventsHubSpotSpin {
           to { transform: rotate(360deg); }
@@ -710,6 +917,24 @@ export default function EventsPage() {
                               </button>
                               <button
                                 type="button"
+                                disabled={isParsingListEvent === ev.id}
+                                onClick={() => openImportLeadListPicker(ev.id)}
+                                style={{
+                                  background: "#fff",
+                                  border: "1px solid #e8e8e8",
+                                  color: "#111",
+                                  borderRadius: 8,
+                                  padding: "8px 14px",
+                                  fontSize: 13,
+                                  fontWeight: 500,
+                                  cursor: isParsingListEvent === ev.id ? "default" : "pointer",
+                                  opacity: isParsingListEvent === ev.id ? 0.85 : 1,
+                                }}
+                              >
+                                {isParsingListEvent === ev.id ? "Parsing list..." : "Import lead list"}
+                              </button>
+                              <button
+                                type="button"
                                 onClick={async () => {
                                   const { error } = await supabase.from("events").delete().eq("id", ev.id);
                                   if (error) {
@@ -1023,6 +1248,28 @@ export default function EventsPage() {
                   </button>
                   <button
                     type="button"
+                    disabled={isParsingListEvent === ev.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openImportLeadListPicker(ev.id);
+                    }}
+                    style={{
+                      background: "#fff",
+                      border: "1px solid #e8e8e8",
+                      color: "#111",
+                      borderRadius: 8,
+                      padding: isMobile ? "6px 10px" : "8px 14px",
+                      fontSize: isMobile ? 12 : 13,
+                      height: isMobile ? 34 : undefined,
+                      fontWeight: 500,
+                      cursor: isParsingListEvent === ev.id ? "default" : "pointer",
+                      opacity: isParsingListEvent === ev.id ? 0.85 : 1,
+                    }}
+                  >
+                    {isParsingListEvent === ev.id ? "Parsing list..." : "Import lead list"}
+                  </button>
+                  <button
+                    type="button"
                     onClick={async (e) => {
                       e.stopPropagation();
                       const { error } = await supabase.from("events").delete().eq("id", ev.id);
@@ -1156,6 +1403,220 @@ export default function EventsPage() {
           );
         })}
       </div>
+      )}
+
+      {enrichProgress.open && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.5)",
+            zIndex: 1000,
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "center",
+            paddingTop: 40,
+          }}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 16,
+              width: 640,
+              maxWidth: "95vw",
+              padding: "24px 24px 20px",
+            }}
+          >
+            <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#111" }}>Enriching lead list...</h3>
+            <p style={{ margin: "8px 0 14px", fontSize: 13, color: "#666" }}>
+              Scoring contact {Math.min(enrichProgress.current, enrichProgress.total)} of {enrichProgress.total} against your ICP...
+            </p>
+            <div style={{ height: 10, background: "#eef2ee", borderRadius: 999, overflow: "hidden" }}>
+              <div
+                style={{
+                  height: "100%",
+                  width: `${enrichProgress.progress}%`,
+                  background: "linear-gradient(90deg, #1a3a2a 0%, #7dde3c 100%)",
+                  transition: "width 0.25s ease",
+                }}
+              />
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  enrichAbortRef.current?.abort();
+                  enrichAbortRef.current = null;
+                  setEnrichProgress({ open: false, progress: 0, current: 0, total: 0, eventName: "" });
+                  setIsParsingListEvent(null);
+                }}
+                style={{
+                  background: "#fff",
+                  border: "1px solid #e8e8e8",
+                  color: "#666",
+                  borderRadius: 8,
+                  padding: "8px 14px",
+                  fontSize: 13,
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {leadListResultsModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.5)",
+            zIndex: 1000,
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "center",
+            paddingTop: 40,
+          }}
+          onClick={() => {
+            if (!isSavingLeadList) setLeadListResultsModal(null);
+          }}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 16,
+              width: 800,
+              maxWidth: "95vw",
+              maxHeight: "80vh",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ padding: "20px 24px", borderBottom: "1px solid #ebebeb" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: "#111" }}>Lead List Results</div>
+                  <div style={{ fontSize: 13, color: "#999", marginTop: 4 }}>
+                    {leadListResultsModal.contacts.length} contacts enriched from {leadListResultsModal.eventName} — select which to save
+                  </div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ fontSize: 13, color: "#666" }}>
+                    {selectedLeadListIds.length} of {leadListResultsModal.contacts.length} selected
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedLeadListIds(leadListResultsModal.contacts.map((c) => c.__id))}
+                    style={{
+                      color: "#1a3a2a",
+                      fontSize: 13,
+                      cursor: "pointer",
+                      background: "transparent",
+                      border: "none",
+                    }}
+                  >
+                    Select all
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleSaveLeadListSelected()}
+                    disabled={isSavingLeadList}
+                    style={{
+                      background: "#1a3a2a",
+                      color: "#fff",
+                      borderRadius: 10,
+                      padding: "10px 20px",
+                      fontSize: 14,
+                      fontWeight: 600,
+                      cursor: isSavingLeadList ? "default" : "pointer",
+                      border: "none",
+                      opacity: isSavingLeadList ? 0.75 : 1,
+                    }}
+                  >
+                    {isSavingLeadList ? "Saving..." : "Save selected"}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ overflowY: "auto", flex: 1 }}>
+              {leadListResultsModal.contacts.map((c) => {
+                const checked = selectedLeadListIds.includes(c.__id);
+                const score = Number(c.icp_fit_score || 0);
+                const colors =
+                  score >= 7
+                    ? { fg: "#2d6a1f", bg: "#f0f7eb" }
+                    : score >= 4
+                      ? { fg: "#b07020", bg: "#fff3eb" }
+                      : { fg: "#e55a5a", bg: "#fde8e8" };
+                return (
+                  <div
+                    key={c.__id}
+                    onClick={() => {
+                      setSelectedLeadListIds((prev) =>
+                        prev.includes(c.__id) ? prev.filter((id) => id !== c.__id) : [...prev, c.__id]
+                      );
+                    }}
+                    style={{
+                      padding: "14px 20px",
+                      borderBottom: "1px solid #f5f5f5",
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 14,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 18,
+                        height: 18,
+                        borderRadius: 4,
+                        border: checked ? "1.5px solid #1a3a2a" : "1.5px solid #d0d0d0",
+                        background: checked ? "#1a3a2a" : "#ffffff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                        marginTop: 2,
+                      }}
+                    >
+                      {checked ? (
+                        <svg width="10" height="8" viewBox="0 0 10 8" fill="none" aria-hidden>
+                          <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      ) : null}
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>{c.name || "Unknown contact"}</div>
+                      <div style={{ fontSize: 12, color: "#999", marginTop: 2 }}>{[c.title, c.company].filter(Boolean).join(" · ") || "—"}</div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 600,
+                          padding: "2px 8px",
+                          borderRadius: 99,
+                          background: colors.bg,
+                          color: colors.fg,
+                        }}
+                      >
+                        ICP {score || 0}/10
+                      </span>
+                      <div style={{ fontSize: 11, color: "#999", maxWidth: 200, textAlign: "right", marginTop: 4 }}>
+                        {c.icp_fit_reason || ""}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       )}
 
       {selectedIds.length > 0 && (

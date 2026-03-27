@@ -3134,89 +3134,163 @@ export default function ContactsPage() {
 
       {selectedIds.length > 0 && (
         <div
-          style={{
-            position: 'fixed',
-            bottom: isMobile ? 80 : 24,
-            left: isMobile ? 12 : '50%',
-            right: isMobile ? 12 : 'auto',
-            transform: isMobile ? 'none' : 'translateX(-50%)',
-            background: 'rgba(20, 20, 20, 0.75)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-            borderRadius: 999,
-            padding: isMobile ? '8px 10px' : '10px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: isMobile ? 6 : 12,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-            zIndex: 50,
-            overflow: 'hidden',
-          }}
+          className={isMobile ? 'pills-scroll-mobile' : undefined}
+          style={
+            isMobile
+              ? {
+                  position: 'fixed',
+                  bottom: 72,
+                  left: '50%',
+                  right: 'auto',
+                  transform: 'translateX(-50%)',
+                  width: 'auto',
+                  maxWidth: 'calc(100vw - 24px)',
+                  background: '#1a3a2a',
+                  borderRadius: 99,
+                  padding: '0 16px 0 6px',
+                  display: 'flex',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  overflowX: 'auto',
+                  scrollbarWidth: 'none',
+                  WebkitOverflowScrolling: 'touch',
+                  zIndex: 999,
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+                  height: 48,
+                }
+              : {
+                  position: 'fixed',
+                  bottom: 24,
+                  left: '50%',
+                  right: 'auto',
+                  transform: 'translateX(-50%)',
+                  background: 'rgba(20, 20, 20, 0.75)',
+                  backdropFilter: 'blur(16px)',
+                  WebkitBackdropFilter: 'blur(16px)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  borderRadius: 999,
+                  padding: '10px 16px',
+                  display: 'flex',
+                  flexWrap: 'nowrap',
+                  alignItems: 'center',
+                  gap: 12,
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                  zIndex: 50,
+                  overflow: 'hidden',
+                }
+          }
         >
-          <button
-            type='button'
-            onClick={() => {
-              const visibleIds = sortedContacts.map((c) => c.id);
-              const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
-              if (allSelected) {
-                setSelectedIds((prev) => prev.filter((id) => !visibleIds.includes(id)));
-              } else {
-                setSelectedIds(visibleIds);
-              }
-            }}
-            style={{
-              border: 'none',
-              background: 'transparent',
-              color: 'rgba(255,255,255,0.6)',
-              fontSize: isMobile ? 11 : 13,
-              cursor: 'pointer',
-              paddingRight: 6,
-              minHeight: isMobile ? 44 : undefined,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
-            {(() => {
-              const visibleIds = sortedContacts.map((c) => c.id);
-              const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
-              return isMobile ? (allSelected ? 'None' : 'All') : allSelected ? 'Deselect all' : 'Select all';
-            })()}
-          </button>
-          <span
-            style={{
-              color: '#ffffff',
-              fontSize: isMobile ? 11 : 13,
-              fontWeight: 600,
-              paddingRight: 4,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
-            {isMobile ? `${selectedIds.length} sel` : `${selectedIds.length} selected`}
-          </span>
+          {isMobile && (
+            <span
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 99,
+                background: '#ffffff',
+                color: '#1a3a2a',
+                fontSize: 12,
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                marginLeft: 6,
+                marginRight: 2,
+              }}
+            >
+              {selectedIds.length}
+            </span>
+          )}
+          {isMobile && (
+            <div
+              style={{
+                width: 1,
+                height: 20,
+                background: 'rgba(255,255,255,0.2)',
+                flexShrink: 0,
+              }}
+            />
+          )}
+          {!isMobile && (
+            <button
+              type='button'
+              onClick={() => {
+                const visibleIds = sortedContacts.map((c) => c.id);
+                const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
+                if (allSelected) {
+                  setSelectedIds((prev) => prev.filter((id) => !visibleIds.includes(id)));
+                } else {
+                  setSelectedIds(visibleIds);
+                }
+              }}
+              style={{
+                border: 'none',
+                background: 'transparent',
+                color: 'rgba(255,255,255,0.6)',
+                fontSize: 13,
+                cursor: 'pointer',
+                paddingRight: 6,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {(() => {
+                const visibleIds = sortedContacts.map((c) => c.id);
+                const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.includes(id));
+                return allSelected ? 'Deselect all' : 'Select all';
+              })()}
+            </button>
+          )}
+          {!isMobile && (
+            <span
+              style={{
+                color: '#ffffff',
+                fontSize: 13,
+                fontWeight: 600,
+                paddingRight: 4,
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {`${selectedIds.length} selected`}
+            </span>
+          )}
           <button
             type='button'
             onClick={() => {
               showToast('Opening sequences...', 'success');
               window.location.href = '/sequences';
             }}
-            style={{
-              background: '#7dde3c',
-              color: '#0a1a0a',
-              borderRadius: 999,
-              padding: isMobile ? '6px 10px' : '8px 18px',
-              fontSize: isMobile ? 11 : 13,
-              fontWeight: 700,
-              border: 'none',
-              cursor: 'pointer',
-              minHeight: isMobile ? 44 : undefined,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
+            style={
+              isMobile
+                ? {
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#ffffff',
+                    fontSize: 12,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    padding: '0 10px',
+                    height: 48,
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }
+                : {
+                    background: '#7dde3c',
+                    color: '#0a1a0a',
+                    borderRadius: 999,
+                    padding: '8px 18px',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    border: 'none',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }
+            }
           >
             {isMobile ? 'Sequences' : 'Generate Sequences'}
           </button>
@@ -3224,27 +3298,56 @@ export default function ContactsPage() {
             type='button'
             onClick={() => void syncToHubSpot()}
             disabled={isBulkSyncing}
-            style={{
-              background: '#ff7a59',
-              color: '#ffffff',
-              fontSize: '13px',
-              fontWeight: 600,
-              borderRadius: '999px',
-              padding: '8px 16px',
-              border: 'none',
-              cursor: isBulkSyncing ? 'not-allowed' : 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              minHeight: isMobile ? 44 : undefined,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              opacity: isBulkSyncing ? 0.7 : 1,
-            }}
+            style={
+              isMobile
+                ? {
+                    background: '#ff7a59',
+                    border: 'none',
+                    borderRadius: 99,
+                    padding: '0 10px',
+                    color: '#ffffff',
+                    height: 'auto',
+                    alignSelf: 'center',
+                    margin: '0 4px',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: isBulkSyncing ? 'not-allowed' : 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    opacity: isBulkSyncing ? 0.7 : 1,
+                  }
+                : {
+                    background: '#ff7a59',
+                    color: '#ffffff',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    borderRadius: '999px',
+                    padding: '8px 16px',
+                    border: 'none',
+                    cursor: isBulkSyncing ? 'not-allowed' : 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    opacity: isBulkSyncing ? 0.7 : 1,
+                  }
+            }
           >
-            <span style={{ fontWeight: 700, fontSize: '13px' }}>H</span>
-            {isBulkSyncing ? 'Syncing...' : 'Sync to HubSpot'}
+            {!isMobile && (
+              <span style={{ fontWeight: 700, fontSize: 13 }}>H</span>
+            )}
+            {isBulkSyncing
+              ? 'Syncing...'
+              : isMobile
+                ? 'HubSpot'
+                : 'Sync to HubSpot'}
           </button>
           <button
             type='button'
@@ -3295,38 +3398,66 @@ export default function ContactsPage() {
               URL.revokeObjectURL(url);
               showToast(`Exported ${selectedContacts.length} contacts`, 'success');
             }}
-            style={{
-              background: 'rgba(255,255,255,0.1)',
-              color: '#ffffff',
-              border: '1px solid rgba(255,255,255,0.15)',
-              borderRadius: 999,
-              padding: isMobile ? '6px 10px' : '8px 18px',
-              fontSize: isMobile ? 11 : 13,
-              cursor: 'pointer',
-              minHeight: isMobile ? 44 : undefined,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
+            style={
+              isMobile
+                ? {
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#ffffff',
+                    fontSize: 12,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    padding: '0 10px',
+                    height: 48,
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }
+                : {
+                    background: 'rgba(255,255,255,0.1)',
+                    color: '#ffffff',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: 999,
+                    padding: '8px 18px',
+                    fontSize: 13,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }
+            }
           >
             {isMobile ? 'Export' : 'Export CSV'}
           </button>
           <button
             type='button'
             onClick={handleBulkDelete}
-            style={{
-              background: 'rgba(229,90,90,0.15)',
-              color: '#e55a5a',
-              border: '1px solid rgba(229,90,90,0.2)',
-              borderRadius: 999,
-              padding: isMobile ? '6px 10px' : '8px 18px',
-              fontSize: isMobile ? 11 : 13,
-              cursor: 'pointer',
-              minHeight: isMobile ? 44 : undefined,
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
+            style={
+              isMobile
+                ? {
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#ff6b6b',
+                    fontSize: 12,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    padding: '0 10px',
+                    height: 48,
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }
+                : {
+                    background: 'rgba(229,90,90,0.15)',
+                    color: '#e55a5a',
+                    border: '1px solid rgba(229,90,90,0.2)',
+                    borderRadius: 999,
+                    padding: '8px 18px',
+                    fontSize: 13,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }
+            }
           >
             Delete
           </button>
