@@ -20,18 +20,30 @@ function getDisplayName(user: User): string {
 }
 
 const LEADS_NAV_ICON_DESKTOP = (
-  <svg width={18} height={18} viewBox="0 0 18 18" fill="none">
-    <path d="M3 4h12M3 8h8M3 12h10" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" />
-    <circle cx={15} cy={12} r={2.5} stroke="currentColor" strokeWidth={1.4} />
-    <path d="M15 10.5V9" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" />
+  <svg width={18} height={18} viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M2 4h9" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" />
+    <path d="M2 8h7" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" />
+    <path d="M2 12h5" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" />
+    <path
+      d="M13 9l1 2 2 1-2 1-1 2-1-2-2-1 2-1 1-2z"
+      stroke="currentColor"
+      strokeWidth={1.3}
+      strokeLinejoin="round"
+    />
   </svg>
 );
 
 const LEADS_NAV_ICON_MOBILE = (
-  <svg width={22} height={22} viewBox="0 0 18 18" fill="none">
-    <path d="M3 4h12M3 8h8M3 12h10" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" />
-    <circle cx={15} cy={12} r={2.5} stroke="currentColor" strokeWidth={1.4} />
-    <path d="M15 10.5V9" stroke="currentColor" strokeWidth={1.4} strokeLinecap="round" />
+  <svg width={22} height={22} viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M2 4h9" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" />
+    <path d="M2 8h7" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" />
+    <path d="M2 12h5" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" />
+    <path
+      d="M13 9l1 2 2 1-2 1-1 2-1-2-2-1 2-1 1-2z"
+      stroke="currentColor"
+      strokeWidth={1.3}
+      strokeLinejoin="round"
+    />
   </svg>
 );
 
