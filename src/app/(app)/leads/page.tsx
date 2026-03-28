@@ -143,12 +143,24 @@ export default function LeadsPage() {
   const router = useRouter();
   const pathname = usePathname();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const dragDepthRef = useRef(0);
+  const eventDropdownRef = useRef<HTMLDivElement | null>(null);
   const mountedRef = useRef(true);
   const [user, setUser] = useState<User | null>(null);
   const [events, setEvents] = useState<EventRow[]>([]);
   const [pastLists, setPastLists] = useState<StoredLeadList[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isDropZoneHover, setIsDropZoneHover] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string>("");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newEventName, setNewEventName] = useState("");
+  const [newEventDate, setNewEventDate] = useState("");
+  const [isCreatingEvent, setIsCreatingEvent] = useState(false);
+  const [createEventNotice, setCreateEventNotice] = useState<{ kind: "ok" | "err"; text: string } | null>(
+    null
+  );
   const [enrichLoading, setEnrichLoading] = useState(false);
   const [barProgress, setBarProgress] = useState(0);
   const [scoringCurrent, setScoringCurrent] = useState(0);
@@ -198,6 +210,53 @@ export default function LeadsPage() {
       setEvents((data as EventRow[]) || []);
     })();
   }, [user?.id]);
+
+  useEffect(() => {
+    if (!isDropdownOpen) return;
+    const onDocMouseDown = (e: MouseEvent) => {
+      const el = eventDropdownRef.current;
+      if (el && !el.contains(e.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDocMouseDown);
+    return () => document.removeEventListener("mousedown", onDocMouseDown);
+  }, [isDropdownOpen]);
+
+  const selectedEventLabel =
+    selectedEventId === ""
+      ? "No specific event"
+      : events.find((ev) => ev.id === selectedEventId)?.name || "Untitled event";
+
+  const handleCreateEventSubmit = async () => {
+    const name = newEventName.trim();
+    if (!name || !user?.id || isCreatingEvent) return;
+    setIsCreatingEvent(true);
+    setCreateEventNotice(null);
+    const { data, error } = await supabase
+      .from("events")
+      .insert({
+        user_id: user.id,
+        name,
+        date: newEventDate || new Date().toISOString(),
+        type: "conference",
+      })
+      .select("id,name")
+      .single();
+    setIsCreatingEvent(false);
+    if (error || !data) {
+      setCreateEventNotice({ kind: "err", text: error?.message || "Could not create event" });
+      return;
+    }
+    const row = data as EventRow;
+    setEvents((prev) => [row, ...prev]);
+    setSelectedEventId(row.id);
+    setShowCreateForm(false);
+    setNewEventName("");
+    setNewEventDate("");
+    setCreateEventNotice({ kind: "ok", text: "Event created" });
+    window.setTimeout(() => setCreateEventNotice(null), 2000);
+  };
 
   const openModalFromResultsFlag = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -648,29 +707,80 @@ export default function LeadsPage() {
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") openFilePicker();
           }}
-          onDragOver={(e) => e.preventDefault()}
+          onMouseEnter={() => setIsDropZoneHover(true)}
+          onMouseLeave={() => setIsDropZoneHover(false)}
+          onDragEnter={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dragDepthRef.current += 1;
+            setIsDragging(true);
+          }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDragging(true);
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dragDepthRef.current -= 1;
+            if (dragDepthRef.current <= 0) {
+              dragDepthRef.current = 0;
+              setIsDragging(false);
+            }
+          }}
           onDrop={(e) => {
             e.preventDefault();
+            e.stopPropagation();
+            dragDepthRef.current = 0;
+            setIsDragging(false);
             const f = e.dataTransfer.files?.[0];
             if (f && f.name.toLowerCase().endsWith(".csv")) setSelectedFile(f);
           }}
           style={{
-            border: "2px dashed #d0d0d0",
-            borderRadius: 12,
-            padding: "40px 24px",
+            background:
+              isDragging || isDropZoneHover ? "#f8fdf4" : "#ffffff",
+            border: "2px dashed",
+            borderColor: isDragging || isDropZoneHover ? "#7dde3c" : "#d0d0d0",
+            borderRadius: 16,
+            padding: "48px 32px",
             textAlign: "center",
             cursor: "pointer",
-            background: "#fafafa",
+            transition: "border-color 0.2s",
           }}
         >
-          <div style={{ display: "flex", justifyContent: "center" }}>
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="1.5">
-              <path d="M12 16V4m0 0l4 4m-4-4L8 8" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M4 20h16" strokeLinecap="round" />
+          <div
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: 99,
+              background: "#f0fce8",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 16px",
+            }}
+          >
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M12 4v12M8 8l4-4 4 4"
+                stroke="#7dde3c"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"
+                stroke="#7dde3c"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
             </svg>
           </div>
-          <div style={{ fontSize: 15, fontWeight: 500, color: "#111", marginTop: 12 }}>Drop a CSV file here</div>
-          <div style={{ fontSize: 13, color: "#999", marginTop: 4 }}>or</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: "#111", marginBottom: 6 }}>
+            Drop a CSV file here
+          </div>
+          <div style={{ fontSize: 13, color: "#999", marginBottom: 12 }}>or</div>
           <button
             type="button"
             onClick={(e) => {
@@ -678,15 +788,14 @@ export default function LeadsPage() {
               openFilePicker();
             }}
             style={{
-              background: "#1a3a2a",
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              padding: "8px 18px",
-              fontSize: 13,
+              background: "#ffffff",
+              border: "1px solid #e8e8e8",
+              color: "#111",
+              borderRadius: 10,
+              padding: "9px 20px",
+              fontSize: 14,
               fontWeight: 500,
               cursor: "pointer",
-              marginTop: 8,
             }}
           >
             Browse files
@@ -724,26 +833,243 @@ export default function LeadsPage() {
 
         <div style={{ marginTop: 24 }}>
           <div style={{ fontSize: 13, color: "#666", marginBottom: 6 }}>Associate with event (optional)</div>
-          <select
-            value={selectedEventId}
-            onChange={(e) => setSelectedEventId(e.target.value)}
-            style={{
-              background: "#fff",
-              border: "1px solid #e8e8e8",
-              borderRadius: 8,
-              padding: "8px 12px",
-              fontSize: 13,
-              color: "#111",
-              width: 280,
-            }}
-          >
-            <option value="">No specific event</option>
-            {events.map((ev) => (
-              <option key={ev.id} value={ev.id}>
-                {ev.name || "Untitled event"}
-              </option>
-            ))}
-          </select>
+          <div ref={eventDropdownRef} style={{ position: "relative", width: 280 }}>
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => setIsDropdownOpen((o) => !o)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setIsDropdownOpen((o) => !o);
+                }
+              }}
+              style={{
+                background: "#fff",
+                border: "1px solid #e8e8e8",
+                borderRadius: 10,
+                padding: "9px 14px",
+                fontSize: 14,
+                color: "#111",
+                cursor: "pointer",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                width: 280,
+                boxSizing: "border-box",
+              }}
+            >
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {selectedEventLabel}
+              </span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, marginLeft: 8 }}>
+                <path
+                  d="M6 9l6 6 6-6"
+                  stroke="#666"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+            {isDropdownOpen && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  left: 0,
+                  width: "100%",
+                  background: "#fff",
+                  border: "1px solid #e8e8e8",
+                  borderRadius: 10,
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+                  zIndex: 100,
+                  marginTop: 4,
+                  maxHeight: 240,
+                  overflowY: "auto",
+                  boxSizing: "border-box",
+                }}
+              >
+                <div
+                  role="option"
+                  tabIndex={0}
+                  onClick={() => {
+                    setSelectedEventId("");
+                    setIsDropdownOpen(false);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      setSelectedEventId("");
+                      setIsDropdownOpen(false);
+                    }
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#f5f5f5";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                  }}
+                  style={{ padding: "10px 14px", fontSize: 14, color: "#111", cursor: "pointer" }}
+                >
+                  No specific event
+                </div>
+                {events.map((ev) => (
+                  <div
+                    key={ev.id}
+                    role="option"
+                    tabIndex={0}
+                    onClick={() => {
+                      setSelectedEventId(ev.id);
+                      setIsDropdownOpen(false);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        setSelectedEventId(ev.id);
+                        setIsDropdownOpen(false);
+                      }
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#f5f5f5";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                    style={{ padding: "10px 14px", fontSize: 14, color: "#111", cursor: "pointer" }}
+                  >
+                    {ev.name || "Untitled event"}
+                  </div>
+                ))}
+                <div style={{ height: 1, background: "#ebebeb", margin: "4px 0" }} />
+                <div
+                  role="option"
+                  tabIndex={0}
+                  onClick={() => {
+                    setIsDropdownOpen(false);
+                    setShowCreateForm(true);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      setIsDropdownOpen(false);
+                      setShowCreateForm(true);
+                    }
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#f0f7eb";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                  }}
+                  style={{
+                    padding: "10px 14px",
+                    fontSize: 14,
+                    color: "#1a3a2a",
+                    fontWeight: 500,
+                    cursor: "pointer",
+                  }}
+                >
+                  + Create new event
+                </div>
+              </div>
+            )}
+            {showCreateForm && (
+              <div style={{ marginTop: 12 }}>
+                <input
+                  type="text"
+                  placeholder="Event name"
+                  value={newEventName}
+                  onChange={(e) => setNewEventName(e.target.value)}
+                  style={{
+                    border: "1px solid #e8e8e8",
+                    borderRadius: 10,
+                    padding: "9px 14px",
+                    fontSize: 14,
+                    width: 280,
+                    outline: "none",
+                    display: "block",
+                    boxSizing: "border-box",
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = "#1a3a2a";
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = "#e8e8e8";
+                  }}
+                />
+                <input
+                  type="date"
+                  value={newEventDate}
+                  onChange={(e) => setNewEventDate(e.target.value)}
+                  style={{
+                    border: "1px solid #e8e8e8",
+                    borderRadius: 10,
+                    padding: "9px 14px",
+                    fontSize: 14,
+                    width: 280,
+                    outline: "none",
+                    display: "block",
+                    marginTop: 8,
+                    boxSizing: "border-box",
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = "#1a3a2a";
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = "#e8e8e8";
+                  }}
+                />
+                <div style={{ display: "flex", alignItems: "center", marginTop: 10 }}>
+                  <button
+                    type="button"
+                    disabled={isCreatingEvent}
+                    onClick={() => void handleCreateEventSubmit()}
+                    style={{
+                      background: "#1a3a2a",
+                      color: "#fff",
+                      borderRadius: 8,
+                      padding: "8px 16px",
+                      fontSize: 13,
+                      fontWeight: 500,
+                      cursor: isCreatingEvent ? "not-allowed" : "pointer",
+                      border: "none",
+                      opacity: isCreatingEvent ? 0.7 : 1,
+                    }}
+                  >
+                    Create
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCreateForm(false);
+                      setNewEventName("");
+                      setNewEventDate("");
+                      setCreateEventNotice(null);
+                    }}
+                    style={{
+                      color: "#999",
+                      fontSize: 13,
+                      cursor: "pointer",
+                      marginLeft: 12,
+                      background: "none",
+                      border: "none",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+                {createEventNotice && (
+                  <p
+                    style={{
+                      margin: "8px 0 0",
+                      fontSize: 12,
+                      color: createEventNotice.kind === "ok" ? "#2d6a1f" : "#e55a5a",
+                    }}
+                  >
+                    {createEventNotice.text}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         <button
