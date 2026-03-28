@@ -1,0 +1,948 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import type { User } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
+import { ENRICHMENT_JOB_KEY } from "@/components/EnrichmentProgressPill";
+
+const LS_KEY = "katch_lead_lists";
+
+function readEnrichmentJob(): Record<string, unknown> | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(ENRICHMENT_JOB_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+function writeEnrichmentJobFull(job: Record<string, unknown>) {
+  localStorage.setItem(ENRICHMENT_JOB_KEY, JSON.stringify(job));
+}
+
+function patchEnrichmentJob(patch: Record<string, unknown>) {
+  const cur = readEnrichmentJob() || {};
+  localStorage.setItem(ENRICHMENT_JOB_KEY, JSON.stringify({ ...cur, ...patch }));
+}
+
+const parseCSV = (text: string): string[][] => {
+  const results: string[][] = [];
+  const lines = text.split("\n");
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    const row: string[] = [];
+    let cell = "";
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"' && !inQuotes) {
+        inQuotes = true;
+      } else if (ch === '"' && inQuotes) {
+        inQuotes = false;
+      } else if (ch === "," && !inQuotes) {
+        row.push(cell.trim());
+        cell = "";
+      } else {
+        cell += ch;
+      }
+    }
+    row.push(cell.trim());
+    results.push(row);
+  }
+  return results;
+};
+
+type EventRow = { id: string; name: string | null };
+
+type EnrichedRow = {
+  __id: string;
+  name: string;
+  email: string;
+  company: string;
+  title: string;
+  phone: string;
+  linkedin: string;
+  ai_enrichment: Record<string, unknown>;
+  icp_fit_score: number;
+  icp_fit_reason: string;
+  suggested_lead_score: number;
+  summary: string;
+  talking_points: unknown[];
+  red_flags: unknown[];
+};
+
+type StoredLeadList = {
+  id: number;
+  filename: string;
+  uploadDate: string;
+  contactCount: number;
+  savedCount: number;
+  eventName: string;
+  eventId: string | null;
+  topScore: number;
+  contacts: EnrichedRow[];
+};
+
+function readStoredLists(): StoredLeadList[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? (parsed as StoredLeadList[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function formatBytes(n: number) {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatTableDate(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function formatTime(seconds: number) {
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return s > 0 ? `${m}m ${s}s` : `${m}m`;
+}
+
+function scorePillStyle(score: number) {
+  if (score >= 7) return { color: "#2d6a1f", background: "#f0f7eb" };
+  if (score >= 4) return { color: "#b07020", background: "#fef9ec" };
+  return { color: "#e55a5a", background: "#fef2f2" };
+}
+
+function distributionCounts(contacts: EnrichedRow[]) {
+  let high = 0;
+  let med = 0;
+  let low = 0;
+  for (const c of contacts) {
+    const s = c.icp_fit_score ?? 0;
+    if (s >= 7) high += 1;
+    else if (s >= 4) med += 1;
+    else low += 1;
+  }
+  return { high, med, low };
+}
+
+export default function LeadsPage() {
+  const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [events, setEvents] = useState<EventRow[]>([]);
+  const [pastLists, setPastLists] = useState<StoredLeadList[]>([]);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState<string>("");
+  const [enrichLoading, setEnrichLoading] = useState(false);
+  const [barProgress, setBarProgress] = useState(0);
+  const [scoringCurrent, setScoringCurrent] = useState(0);
+  const [scoringTotal, setScoringTotal] = useState(0);
+  const [resultsModal, setResultsModal] = useState<{
+    filename: string;
+    eventId: string | null;
+    eventName: string;
+    contacts: EnrichedRow[];
+  } | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [hoveredRow, setHoveredRow] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; variant: "success" | "error" } | null>(null);
+
+  const showToast = useCallback((message: string, variant: "success" | "error" = "success") => {
+    setToast({ message, variant });
+    setTimeout(() => setToast(null), 2800);
+  }, []);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) router.replace("/landing");
+      else setUser(data.session.user as User);
+    });
+  }, [router]);
+
+  useEffect(() => {
+    setPastLists(readStoredLists());
+  }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    (async () => {
+      const { data } = await supabase
+        .from("events")
+        .select("id,name")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      setEvents((data as EventRow[]) || []);
+    })();
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!enrichLoading || scoringTotal <= 0) return;
+    const duration = scoringTotal * 1.5 * 1000;
+    const start = performance.now();
+    let raf = 0;
+    const step = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      setBarProgress(Math.min(90, t * 90));
+      const approx = Math.max(1, Math.min(scoringTotal, Math.ceil(t * scoringTotal)));
+      setScoringCurrent(approx);
+      if (t < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [enrichLoading, scoringTotal]);
+
+  const openModalFromStoredJob = useCallback(() => {
+    const job = readEnrichmentJob() as {
+      openResultsModal?: boolean;
+      results?: unknown[];
+      filename?: string;
+      eventId?: string | null;
+      eventName?: string;
+      id?: number;
+    } | null;
+    if (!job?.openResultsModal || !Array.isArray(job.results)) return;
+    const jid = typeof job.id === "number" ? job.id : Date.now();
+    const withIds: EnrichedRow[] = job.results.map((c: unknown, i: number) => {
+      const row = c as EnrichedRow;
+      return {
+        ...row,
+        __id: row.__id || `row-${jid}-${i}`,
+        icp_fit_score: Number(row.icp_fit_score) || 0,
+        suggested_lead_score: Number(row.suggested_lead_score) || 5,
+        icp_fit_reason: typeof row.icp_fit_reason === "string" ? row.icp_fit_reason : "",
+        summary: typeof row.summary === "string" ? row.summary : "",
+        talking_points: Array.isArray(row.talking_points) ? row.talking_points : [],
+        red_flags: Array.isArray(row.red_flags) ? row.red_flags : [],
+        ai_enrichment: (row.ai_enrichment as Record<string, unknown>) || {},
+      };
+    });
+    setResultsModal({
+      filename: job.filename || "leads.csv",
+      eventId: job.eventId ?? null,
+      eventName: job.eventName || "No specific event",
+      contacts: withIds,
+    });
+    setSelectedIds(withIds.filter((c) => (c.icp_fit_score ?? 0) >= 6).map((c) => c.__id));
+    patchEnrichmentJob({ openResultsModal: false });
+  }, []);
+
+  useEffect(() => {
+    openModalFromStoredJob();
+    const h = () => openModalFromStoredJob();
+    window.addEventListener("katch-enrichment-open-modal", h);
+    return () => window.removeEventListener("katch-enrichment-open-modal", h);
+  }, [openModalFromStoredJob]);
+
+  const openFilePicker = () => fileInputRef.current?.click();
+
+  const clearCsvSelection = () => {
+    setSelectedFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    setResultsModal(null);
+    setSelectedIds([]);
+  };
+
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    setSelectedFile(f ?? null);
+    e.target.value = "";
+  };
+
+  const sortedModalContacts = useMemo(() => {
+    if (!resultsModal) return [];
+    return [...resultsModal.contacts].sort((a, b) => (b.icp_fit_score ?? 0) - (a.icp_fit_score ?? 0));
+  }, [resultsModal]);
+
+  const dist = useMemo(() => distributionCounts(sortedModalContacts), [sortedModalContacts]);
+
+  const remainingForEta = Math.max(0, scoringTotal - scoringCurrent + 1);
+  const etaSeconds = Math.ceil(remainingForEta * 1.5);
+
+  const runEnrich = async () => {
+    if (!user?.id || !selectedFile) return;
+    const csvText = await selectedFile.text();
+    const parsed = parseCSV(csvText);
+    if (parsed.length < 2) {
+      showToast("Could not parse this CSV — add headers and at least one row.", "error");
+      return;
+    }
+    const dataRows = parsed.length - 1;
+    const cappedForEta = Math.min(dataRows, 100);
+    const eventName =
+      selectedEventId === ""
+        ? "No specific event"
+        : events.find((ev) => ev.id === selectedEventId)?.name || "Event";
+    setScoringTotal(dataRows);
+    setScoringCurrent(1);
+    setBarProgress(0);
+    setEnrichLoading(true);
+
+    const jobId = Date.now();
+    writeEnrichmentJobFull({
+      id: jobId,
+      filename: selectedFile.name,
+      totalContacts: cappedForEta,
+      startedAt: new Date().toISOString(),
+      status: "processing",
+      progress: 0,
+      eventId: selectedEventId || null,
+      eventName,
+    });
+
+    const estimatedTotalSeconds = cappedForEta * 1.5;
+    const progressStepMs = Math.max(50, (estimatedTotalSeconds * 1000) / 100);
+    let p = 0;
+    let progressIv: ReturnType<typeof setInterval> | null = null;
+    progressIv = setInterval(() => {
+      p = Math.min(90, p + 1);
+      patchEnrichmentJob({ progress: p });
+    }, progressStepMs);
+
+    try {
+      const eventId = selectedEventId || undefined;
+      const res = await fetch("/api/enrich-list", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ csvText, userId: user.id, eventId }),
+      });
+      const json = (await res.json()) as {
+        contacts?: EnrichedRow[];
+        error?: string;
+        message?: string;
+        truncated?: boolean;
+        totalRows?: number;
+      };
+
+      if (res.status === 500) {
+        const msg =
+          typeof json.message === "string" ? json.message : "Enrichment failed — try again.";
+        patchEnrichmentJob({ status: "error", errorMessage: msg });
+        showToast(msg, "error");
+        return;
+      }
+
+      if (!res.ok || !json.contacts) {
+        const errMsg =
+          json.error === "no_valid_rows" && typeof json.message === "string"
+            ? json.message
+            : json.error || "Enrichment failed — try again.";
+        patchEnrichmentJob({ status: "error", errorMessage: errMsg });
+        if (json.error === "no_valid_rows" && typeof json.message === "string") {
+          showToast(json.message, "error");
+        } else {
+          showToast(errMsg, "error");
+        }
+        return;
+      }
+
+      patchEnrichmentJob({
+        status: "complete",
+        progress: 100,
+        results: json.contacts,
+      });
+
+      const withIds: EnrichedRow[] = json.contacts.map((c, i) => ({
+        ...c,
+        __id: `row-${Date.now()}-${i}`,
+        icp_fit_score: Number(c.icp_fit_score) || 0,
+        suggested_lead_score: Number(c.suggested_lead_score) || 5,
+        icp_fit_reason: typeof c.icp_fit_reason === "string" ? c.icp_fit_reason : "",
+        summary: typeof c.summary === "string" ? c.summary : "",
+        talking_points: Array.isArray(c.talking_points) ? c.talking_points : [],
+        red_flags: Array.isArray(c.red_flags) ? c.red_flags : [],
+        ai_enrichment: (c.ai_enrichment as Record<string, unknown>) || {},
+      }));
+      setResultsModal({
+        filename: selectedFile.name,
+        eventId: selectedEventId || null,
+        eventName,
+        contacts: withIds,
+      });
+      setSelectedIds(withIds.filter((c) => (c.icp_fit_score ?? 0) >= 6).map((c) => c.__id));
+      setBarProgress(100);
+      setScoringCurrent(dataRows);
+    } catch {
+      patchEnrichmentJob({ status: "error", errorMessage: "Network error" });
+      showToast("Enrichment failed — try again.", "error");
+    } finally {
+      if (progressIv) clearInterval(progressIv);
+      setEnrichLoading(false);
+    }
+  };
+
+  const toggleId = (id: string) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const selectAllToggle = () => {
+    if (!resultsModal) return;
+    const all = sortedModalContacts.map((c) => c.__id);
+    if (selectedIds.length === all.length) setSelectedIds([]);
+    else setSelectedIds(all);
+  };
+
+  const closeModal = () => {
+    setResultsModal(null);
+    setSelectedIds([]);
+  };
+
+  const saveSelected = async () => {
+    if (!user?.id || !resultsModal) return;
+    const rows = sortedModalContacts.filter((c) => selectedIds.includes(c.__id));
+    if (!rows.length) {
+      showToast("No contacts selected", "error");
+      return;
+    }
+    setSaving(true);
+    const eventId = resultsModal.eventId;
+    const inserts = rows.map((contact) =>
+      supabase.from("contacts").insert({
+        user_id: user.id,
+        name: contact.name || null,
+        title: contact.title || null,
+        company: contact.company || null,
+        email: contact.email ?? "",
+        phone: contact.phone ?? "",
+        linkedin: contact.linkedin ?? "",
+        event: eventId || null,
+        lead_score: contact.suggested_lead_score ?? 5,
+        ai_enrichment: contact.ai_enrichment,
+        enriched: true,
+        enriched_at: new Date().toISOString(),
+        checks: [],
+      })
+    );
+    const outcomes = await Promise.all(inserts.map((p) => p.then((r) => ({ error: r.error }))));
+    const failed = outcomes.filter((o) => o.error).length;
+    const saved = outcomes.length - failed;
+    setSaving(false);
+    if (saved > 0 && failed === 0) {
+      showToast(`${saved} contacts saved`, "success");
+      const topScore = Math.max(...resultsModal.contacts.map((c) => c.icp_fit_score || 0), 0);
+      const entry: StoredLeadList = {
+        id: Date.now(),
+        filename: resultsModal.filename,
+        uploadDate: new Date().toISOString(),
+        contactCount: resultsModal.contacts.length,
+        savedCount: saved,
+        eventName: resultsModal.eventName || "No event",
+        eventId: resultsModal.eventId,
+        topScore,
+        contacts: resultsModal.contacts,
+      };
+      const next = [entry, ...readStoredLists()];
+      localStorage.setItem(LS_KEY, JSON.stringify(next));
+      setPastLists(next);
+      closeModal();
+    } else if (saved > 0 && failed > 0) {
+      showToast(`${saved} saved, ${failed} failed`, "error");
+    } else {
+      showToast("Save failed — try again", "error");
+    }
+  };
+
+  const openPastList = (list: StoredLeadList) => {
+    const contacts = list.contacts.map((c, i) => ({
+      ...c,
+      __id: c.__id || `stored-${list.id}-${i}`,
+    }));
+    setResultsModal({
+      filename: list.filename,
+      eventId: list.eventId,
+      eventName: list.eventName,
+      contacts,
+    });
+    setSelectedIds(contacts.filter((c) => (c.icp_fit_score ?? 0) >= 6).map((c) => c.__id));
+  };
+
+  if (!user) {
+    return <div style={{ minHeight: "100vh", background: "#f7f7f5" }} />;
+  }
+
+  return (
+    <div style={{ padding: "20px 24px 32px", maxWidth: 960, margin: "0 auto" }}>
+      {toast && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 24,
+            right: 24,
+            zIndex: 2000,
+            padding: "12px 18px",
+            borderRadius: 10,
+            fontSize: 14,
+            fontWeight: 500,
+            background: toast.variant === "success" ? "#1a3a2a" : "#fef2f2",
+            color: toast.variant === "success" ? "#fff" : "#b91c1c",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+          }}
+        >
+          {toast.message}
+        </div>
+      )}
+
+      <div
+        style={{
+          background: "linear-gradient(135deg, #1a3a2a 0%, #2d5a3d 30%, #1e4d6b 70%, #0f2a3d 100%)",
+          borderRadius: 16,
+          padding: "28px 32px",
+          marginBottom: 24,
+        }}
+      >
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: "#fff", margin: 0 }}>Lead Lists</h1>
+        <p style={{ fontSize: 14, color: "rgba(255,255,255,0.7)", margin: "8px 0 0", maxWidth: 520 }}>
+          Upload an attendee list and Katch will score every contact against your ICP.
+        </p>
+      </div>
+
+      <div
+        style={{
+          background: "#fff",
+          border: "1px solid #ebebeb",
+          borderRadius: 16,
+          padding: 32,
+          marginBottom: 24,
+          position: "relative",
+        }}
+      >
+        {enrichLoading && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: "rgba(255,255,255,0.92)",
+              borderRadius: 16,
+              zIndex: 5,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 24,
+            }}
+          >
+            <div style={{ width: "100%", maxWidth: 360, height: 6, borderRadius: 99, background: "#f0f0f0", overflow: "hidden" }}>
+              <div
+                style={{
+                  height: "100%",
+                  width: `${barProgress}%`,
+                  background: "#1a3a2a",
+                  borderRadius: 99,
+                  transition: "width 0.15s linear",
+                }}
+              />
+            </div>
+            <p style={{ fontSize: 13, color: "#666", marginTop: 16, textAlign: "center" }}>
+              Scoring contact {scoringCurrent} of {scoringTotal} against your ICP...
+            </p>
+            <p style={{ fontSize: 12, color: "#999", marginTop: 6 }}>
+              ~{formatTime(etaSeconds)} remaining
+            </p>
+          </div>
+        )}
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv"
+          style={{ display: "none" }}
+          onChange={onFileChange}
+        />
+
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={openFilePicker}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") openFilePicker();
+          }}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault();
+            const f = e.dataTransfer.files?.[0];
+            if (f && f.name.toLowerCase().endsWith(".csv")) setSelectedFile(f);
+          }}
+          style={{
+            border: "2px dashed #d0d0d0",
+            borderRadius: 12,
+            padding: "40px 24px",
+            textAlign: "center",
+            cursor: "pointer",
+            background: "#fafafa",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="1.5">
+              <path d="M12 16V4m0 0l4 4m-4-4L8 8" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M4 20h16" strokeLinecap="round" />
+            </svg>
+          </div>
+          <div style={{ fontSize: 15, fontWeight: 500, color: "#111", marginTop: 12 }}>Drop a CSV file here</div>
+          <div style={{ fontSize: 13, color: "#999", marginTop: 4 }}>or</div>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              openFilePicker();
+            }}
+            style={{
+              background: "#1a3a2a",
+              color: "#fff",
+              border: "none",
+              borderRadius: 8,
+              padding: "8px 18px",
+              fontSize: 13,
+              fontWeight: 500,
+              cursor: "pointer",
+              marginTop: 8,
+            }}
+          >
+            Browse files
+          </button>
+        </div>
+
+        {selectedFile && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 16 }}>
+            <span style={{ color: "#2d6a1f", fontSize: 18 }}>✓</span>
+            <span style={{ fontSize: 13, color: "#333" }}>
+              {selectedFile.name} ({formatBytes(selectedFile.size)})
+            </span>
+            <button
+              type="button"
+              onClick={clearCsvSelection}
+              aria-label="Clear CSV file"
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "#999",
+                fontSize: 16,
+                cursor: "pointer",
+                marginLeft: 8,
+                lineHeight: 1,
+              }}
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+        <p style={{ fontSize: 12, color: "#999", marginTop: 12, textAlign: "center" }}>
+          CSV should include name, email, company, and title columns. Katch will figure out the column mapping automatically.
+        </p>
+
+        <div style={{ marginTop: 24 }}>
+          <div style={{ fontSize: 13, color: "#666", marginBottom: 6 }}>Associate with event (optional)</div>
+          <select
+            value={selectedEventId}
+            onChange={(e) => setSelectedEventId(e.target.value)}
+            style={{
+              background: "#fff",
+              border: "1px solid #e8e8e8",
+              borderRadius: 8,
+              padding: "8px 12px",
+              fontSize: 13,
+              color: "#111",
+              width: 280,
+            }}
+          >
+            <option value="">No specific event</option>
+            {events.map((ev) => (
+              <option key={ev.id} value={ev.id}>
+                {ev.name || "Untitled event"}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <button
+          type="button"
+          disabled={!selectedFile || enrichLoading}
+          onClick={() => void runEnrich()}
+          style={{
+            width: "100%",
+            marginTop: 20,
+            background: !selectedFile || enrichLoading ? "#ccc" : "#1a3a2a",
+            color: "#fff",
+            border: "none",
+            borderRadius: 10,
+            padding: 12,
+            fontSize: 15,
+            fontWeight: 600,
+            cursor: !selectedFile || enrichLoading ? "not-allowed" : "pointer",
+          }}
+        >
+          Score & Rank Leads
+        </button>
+      </div>
+
+      <div>
+        <h2 style={{ fontSize: 17, fontWeight: 700, color: "#111", margin: "0 0 12px" }}>Past Lead Lists</h2>
+        {pastLists.length === 0 ? (
+          <p style={{ color: "#999", fontSize: 13, textAlign: "center", padding: 32 }}>No lead lists uploaded yet.</p>
+        ) : (
+          <div style={{ background: "#fff", border: "1px solid #ebebeb", borderRadius: 12, overflow: "hidden" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: "#fafafa", borderBottom: "1px solid #ebebeb" }}>
+                  {["FILE", "EVENT", "CONTACTS", "TOP ICP SCORE", "DATE", "ACTION"].map((h) => (
+                    <th
+                      key={h}
+                      style={{
+                        textAlign: "left",
+                        padding: "12px 14px",
+                        fontWeight: 600,
+                        color: "#666",
+                        fontSize: 11,
+                        letterSpacing: "0.02em",
+                      }}
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {pastLists.map((list) => (
+                  <tr key={list.id} style={{ borderBottom: "1px solid #f5f5f5" }}>
+                    <td style={{ padding: "12px 14px", color: "#111", fontWeight: 500 }}>{list.filename}</td>
+                    <td style={{ padding: "12px 14px", color: "#666" }}>{list.eventName}</td>
+                    <td style={{ padding: "12px 14px", color: "#666" }}>{list.contactCount}</td>
+                    <td style={{ padding: "12px 14px", color: "#666" }}>{list.topScore}/10</td>
+                    <td style={{ padding: "12px 14px", color: "#666" }}>{formatTableDate(list.uploadDate)}</td>
+                    <td style={{ padding: "12px 14px" }}>
+                      <button
+                        type="button"
+                        onClick={() => openPastList(list)}
+                        style={{
+                          background: "transparent",
+                          border: "1px solid #e0e0e0",
+                          borderRadius: 8,
+                          padding: "6px 12px",
+                          fontSize: 12,
+                          fontWeight: 500,
+                          color: "#1a3a2a",
+                          cursor: "pointer",
+                        }}
+                      >
+                        View results
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {resultsModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.5)",
+            zIndex: 1000,
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "center",
+            paddingTop: 32,
+            paddingBottom: 32,
+            overflowY: "auto",
+          }}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 16,
+              width: 760,
+              maxWidth: "95vw",
+              maxHeight: "85vh",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                padding: "20px 24px",
+                borderBottom: "1px solid #ebebeb",
+                flexShrink: 0,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+                <div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: "#111" }}>Lead Scoring Results</div>
+                  <div style={{ fontSize: 12, color: "#999", marginTop: 2 }}>
+                    {sortedModalContacts.length} contacts scored — sorted by ICP fit
+                  </div>
+                  <div style={{ fontSize: 11, color: "#999", marginTop: 6 }}>
+                    {dist.high} high fit (7-10) · {dist.med} medium (4-6) · {dist.low} low (1-3)
+                  </div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                  <button
+                    type="button"
+                    onClick={selectAllToggle}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#1a3a2a",
+                      fontSize: 13,
+                      cursor: "pointer",
+                      padding: 0,
+                    }}
+                  >
+                    Select all
+                  </button>
+                  <span style={{ fontSize: 12, color: "#666", marginLeft: 12 }}>
+                    {selectedIds.length} of {sortedModalContacts.length} selected
+                  </span>
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => void saveSelected()}
+                    style={{
+                      background: "#1a3a2a",
+                      color: "#fff",
+                      borderRadius: 10,
+                      padding: "9px 20px",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: saving ? "wait" : "pointer",
+                      border: "none",
+                      marginLeft: 12,
+                    }}
+                  >
+                    Save selected
+                  </button>
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#999",
+                      fontSize: 20,
+                      cursor: "pointer",
+                      marginLeft: 16,
+                      lineHeight: 1,
+                      padding: 0,
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ overflowY: "auto", flex: 1 }}>
+              {sortedModalContacts.map((c) => {
+                const sel = selectedIds.includes(c.__id);
+                const pill = scorePillStyle(c.icp_fit_score ?? 0);
+                const scoreVal = Math.min(10, Math.max(0, Math.round(c.icp_fit_score ?? 0)));
+                return (
+                  <div
+                    key={c.__id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => toggleId(c.__id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") toggleId(c.__id);
+                    }}
+                    onMouseEnter={() => setHoveredRow(c.__id)}
+                    onMouseLeave={() => setHoveredRow(null)}
+                    style={{
+                      padding: "14px 20px",
+                      borderBottom: "1px solid #f5f5f5",
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 14,
+                      cursor: "pointer",
+                      background: sel ? "#f8fdf4" : hoveredRow === c.__id ? "#fafafa" : "#fff",
+                    }}
+                  >
+                    <div
+                      role="presentation"
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ flexShrink: 0, marginTop: 2 }}
+                    >
+                      <div
+                        role="checkbox"
+                        aria-checked={sel}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleId(c.__id);
+                        }}
+                        style={{
+                          width: 18,
+                          height: 18,
+                          borderRadius: 4,
+                          border: sel ? "1.5px solid #1a3a2a" : "1.5px solid #d0d0d0",
+                          background: sel ? "#1a3a2a" : "#fff",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        {sel && (
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                            <path d="M2 6l3 3 5-6" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>{c.name || "—"}</div>
+                      <div style={{ fontSize: 12, color: "#999", marginTop: 2 }}>
+                        {[c.title, c.company].filter(Boolean).join(" · ") || "—"}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: "#bbb",
+                          marginTop: 3,
+                          maxWidth: 380,
+                          lineHeight: 1.35,
+                        }}
+                      >
+                        {c.icp_fit_reason || "—"}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          padding: "3px 10px",
+                          borderRadius: 99,
+                          color: pill.color,
+                          background: pill.background,
+                        }}
+                      >
+                        {scoreVal}/10
+                      </span>
+                      <span style={{ fontSize: 11, color: "#999" }}>
+                        Lead score: {c.suggested_lead_score ?? "—"}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

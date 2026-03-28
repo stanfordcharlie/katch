@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 
+export const maxDuration = 300
+
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 const supabaseAdmin = createClient(
@@ -16,6 +18,104 @@ type CsvContact = {
   title: string
   phone: string
   linkedin: string
+}
+
+const knownMappings: Record<string, string> = {
+  'first name': 'first_name',
+  firstname: 'first_name',
+  first: 'first_name',
+  'last name': 'last_name',
+  lastname: 'last_name',
+  last: 'last_name',
+  'full name': 'name',
+  name: 'name',
+  attendee: 'name',
+  delegate: 'name',
+  contact: 'name',
+  'attendee name': 'name',
+  'member name': 'name',
+  participant: 'name',
+  registrant: 'name',
+  'badge name': 'name',
+  'display name': 'name',
+  email: 'email',
+  'email address': 'email',
+  'e-mail': 'email',
+  'work email': 'email',
+  'business email': 'email',
+  'corp email': 'email',
+  company: 'company',
+  organization: 'company',
+  organisation: 'company',
+  employer: 'company',
+  'company name': 'company',
+  institution: 'company',
+  agency: 'company',
+  org: 'company',
+  dept: 'company',
+  department: 'company',
+  affiliation: 'company',
+  workplace: 'company',
+  title: 'title',
+  'job title': 'title',
+  position: 'title',
+  role: 'title',
+  job: 'title',
+  designation: 'title',
+  'job function': 'title',
+  level: 'title',
+  seniority: 'title',
+  phone: 'phone',
+  'phone number': 'phone',
+  mobile: 'phone',
+  cell: 'phone',
+  telephone: 'phone',
+  'cell phone': 'phone',
+  'mobile phone': 'phone',
+  direct: 'phone',
+  'work phone': 'phone',
+  linkedin: 'linkedin',
+  'linkedin url': 'linkedin',
+  'linkedin profile': 'linkedin',
+  suffix: 'ignore',
+  prefix: 'ignore',
+  salutation: 'ignore',
+  city: 'ignore',
+  state: 'ignore',
+  country: 'ignore',
+  zip: 'ignore',
+  address: 'ignore',
+}
+
+const headerKeywords = [
+  'name',
+  'email',
+  'company',
+  'title',
+  'first',
+  'last',
+  'phone',
+  'organization',
+  'position',
+  'role',
+  'contact',
+  'attendee',
+  'delegate',
+  'employer',
+  'institution',
+  'linkedin',
+  'job',
+]
+
+const scoreRow = (row: string[]) =>
+  row.reduce((score, cell) => {
+    const normalized = cell.toLowerCase().trim().replace(/[^a-z ]/g, '')
+    return score + (headerKeywords.some((k) => normalized.includes(k)) ? 1 : 0)
+  }, 0)
+
+const mapHeader = (h: string): string => {
+  const normalized = h.toLowerCase().trim().replace(/[^a-z0-9 ]/g, '')
+  return knownMappings[normalized] || 'ignore'
 }
 
 function parseCsv(csvText: string): string[][] {
@@ -57,7 +157,7 @@ function parseCsv(csvText: string): string[][] {
   return rows
 }
 
-function parseJsonFromModel(text: string): Record<string, string | null> | null {
+function parseJsonFromText(text: string): Record<string, unknown> | null {
   const trimmed = text.trim()
   const withoutFence = trimmed
     .replace(/^```json/i, '')
@@ -65,13 +165,13 @@ function parseJsonFromModel(text: string): Record<string, string | null> | null 
     .replace(/```$/, '')
     .trim()
   try {
-    return JSON.parse(withoutFence) as Record<string, string | null>
+    return JSON.parse(withoutFence) as Record<string, unknown>
   } catch {
     const start = withoutFence.indexOf('{')
     const end = withoutFence.lastIndexOf('}')
     if (start >= 0 && end > start) {
       try {
-        return JSON.parse(withoutFence.slice(start, end + 1)) as Record<string, string | null>
+        return JSON.parse(withoutFence.slice(start, end + 1)) as Record<string, unknown>
       } catch {
         return null
       }
@@ -80,56 +180,80 @@ function parseJsonFromModel(text: string): Record<string, string | null> | null 
   }
 }
 
-async function mapColumnsWithClaude(headers: string[], sampleRows: string[][]) {
-  const sample = sampleRows.map((r) => {
-    const out: Record<string, string> = {}
-    headers.forEach((h, i) => {
-      out[h] = r[i] ?? ''
-    })
-    return out
-  })
+function buildFieldToIndexLocal(headers: string[]): Record<string, number> {
+  const fieldToIndex: Record<string, number> = {}
+  for (let i = 0; i < headers.length; i++) {
+    const field = mapHeader(headers[i])
+    if (field === 'ignore') continue
+    if (fieldToIndex[field] === undefined) fieldToIndex[field] = i
+  }
+  return fieldToIndex
+}
 
-  const prompt = `Here are the headers and sample rows from a CSV lead list. Map each column to one of: name, email, company, title, phone, linkedin, or ignore. Return only a JSON object like { name: 'Full Name', email: 'Email Address', company: 'Company', title: 'Job Title', phone: 'Phone', linkedin: 'LinkedIn URL' } where each value is the exact original header name, or null if not found. Headers and sample: ${JSON.stringify({ headers, sample }, null, 2)}`
+function pickHeaderString(v: unknown): string | null {
+  if (v === null || v === undefined) return null
+  if (typeof v === 'string' && v.trim()) return v
+  return null
+}
 
+function resolveHeaderIndex(headers: string[], label: string): number {
+  const t = label.trim()
+  let i = headers.indexOf(t)
+  if (i >= 0) return i
+  const tl = t.toLowerCase()
+  for (let j = 0; j < headers.length; j++) {
+    if (headers[j].trim().toLowerCase() === tl) return j
+  }
+  return -1
+}
+
+function buildFieldToIndexFromClaude(headers: string[], parsed: Record<string, unknown>): Record<string, number> {
+  const keys = ['name', 'first_name', 'last_name', 'email', 'company', 'title', 'phone', 'linkedin'] as const
+  const idx: Record<string, number> = {}
+  for (const k of keys) {
+    const label = pickHeaderString(parsed[k])
+    if (!label) continue
+    const j = resolveHeaderIndex(headers, label)
+    if (j >= 0) idx[k] = j
+  }
+  return idx
+}
+
+async function mapHeadersWithClaude(headers: string[]): Promise<Record<string, unknown> | null> {
+  const prompt =
+    'These are column headers from a conference attendee CSV export. Map each header to one of: name, first_name, last_name, email, company, title, phone, linkedin, or ignore. Return only a JSON object where keys are these field names and values are the exact original header strings or null. Headers: ' +
+    JSON.stringify(headers)
   const response = await anthropic.messages.create({
     model: 'claude-opus-4-5',
     max_tokens: 800,
     messages: [{ role: 'user', content: prompt }],
   })
   const text = response.content[0]?.type === 'text' ? response.content[0].text : ''
-  const parsed = parseJsonFromModel(text)
-  if (!parsed) return null
-  return {
-    name: parsed.name ?? null,
-    email: parsed.email ?? null,
-    company: parsed.company ?? null,
-    title: parsed.title ?? null,
-    phone: parsed.phone ?? null,
-    linkedin: parsed.linkedin ?? null,
-  }
+  return parseJsonFromText(text)
 }
 
-function extractContacts(rows: string[][], headers: string[], mapping: Record<string, string | null>): CsvContact[] {
-  const indexFor = (mapped: string | null) => (mapped ? headers.indexOf(mapped) : -1)
-  const idx = {
-    name: indexFor(mapping.name),
-    email: indexFor(mapping.email),
-    company: indexFor(mapping.company),
-    title: indexFor(mapping.title),
-    phone: indexFor(mapping.phone),
-    linkedin: indexFor(mapping.linkedin),
-  }
+function extractContacts(dataRows: string[][], fieldToIndex: Record<string, number>): CsvContact[] {
+  const idx = fieldToIndex
+  const nameCol = idx.name
+  const fi = idx.first_name
+  const li = idx.last_name
 
-  return rows
-    .map((r) => ({
-      name: idx.name >= 0 ? r[idx.name] ?? '' : '',
-      email: idx.email >= 0 ? r[idx.email] ?? '' : '',
-      company: idx.company >= 0 ? r[idx.company] ?? '' : '',
-      title: idx.title >= 0 ? r[idx.title] ?? '' : '',
-      phone: idx.phone >= 0 ? r[idx.phone] ?? '' : '',
-      linkedin: idx.linkedin >= 0 ? r[idx.linkedin] ?? '' : '',
-    }))
-    .filter((c) => (c.name || '').trim() !== '' || (c.email || '').trim() !== '')
+  return dataRows
+    .map((r) => {
+      let name = nameCol !== undefined ? (r[nameCol] ?? '').trim() : ''
+      if (!name && fi !== undefined && li !== undefined) {
+        name = `${r[fi] ?? ''} ${r[li] ?? ''}`.trim()
+      }
+      return {
+        name,
+        email: idx.email !== undefined ? (r[idx.email] ?? '').trim() : '',
+        company: idx.company !== undefined ? (r[idx.company] ?? '').trim() : '',
+        title: idx.title !== undefined ? (r[idx.title] ?? '').trim() : '',
+        phone: idx.phone !== undefined ? (r[idx.phone] ?? '').trim() : '',
+        linkedin: idx.linkedin !== undefined ? (r[idx.linkedin] ?? '').trim() : '',
+      }
+    })
+    .filter((c) => !((c.name || '').trim() === '' && (c.email || '').trim() === ''))
 }
 
 function buildEnrichmentPrompt(contact: CsvContact, icp: Record<string, unknown> | null | undefined) {
@@ -166,16 +290,18 @@ Return ONLY a valid JSON object, no markdown, no explanation:
 }`
 }
 
-async function enrichOneContact(contact: CsvContact, icp: Record<string, unknown> | null | undefined) {
-  const prompt = buildEnrichmentPrompt(contact, icp)
+async function enrichContact(contact: CsvContact, icpProfile: Record<string, unknown> | null | undefined) {
+  const prompt = buildEnrichmentPrompt(contact, icpProfile)
   const response = await anthropic.messages.create({
     model: 'claude-opus-4-5',
     max_tokens: 1000,
     messages: [{ role: 'user', content: prompt }],
   })
   const text = response.content[0]?.type === 'text' ? response.content[0].text : ''
-  const enrichment = parseJsonFromModel(text) ?? {}
+  const enrichment = parseJsonFromText(text) ?? {}
   const ai = enrichment as Record<string, unknown>
+  const talking_points = Array.isArray(ai.talking_points) ? ai.talking_points : []
+  const red_flags = Array.isArray(ai.red_flags) ? ai.red_flags : []
   return {
     ...contact,
     ai_enrichment: ai,
@@ -183,6 +309,8 @@ async function enrichOneContact(contact: CsvContact, icp: Record<string, unknown
     icp_fit_score: Number(ai.icp_fit_score ?? 0) || 0,
     icp_fit_reason: typeof ai.icp_fit_reason === 'string' ? ai.icp_fit_reason : '',
     summary: typeof ai.summary === 'string' ? ai.summary : '',
+    talking_points,
+    red_flags,
   }
 }
 
@@ -191,52 +319,103 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const csvText = body.csvText as string | undefined
     const userId = body.userId as string | undefined
-    const eventId = body.eventId as string | undefined
 
-    if (!csvText || !userId || !eventId) {
-      return NextResponse.json({ error: 'Missing csvText, userId, or eventId' }, { status: 400 })
-    }
-
-    const rows = parseCsv(csvText)
-    if (rows.length < 2) {
-      return NextResponse.json({ error: 'Could not parse this CSV — make sure it has name or email columns.' }, { status: 400 })
+    if (!csvText || !userId) {
+      return NextResponse.json({ error: 'Missing csvText or userId' }, { status: 400 })
     }
 
-    const headers = rows[0]
-    const sampleRows = rows.slice(1, 4)
-    const mapping = await mapColumnsWithClaude(headers, sampleRows)
-    if (!mapping) {
-      return NextResponse.json({ error: 'Could not parse this CSV — make sure it has name or email columns.' }, { status: 400 })
-    }
-    if (!mapping.name && !mapping.email) {
-      return NextResponse.json({ error: 'Could not parse this CSV — make sure it has name or email columns.' }, { status: 400 })
+    const cleaned = csvText.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim()
+    const rows = parseCsv(cleaned)
+    if (!rows.length) {
+      return NextResponse.json(
+        {
+          error: 'no_valid_rows',
+          message: 'Could not find name or email columns in this CSV. Headers found: ',
+        },
+        { status: 400 }
+      )
     }
 
-    const contacts = extractContacts(rows.slice(1), headers, mapping)
-    if (!contacts.length) {
-      return NextResponse.json({ error: 'Could not parse this CSV — make sure it has name or email columns.' }, { status: 400 })
+    let headerRowIndex = 0
+    let bestScore = 0
+    for (let i = 0; i < Math.min(10, rows.length); i++) {
+      const score = scoreRow(rows[i])
+      if (score > bestScore) {
+        bestScore = score
+        headerRowIndex = i
+      }
     }
+
+    const headers = rows[headerRowIndex]
+    const dataRows = rows.slice(headerRowIndex + 1)
+
+    let fieldToIndex = buildFieldToIndexLocal(headers)
+    if (Object.keys(fieldToIndex).length < 2) {
+      const claudeMap = await mapHeadersWithClaude(headers)
+      if (claudeMap) {
+        fieldToIndex = buildFieldToIndexFromClaude(headers, claudeMap)
+      }
+    }
+
+    console.log('enrich-list: detected header row index', headerRowIndex)
+    console.log('enrich-list: raw headers', headers)
+    console.log('enrich-list: mapped fields', fieldToIndex)
+
+    const validContacts = extractContacts(dataRows, fieldToIndex)
+    console.log('enrich-list: valid contacts extracted', validContacts.length)
+
+    if (!validContacts.length) {
+      return NextResponse.json(
+        {
+          error: 'no_valid_rows',
+          message: 'Could not find name or email columns in this CSV. Headers found: ' + headers.join(', '),
+        },
+        { status: 400 }
+      )
+    }
+
+    const contactsToProcess = validContacts.slice(0, 100)
+    const truncated = validContacts.length > contactsToProcess.length
 
     const { data: settings } = await supabaseAdmin
       .from('user_settings')
       .select('icp_profile')
       .eq('user_id', userId)
-      .single()
+      .maybeSingle()
     const icpProfile = (settings?.icp_profile as Record<string, unknown> | null | undefined) ?? null
 
     const enrichedContacts: Array<Record<string, unknown>> = []
-    for (let i = 0; i < contacts.length; i += 5) {
-      const batch = contacts.slice(i, i + 5)
-      const enrichedBatch = await Promise.all(batch.map((c) => enrichOneContact(c, icpProfile)))
-      enrichedContacts.push(...enrichedBatch)
-      if (i + 5 < contacts.length) {
-        await new Promise((r) => setTimeout(r, 500))
+    for (let i = 0; i < contactsToProcess.length; i++) {
+      const contact = contactsToProcess[i]
+      try {
+        const result = await enrichContact(contact, icpProfile)
+        enrichedContacts.push({ ...contact, ...result })
+      } catch (e) {
+        console.error('Enrichment failed for:', contact.name, e)
+        enrichedContacts.push({
+          ...contact,
+          icp_fit_score: 5,
+          icp_fit_reason: 'Could not enrich',
+          summary: '',
+          suggested_lead_score: 5,
+          ai_enrichment: {},
+          talking_points: [],
+          red_flags: [],
+        })
+      }
+      if ((i + 1) % 5 === 0 && i + 1 < contactsToProcess.length) {
+        await new Promise((r) => setTimeout(r, 800))
       }
     }
 
-    return NextResponse.json({ contacts: enrichedContacts })
-  } catch (err) {
-    console.error('Enrich list route error:', err)
-    return NextResponse.json({ error: 'Enrichment failed — try again.' }, { status: 500 })
+    const payload: Record<string, unknown> = { contacts: enrichedContacts }
+    if (truncated) {
+      payload.truncated = true
+      payload.totalRows = validContacts.length
+    }
+    return NextResponse.json(payload)
+  } catch (error) {
+    console.error('Enrich list route error:', error)
+    return NextResponse.json({ error: 'server_error', message: String(error) }, { status: 500 })
   }
 }

@@ -3,6 +3,7 @@
 import { Sidebar } from "@/components/Sidebar";
 import { TopBar } from "@/components/TopBar";
 import OnboardingTour from "@/components/OnboardingTour";
+import { EnrichmentProgressPill } from "@/components/EnrichmentProgressPill";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter, usePathname } from "next/navigation";
@@ -133,6 +134,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       {showTour && <OnboardingTour onComplete={() => setShowTour(false)} />}
+      <EnrichmentProgressPill />
     </div>
   );
 }
