@@ -270,46 +270,69 @@ export default function DashboardPage() {
             </p>
             {events.length > 0 && (
               <div style={{ marginTop: isMobile ? 14 : 0, position: isMobile ? "static" : "absolute", top: 0, right: 0 }}>
-                <div style={{ position: "relative", display: "inline-block" }}>
+                <div
+                  style={{
+                    position: "relative",
+                    display: "inline-block",
+                    background: "rgba(255,255,255,0.15)",
+                    borderRadius: 10,
+                    border: "1px solid rgba(255,255,255,0.3)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(255,255,255,0.22)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(255,255,255,0.15)";
+                  }}
+                >
                   <select
                     value={selectedEventId}
                     onChange={(e) => setSelectedEventId(e.target.value)}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.22)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.15)";
-                    }}
                     style={{
-                      backgroundColor: "rgba(255,255,255,0.15)",
+                      background: "transparent",
                       color: "#ffffff",
-                      border: "1px solid rgba(255,255,255,0.3)",
-                      borderRadius: 10,
-                      padding: "8px 16px",
-                      paddingRight: 32,
+                      WebkitTextFillColor: "#ffffff",
+                      border: "none",
+                      outline: "none",
+                      padding: "8px 36px 8px 14px",
                       fontSize: 14,
                       fontWeight: 500,
                       cursor: "pointer",
-                      outline: "none",
                       appearance: "none",
                       WebkitAppearance: "none",
-                      backdropFilter: "blur(8px)",
-                      WebkitBackdropFilter: "blur(8px)",
-                      backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(
-                        '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-                      )}")`,
-                      backgroundRepeat: "no-repeat",
-                      backgroundPosition: "right 12px center",
-                      backgroundSize: "12px 12px",
+                      MozAppearance: "none",
+                      position: "relative",
+                      zIndex: 1,
+                      width: "100%",
                     }}
                   >
-                    <option value="" style={{ background: "#1a3a2a", color: "#fff" }}>All events</option>
+                    <option value="">All events</option>
                     {events.map((ev) => (
-                      <option key={ev.id} value={ev.id} style={{ background: "#1a3a2a", color: "#fff" }}>
+                      <option key={ev.id} value={ev.id}>
                         {ev.name}
                       </option>
                     ))}
                   </select>
+                  <div
+                    style={{
+                      position: "absolute",
+                      right: 12,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      pointerEvents: "none",
+                      zIndex: 2,
+                    }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path
+                        d="M2 4l4 4 4-4"
+                        stroke="white"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </div>
                 </div>
               </div>
             )}
