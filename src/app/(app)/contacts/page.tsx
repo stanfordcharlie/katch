@@ -52,6 +52,17 @@ const scoreAccent = (score: number | null | undefined): 'high' | 'mid' | 'low' =
   return 'low';
 };
 
+const CONTACTS_TABLE_GRID_DESKTOP = [
+  '44px',
+  'minmax(0, calc((100% - 44px - 140px) * 20 / 84))',
+  'minmax(0, calc((100% - 44px - 140px) * 16 / 84))',
+  'minmax(0, calc((100% - 44px - 140px) * 16 / 84))',
+  'minmax(0, calc((100% - 44px - 140px) * 18 / 84))',
+  '140px',
+  'minmax(0, calc((100% - 44px - 140px) * 7 / 84))',
+  'minmax(0, calc((100% - 44px - 140px) * 7 / 84))',
+].join(' ');
+
 
 const normalizeText = (v: string | null | undefined) => (v ?? '').toLowerCase().trim();
 
@@ -1257,6 +1268,8 @@ export default function ContactsPage() {
               width: '100%',
               background: '#fafafa',
               borderBottom: '1px solid #ebebeb',
+              boxSizing: 'border-box',
+              paddingRight: contacts.length > 0 ? 200 : 0,
             }}
           >
             <div
@@ -1265,21 +1278,30 @@ export default function ContactsPage() {
                 tableLayout: 'fixed',
                 width: '100%',
                 boxSizing: 'border-box',
-                gridTemplateColumns: '40px minmax(200px,1fr) 180px 160px 200px 140px 80px 80px',
-                paddingRight: contacts.length > 0 ? 200 : 0,
+                gridTemplateColumns: CONTACTS_TABLE_GRID_DESKTOP,
               }}
             >
-              {['', 'Name', 'Company', 'Title', 'Email', 'Event', 'Score', 'Synced'].map((h, i) => (
+              {['', 'NAME', 'COMPANY', 'TITLE', 'EMAIL', 'EVENT', 'SCORE', 'SYNCED'].map((h, i) => (
                 <div
                   key={h + i}
                   style={{
-                    fontSize: '11px',
+                    fontSize: 11,
                     fontWeight: 600,
-                    letterSpacing: '0.04em',
+                    letterSpacing: '0.06em',
                     textTransform: 'uppercase',
                     color: '#999',
-                    padding: '10px 16px',
-                    textAlign: i >= 6 ? 'center' : 'left',
+                    paddingTop: 10,
+                    paddingBottom: 10,
+                    paddingLeft: i === 0 ? 0 : 12,
+                    paddingRight: i === 0 ? 0 : 12,
+                    textAlign: i === 0 ? 'center' : i >= 6 ? 'center' : 'left',
+                    width: i === 0 ? 44 : i === 5 ? 140 : '100%',
+                    maxWidth: i === 5 ? 140 : undefined,
+                    overflow: i === 5 ? 'hidden' : undefined,
+                    textOverflow: i === 5 ? 'ellipsis' : undefined,
+                    whiteSpace: i === 5 ? 'nowrap' : undefined,
+                    boxSizing: 'border-box',
+                    minWidth: 0,
                   }}
                 >
                   {h}
@@ -1290,13 +1312,14 @@ export default function ContactsPage() {
               <div
                 style={{
                   position: 'absolute',
-                  right: 0,
+                  right: 16,
                   top: '50%',
                   transform: 'translateY(-50%)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
-                  paddingRight: 16,
+                  pointerEvents: 'auto',
+                  zIndex: 2,
                 }}
               >
                 <span style={{ fontSize: 12, color: '#999' }}>Sort by</span>
@@ -1459,8 +1482,9 @@ export default function ContactsPage() {
                         display: 'grid',
                         tableLayout: 'fixed',
                         width: '100%',
-                        gridTemplateColumns:
-                          '40px minmax(200px,1fr) 180px 160px 200px 140px 80px 80px',
+                        boxSizing: 'border-box',
+                        paddingRight: contacts.length > 0 ? 200 : 0,
+                        gridTemplateColumns: CONTACTS_TABLE_GRID_DESKTOP,
                         alignItems: 'center',
                       }
                 }
@@ -1485,7 +1509,7 @@ export default function ContactsPage() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
-                    marginLeft: isMobile ? 0 : 16,
+                    justifySelf: isMobile ? undefined : 'center',
                   }}
                 >
                   {isSelected && (
@@ -1540,9 +1564,11 @@ export default function ContactsPage() {
                 <div
                   style={{
                     minWidth: 0,
+                    width: isMobile ? undefined : '100%',
                     flex: isMobile ? 1 : undefined,
-                    padding: isMobile ? 0 : '12px 16px',
+                    padding: isMobile ? 0 : '12px 12px',
                     overflow: isMobile ? 'hidden' : undefined,
+                    boxSizing: 'border-box',
                   }}
                 >
                   {!isMobile ? (
@@ -1659,10 +1685,12 @@ export default function ContactsPage() {
                     <div
                       title={contact.company ?? undefined}
                       style={{
-                        padding: '12px 16px',
+                        padding: '12px 12px',
                         fontSize: 14,
                         color: '#555',
-                        maxWidth: 160,
+                        width: '100%',
+                        minWidth: 0,
+                        boxSizing: 'border-box',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
@@ -1673,10 +1701,12 @@ export default function ContactsPage() {
                     <div
                       title={contact.title ?? undefined}
                       style={{
-                        padding: '12px 16px',
+                        padding: '12px 12px',
                         fontSize: 14,
                         color: '#555',
-                        maxWidth: 160,
+                        width: '100%',
+                        minWidth: 0,
+                        boxSizing: 'border-box',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
@@ -1687,11 +1717,13 @@ export default function ContactsPage() {
                     <div
                       title={contact.email ?? undefined}
                       style={{
-                        padding: '12px 16px',
+                        padding: '12px 12px',
                         fontSize: 13,
                         color: '#999',
                         fontFamily: 'monospace',
-                        maxWidth: 180,
+                        width: '100%',
+                        minWidth: 0,
+                        boxSizing: 'border-box',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
@@ -1699,15 +1731,28 @@ export default function ContactsPage() {
                     >
                       {contact.email || '—'}
                     </div>
-                    <div style={{ padding: '12px 16px' }}>
+                    <div
+                      title={eventLabel ?? undefined}
+                      style={{
+                        padding: '12px 12px',
+                        width: 140,
+                        maxWidth: 140,
+                        minWidth: 0,
+                        boxSizing: 'border-box',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
                       {eventLabel ? (
                         <span
                           style={{
-                            background: '#f5f5f5',
-                            borderRadius: 999,
-                            padding: '2px 10px',
+                            display: 'block',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
                             fontSize: 12,
-                            color: '#555',
+                            color: '#666',
                           }}
                         >
                           {eventLabel}
@@ -1721,8 +1766,10 @@ export default function ContactsPage() {
                 <div
                   style={{
                     textAlign: 'center',
-                    padding: isMobile ? 0 : '12px 16px',
-                    width: isMobile ? 36 : undefined,
+                    padding: isMobile ? 0 : '12px 12px',
+                    width: isMobile ? 36 : '100%',
+                    minWidth: 0,
+                    boxSizing: 'border-box',
                     flexShrink: 0,
                     display: 'flex',
                     alignItems: 'center',
@@ -1748,7 +1795,17 @@ export default function ContactsPage() {
                   </span>
                 </div>
                 {!isMobile && (
-                  <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 16px' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      padding: '12px 12px',
+                      width: '100%',
+                      minWidth: 0,
+                      boxSizing: 'border-box',
+                    }}
+                  >
                     {contact.synced_to_hubspot === true ? (
                       <span
                         style={{

@@ -1,17 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 export const ENRICHMENT_JOB_KEY = "katch_enrichment_job";
+
+const ENRICHMENT_RESULTS_KEY = "katch_enrichment_results";
+const OPEN_RESULTS_FLAG = "katch_open_results";
 
 type EnrichmentJob = {
   id: number;
   filename?: string;
   totalContacts: number;
   startedAt: string;
-  status: "processing" | "complete" | "error";
+  status: "processing" | "complete" | "error" | "dismissed";
   progress?: number;
+  processed?: number;
   results?: unknown[];
   openResultsModal?: boolean;
   eventId?: string | null;
@@ -30,67 +34,93 @@ function readJob(): EnrichmentJob | null {
   }
 }
 
+function patchJobMerge(patch: Record<string, unknown>) {
+  try {
+    const cur = readJob();
+    if (!cur) return;
+    localStorage.setItem(ENRICHMENT_JOB_KEY, JSON.stringify({ ...cur, ...patch }));
+  } catch {
+    /* ignore */
+  }
+}
+
+function getResultsContactCount(): number {
+  try {
+    const raw = localStorage.getItem(ENRICHMENT_RESULTS_KEY);
+    if (!raw) return 0;
+    const d = JSON.parse(raw) as { contacts?: unknown[] };
+    return Array.isArray(d.contacts) ? d.contacts.length : 0;
+  } catch {
+    return 0;
+  }
+}
+
 export function EnrichmentProgressPill() {
   const router = useRouter();
-  const pathname = usePathname();
   const [job, setJob] = useState<EnrichmentJob | null>(null);
-  const [displayProgress, setDisplayProgress] = useState(0);
-  const [hideComplete, setHideComplete] = useState(false);
   const completeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const tick = () => setJob(readJob());
+    const tick = () => {
+      let j = readJob();
+      if (j?.status === "processing" && j.startedAt) {
+        const age = Date.now() - new Date(j.startedAt).getTime();
+        if (age > 10 * 60 * 1000) {
+          patchJobMerge({
+            status: "error",
+            errorMessage: "Lead scoring timed out — try again",
+          });
+          j = readJob();
+        }
+      }
+      setJob(j);
+    };
     tick();
     const iv = setInterval(tick, 1000);
     return () => clearInterval(iv);
   }, []);
 
   useEffect(() => {
-    const j = job;
-    if (!j || j.status !== "processing") return;
-    const tick = () => {
-      const cur = readJob();
-      if (!cur || cur.status !== "processing") return;
-      const estimatedMs = Math.max(1, cur.totalContacts) * 1.5 * 1000;
-      const elapsed = Date.now() - new Date(cur.startedAt).getTime();
-      const fromTime = Math.min(90, Math.floor((elapsed / estimatedMs) * 90));
-      const stored = typeof cur.progress === "number" ? cur.progress : 0;
-      setDisplayProgress(Math.max(fromTime, Math.min(90, stored)));
-    };
-    tick();
-    const iv = setInterval(tick, 200);
-    return () => clearInterval(iv);
-  }, [job?.status, job?.startedAt, job?.totalContacts, job?.id]);
-
-  useEffect(() => {
     if (job?.status === "complete") {
-      setHideComplete(false);
-      completeTimerRef.current = setTimeout(() => setHideComplete(true), 10000);
+      completeTimerRef.current = setTimeout(() => {
+        patchJobMerge({ status: "dismissed" });
+        setJob(readJob());
+      }, 30000);
       return () => {
         if (completeTimerRef.current) clearTimeout(completeTimerRef.current);
       };
     }
-    setHideComplete(false);
     return undefined;
   }, [job?.status, job?.id]);
 
-  const viewResults = useCallback(() => {
-    const j = readJob();
-    if (!j?.results || !Array.isArray(j.results)) return;
-    const next = { ...j, openResultsModal: true };
-    localStorage.setItem(ENRICHMENT_JOB_KEY, JSON.stringify(next));
-    if (pathname !== "/leads") {
-      router.push("/leads");
-    } else {
-      window.dispatchEvent(new Event("katch-enrichment-open-modal"));
-    }
-  }, [pathname, router]);
+  const barPercent =
+    job?.status === "processing" ? Math.min(100, job.progress ?? 0) : 0;
 
-  if (!job) return null;
+  const viewResults = useCallback(() => {
+    try {
+      const raw = localStorage.getItem(ENRICHMENT_RESULTS_KEY);
+      if (!raw) return;
+      JSON.parse(raw);
+      localStorage.setItem(OPEN_RESULTS_FLAG, "true");
+      router.push("/leads");
+    } catch {
+      /* ignore */
+    }
+  }, [router]);
+
+  const dismissError = useCallback(() => {
+    patchJobMerge({ status: "dismissed" });
+    setJob(readJob());
+  }, []);
+
+  if (!job || job.status === "dismissed") return null;
 
   if (job.status === "processing") {
     const total = Math.max(1, job.totalContacts);
-    const processed = Math.min(total, Math.round((displayProgress / 100) * total));
+    const processed =
+      typeof job.processed === "number"
+        ? Math.min(total, job.processed)
+        : Math.min(total, Math.round((barPercent / 100) * total));
     return (
       <>
         <style>{`
@@ -144,7 +174,7 @@ export function EnrichmentProgressPill() {
           >
             <div
               style={{
-                width: `${displayProgress}%`,
+                width: `${barPercent}%`,
                 height: "100%",
                 background: "#7dde3c",
                 borderRadius: 99,
@@ -156,8 +186,53 @@ export function EnrichmentProgressPill() {
     );
   }
 
-  if (job.status === "complete" && !hideComplete) {
-    const n = Array.isArray(job.results) ? job.results.length : 0;
+  if (job.status === "error") {
+    const msg =
+      typeof job.errorMessage === "string" && job.errorMessage.trim()
+        ? job.errorMessage
+        : "Lead scoring timed out — try again";
+    return (
+      <div
+        style={{
+          position: "fixed",
+          bottom: 24,
+          right: 24,
+          zIndex: 9998,
+          background: "#fef2f2",
+          color: "#e55a5a",
+          borderRadius: 12,
+          padding: "12px 16px",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+          minWidth: 280,
+        }}
+      >
+        <span style={{ fontSize: 13, fontWeight: 500, flex: 1 }}>{msg}</span>
+        <button
+          type="button"
+          onClick={dismissError}
+          style={{
+            background: "transparent",
+            border: "1px solid #fecaca",
+            color: "#e55a5a",
+            borderRadius: 8,
+            padding: "4px 12px",
+            fontSize: 12,
+            fontWeight: 500,
+            cursor: "pointer",
+            flexShrink: 0,
+          }}
+        >
+          Dismiss
+        </button>
+      </div>
+    );
+  }
+
+  if (job.status === "complete") {
+    const n = getResultsContactCount() || (Array.isArray(job.results) ? job.results.length : 0);
     return (
       <div
         style={{

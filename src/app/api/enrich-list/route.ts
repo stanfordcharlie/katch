@@ -375,7 +375,6 @@ export async function POST(req: NextRequest) {
     }
 
     const contactsToProcess = validContacts.slice(0, 100)
-    const truncated = validContacts.length > contactsToProcess.length
 
     const { data: settings } = await supabaseAdmin
       .from('user_settings')
@@ -384,36 +383,67 @@ export async function POST(req: NextRequest) {
       .maybeSingle()
     const icpProfile = (settings?.icp_profile as Record<string, unknown> | null | undefined) ?? null
 
-    const enrichedContacts: Array<Record<string, unknown>> = []
-    for (let i = 0; i < contactsToProcess.length; i++) {
-      const contact = contactsToProcess[i]
-      try {
-        const result = await enrichContact(contact, icpProfile)
-        enrichedContacts.push({ ...contact, ...result })
-      } catch (e) {
-        console.error('Enrichment failed for:', contact.name, e)
-        enrichedContacts.push({
-          ...contact,
-          icp_fit_score: 5,
-          icp_fit_reason: 'Could not enrich',
-          summary: '',
-          suggested_lead_score: 5,
-          ai_enrichment: {},
-          talking_points: [],
-          red_flags: [],
-        })
-      }
-      if ((i + 1) % 5 === 0 && i + 1 < contactsToProcess.length) {
-        await new Promise((r) => setTimeout(r, 800))
-      }
-    }
+    const encoder = new TextEncoder()
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          const results: Array<Record<string, unknown>> = []
+          for (let i = 0; i < contactsToProcess.length; i++) {
+            const contact = contactsToProcess[i]
+            let row: Record<string, unknown>
+            try {
+              const enriched = await enrichContact(contact, icpProfile)
+              row = { ...contact, ...enriched }
+            } catch (e) {
+              console.error('Enrichment failed for:', contact.name, e)
+              row = {
+                ...contact,
+                icp_fit_score: 5,
+                icp_fit_reason: 'Could not enrich',
+                summary: '',
+                suggested_lead_score: 5,
+                ai_enrichment: {},
+                talking_points: [],
+                red_flags: [],
+              }
+            }
+            results.push(row)
+            const progressEvent =
+              JSON.stringify({
+                type: 'progress',
+                current: i + 1,
+                total: contactsToProcess.length,
+                contact: row,
+              }) + '\n'
+            controller.enqueue(encoder.encode(progressEvent))
+            if ((i + 1) % 5 === 0 && i + 1 < contactsToProcess.length) {
+              await new Promise((r) => setTimeout(r, 800))
+            }
+          }
+          const doneEvent =
+            JSON.stringify({
+              type: 'done',
+              contacts: results,
+              truncated: validContacts.length > contactsToProcess.length,
+              totalRows: validContacts.length,
+            }) + '\n'
+          controller.enqueue(encoder.encode(doneEvent))
+        } catch (e) {
+          const errorEvent = JSON.stringify({ type: 'error', message: String(e) }) + '\n'
+          controller.enqueue(encoder.encode(errorEvent))
+        } finally {
+          controller.close()
+        }
+      },
+    })
 
-    const payload: Record<string, unknown> = { contacts: enrichedContacts }
-    if (truncated) {
-      payload.truncated = true
-      payload.totalRows = validContacts.length
-    }
-    return NextResponse.json(payload)
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Transfer-Encoding': 'chunked',
+        'Cache-Control': 'no-cache',
+      },
+    })
   } catch (error) {
     console.error('Enrich list route error:', error)
     return NextResponse.json({ error: 'server_error', message: String(error) }, { status: 500 })

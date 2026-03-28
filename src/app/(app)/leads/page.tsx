@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { ENRICHMENT_JOB_KEY } from "@/components/EnrichmentProgressPill";
@@ -27,6 +27,9 @@ function patchEnrichmentJob(patch: Record<string, unknown>) {
   const cur = readEnrichmentJob() || {};
   localStorage.setItem(ENRICHMENT_JOB_KEY, JSON.stringify({ ...cur, ...patch }));
 }
+
+const ENRICHMENT_RESULTS_KEY = "katch_enrichment_results";
+const OPEN_RESULTS_FLAG = "katch_open_results";
 
 const parseCSV = (text: string): string[][] => {
   const results: string[][] = [];
@@ -138,7 +141,9 @@ function distributionCounts(contacts: EnrichedRow[]) {
 
 export default function LeadsPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const mountedRef = useRef(true);
   const [user, setUser] = useState<User | null>(null);
   const [events, setEvents] = useState<EventRow[]>([]);
   const [pastLists, setPastLists] = useState<StoredLeadList[]>([]);
@@ -176,6 +181,13 @@ export default function LeadsPage() {
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!user?.id) return;
     (async () => {
       const { data } = await supabase
@@ -187,63 +199,67 @@ export default function LeadsPage() {
     })();
   }, [user?.id]);
 
-  useEffect(() => {
-    if (!enrichLoading || scoringTotal <= 0) return;
-    const duration = scoringTotal * 1.5 * 1000;
-    const start = performance.now();
-    let raf = 0;
-    const step = (now: number) => {
-      const t = Math.min(1, (now - start) / duration);
-      setBarProgress(Math.min(90, t * 90));
-      const approx = Math.max(1, Math.min(scoringTotal, Math.ceil(t * scoringTotal)));
-      setScoringCurrent(approx);
-      if (t < 1) raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [enrichLoading, scoringTotal]);
-
-  const openModalFromStoredJob = useCallback(() => {
-    const job = readEnrichmentJob() as {
-      openResultsModal?: boolean;
-      results?: unknown[];
-      filename?: string;
-      eventId?: string | null;
-      eventName?: string;
-      id?: number;
-    } | null;
-    if (!job?.openResultsModal || !Array.isArray(job.results)) return;
-    const jid = typeof job.id === "number" ? job.id : Date.now();
-    const withIds: EnrichedRow[] = job.results.map((c: unknown, i: number) => {
-      const row = c as EnrichedRow;
-      return {
-        ...row,
-        __id: row.__id || `row-${jid}-${i}`,
-        icp_fit_score: Number(row.icp_fit_score) || 0,
-        suggested_lead_score: Number(row.suggested_lead_score) || 5,
-        icp_fit_reason: typeof row.icp_fit_reason === "string" ? row.icp_fit_reason : "",
-        summary: typeof row.summary === "string" ? row.summary : "",
-        talking_points: Array.isArray(row.talking_points) ? row.talking_points : [],
-        red_flags: Array.isArray(row.red_flags) ? row.red_flags : [],
-        ai_enrichment: (row.ai_enrichment as Record<string, unknown>) || {},
+  const openModalFromResultsFlag = useCallback(() => {
+    if (typeof window === "undefined") return;
+    if (localStorage.getItem(OPEN_RESULTS_FLAG) !== "true") return;
+    const raw = localStorage.getItem(ENRICHMENT_RESULTS_KEY);
+    if (!raw) {
+      localStorage.removeItem(OPEN_RESULTS_FLAG);
+      return;
+    }
+    try {
+      const data = JSON.parse(raw) as {
+        contacts?: unknown[];
+        filename?: string;
+        savedAt?: string;
       };
-    });
-    setResultsModal({
-      filename: job.filename || "leads.csv",
-      eventId: job.eventId ?? null,
-      eventName: job.eventName || "No specific event",
-      contacts: withIds,
-    });
-    setSelectedIds(withIds.filter((c) => (c.icp_fit_score ?? 0) >= 6).map((c) => c.__id));
-    patchEnrichmentJob({ openResultsModal: false });
+      if (data.savedAt) {
+        const ageMs = Date.now() - new Date(data.savedAt).getTime();
+        if (ageMs > 60 * 60 * 1000) {
+          localStorage.removeItem(OPEN_RESULTS_FLAG);
+          return;
+        }
+      }
+      if (!data.contacts || !Array.isArray(data.contacts)) {
+        localStorage.removeItem(OPEN_RESULTS_FLAG);
+        return;
+      }
+      const job = readEnrichmentJob() as {
+        eventId?: string | null;
+        eventName?: string;
+        id?: number;
+      } | null;
+      const jid = typeof job?.id === "number" ? job.id : Date.now();
+      const withIds: EnrichedRow[] = data.contacts.map((c: unknown, i: number) => {
+        const row = c as EnrichedRow;
+        return {
+          ...row,
+          __id: row.__id || `row-${jid}-${i}`,
+          icp_fit_score: Number(row.icp_fit_score) || 0,
+          suggested_lead_score: Number(row.suggested_lead_score) || 5,
+          icp_fit_reason: typeof row.icp_fit_reason === "string" ? row.icp_fit_reason : "",
+          summary: typeof row.summary === "string" ? row.summary : "",
+          talking_points: Array.isArray(row.talking_points) ? row.talking_points : [],
+          red_flags: Array.isArray(row.red_flags) ? row.red_flags : [],
+          ai_enrichment: (row.ai_enrichment as Record<string, unknown>) || {},
+        };
+      });
+      setResultsModal({
+        filename: data.filename || "leads.csv",
+        eventId: job?.eventId ?? null,
+        eventName: job?.eventName || "No specific event",
+        contacts: withIds,
+      });
+      setSelectedIds(withIds.filter((c) => (c.icp_fit_score ?? 0) >= 6).map((c) => c.__id));
+    } catch {
+      /* ignore */
+    }
+    localStorage.removeItem(OPEN_RESULTS_FLAG);
   }, []);
 
   useEffect(() => {
-    openModalFromStoredJob();
-    const h = () => openModalFromStoredJob();
-    window.addEventListener("katch-enrichment-open-modal", h);
-    return () => window.removeEventListener("katch-enrichment-open-modal", h);
-  }, [openModalFromStoredJob]);
+    if (pathname === "/leads") openModalFromResultsFlag();
+  }, [pathname, openModalFromResultsFlag]);
 
   const openFilePicker = () => fileInputRef.current?.click();
 
@@ -284,15 +300,16 @@ export default function LeadsPage() {
       selectedEventId === ""
         ? "No specific event"
         : events.find((ev) => ev.id === selectedEventId)?.name || "Event";
-    setScoringTotal(dataRows);
-    setScoringCurrent(1);
+    const filename = selectedFile.name;
+    setScoringTotal(cappedForEta);
+    setScoringCurrent(0);
     setBarProgress(0);
     setEnrichLoading(true);
 
     const jobId = Date.now();
     writeEnrichmentJobFull({
       id: jobId,
-      filename: selectedFile.name,
+      filename,
       totalContacts: cappedForEta,
       startedAt: new Date().toISOString(),
       status: "processing",
@@ -301,84 +318,148 @@ export default function LeadsPage() {
       eventName,
     });
 
-    const estimatedTotalSeconds = cappedForEta * 1.5;
-    const progressStepMs = Math.max(50, (estimatedTotalSeconds * 1000) / 100);
-    let p = 0;
-    let progressIv: ReturnType<typeof setInterval> | null = null;
-    progressIv = setInterval(() => {
-      p = Math.min(90, p + 1);
-      patchEnrichmentJob({ progress: p });
-    }, progressStepMs);
-
     try {
-      const eventId = selectedEventId || undefined;
-      const res = await fetch("/api/enrich-list", {
+      const response = await fetch("/api/enrich-list", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ csvText, userId: user.id, eventId }),
+        body: JSON.stringify({
+          csvText,
+          userId: user.id,
+          eventId: selectedEventId || undefined,
+        }),
       });
-      const json = (await res.json()) as {
-        contacts?: EnrichedRow[];
-        error?: string;
-        message?: string;
-        truncated?: boolean;
-        totalRows?: number;
-      };
 
-      if (res.status === 500) {
-        const msg =
-          typeof json.message === "string" ? json.message : "Enrichment failed — try again.";
-        patchEnrichmentJob({ status: "error", errorMessage: msg });
-        showToast(msg, "error");
-        return;
-      }
-
-      if (!res.ok || !json.contacts) {
-        const errMsg =
-          json.error === "no_valid_rows" && typeof json.message === "string"
-            ? json.message
-            : json.error || "Enrichment failed — try again.";
-        patchEnrichmentJob({ status: "error", errorMessage: errMsg });
-        if (json.error === "no_valid_rows" && typeof json.message === "string") {
-          showToast(json.message, "error");
-        } else {
-          showToast(errMsg, "error");
+      if (!response.ok) {
+        const text = await response.text();
+        let msg = "Enrichment failed — try again.";
+        try {
+          const j = JSON.parse(text) as { error?: string; message?: string };
+          if (j.error === "no_valid_rows" && typeof j.message === "string") msg = j.message;
+          else if (typeof j.message === "string") msg = j.message;
+        } catch {
+          /* ignore */
         }
+        patchEnrichmentJob({
+          status: "error",
+          errorMessage: msg,
+          progress: 100,
+        });
+        if (mountedRef.current) showToast(msg, "error");
         return;
       }
 
-      patchEnrichmentJob({
-        status: "complete",
-        progress: 100,
-        results: json.contacts,
-      });
+      const body = response.body;
+      if (!body) {
+        patchEnrichmentJob({
+          status: "error",
+          errorMessage: "Enrichment failed — try again.",
+          progress: 100,
+        });
+        if (mountedRef.current) showToast("Enrichment failed — try again.", "error");
+        return;
+      }
 
-      const withIds: EnrichedRow[] = json.contacts.map((c, i) => ({
-        ...c,
-        __id: `row-${Date.now()}-${i}`,
-        icp_fit_score: Number(c.icp_fit_score) || 0,
-        suggested_lead_score: Number(c.suggested_lead_score) || 5,
-        icp_fit_reason: typeof c.icp_fit_reason === "string" ? c.icp_fit_reason : "",
-        summary: typeof c.summary === "string" ? c.summary : "",
-        talking_points: Array.isArray(c.talking_points) ? c.talking_points : [],
-        red_flags: Array.isArray(c.red_flags) ? c.red_flags : [],
-        ai_enrichment: (c.ai_enrichment as Record<string, unknown>) || {},
-      }));
-      setResultsModal({
-        filename: selectedFile.name,
-        eventId: selectedEventId || null,
-        eventName,
-        contacts: withIds,
-      });
-      setSelectedIds(withIds.filter((c) => (c.icp_fit_score ?? 0) >= 6).map((c) => c.__id));
-      setBarProgress(100);
-      setScoringCurrent(dataRows);
-    } catch {
-      patchEnrichmentJob({ status: "error", errorMessage: "Network error" });
-      showToast("Enrichment failed — try again.", "error");
+      const reader = body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const event = JSON.parse(line) as {
+              type: string;
+              current?: number;
+              total?: number;
+              contact?: unknown;
+              contacts?: unknown[];
+              message?: string;
+              truncated?: boolean;
+              totalRows?: number;
+            };
+            if (event.type === "progress") {
+              const cur = event.current ?? 0;
+              const tot = event.total ?? 1;
+              const realProgress = Math.round((cur / tot) * 100);
+              patchEnrichmentJob({
+                progress: realProgress,
+                processed: cur,
+                totalContacts: tot,
+              });
+              if (mountedRef.current) {
+                setBarProgress(realProgress);
+                setScoringCurrent(cur);
+                setScoringTotal(tot);
+              }
+            } else if (event.type === "done" && Array.isArray(event.contacts)) {
+              const enriched = event.contacts;
+              localStorage.setItem(
+                ENRICHMENT_RESULTS_KEY,
+                JSON.stringify({
+                  contacts: enriched,
+                  savedAt: new Date().toISOString(),
+                  filename,
+                  truncated: event.truncated ?? false,
+                  totalRows: event.totalRows ?? enriched.length,
+                })
+              );
+              const jobCur = readEnrichmentJob() || {};
+              writeEnrichmentJobFull({
+                ...jobCur,
+                status: "complete",
+                progress: 100,
+                results: enriched,
+                filename,
+                eventId: selectedEventId || null,
+                eventName,
+              });
+              const withIds: EnrichedRow[] = enriched.map((c, i) => {
+                const row = c as EnrichedRow;
+                return {
+                  ...row,
+                  __id: row.__id || `row-${jobId}-${i}`,
+                  icp_fit_score: Number(row.icp_fit_score) || 0,
+                  suggested_lead_score: Number(row.suggested_lead_score) || 5,
+                  icp_fit_reason: typeof row.icp_fit_reason === "string" ? row.icp_fit_reason : "",
+                  summary: typeof row.summary === "string" ? row.summary : "",
+                  talking_points: Array.isArray(row.talking_points) ? row.talking_points : [],
+                  red_flags: Array.isArray(row.red_flags) ? row.red_flags : [],
+                  ai_enrichment: (row.ai_enrichment as Record<string, unknown>) || {},
+                };
+              });
+              if (mountedRef.current) {
+                setBarProgress(100);
+                setScoringCurrent(withIds.length);
+                setScoringTotal(withIds.length);
+                setResultsModal({
+                  filename,
+                  eventId: selectedEventId || null,
+                  eventName,
+                  contacts: withIds,
+                });
+                setSelectedIds(withIds.filter((c) => (c.icp_fit_score ?? 0) >= 6).map((c) => c.__id));
+              }
+            } else if (event.type === "error") {
+              const em = typeof event.message === "string" ? event.message : "Enrichment failed — try again.";
+              patchEnrichmentJob({
+                status: "error",
+                errorMessage: em,
+                progress: 100,
+              });
+              if (mountedRef.current) showToast(em, "error");
+            }
+          } catch (e) {
+            console.error("Parse error on line:", line, e);
+          }
+        }
+      }
     } finally {
-      if (progressIv) clearInterval(progressIv);
-      setEnrichLoading(false);
+      if (mountedRef.current) setEnrichLoading(false);
     }
   };
 
