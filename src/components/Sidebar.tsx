@@ -33,20 +33,6 @@ const LEADS_NAV_ICON_DESKTOP = (
   </svg>
 );
 
-const LEADS_NAV_ICON_MOBILE = (
-  <svg width={22} height={22} viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M2 4h9" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" />
-    <path d="M2 8h7" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" />
-    <path d="M2 12h5" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" />
-    <path
-      d="M13 9l1 2 2 1-2 1-1 2-1-2-2-1 2-1 1-2z"
-      stroke="currentColor"
-      strokeWidth={1.3}
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
 const DESKTOP_NAV = [
   { label: "Home", href: "/home", icon: <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 21V12h6v9"/></svg> },
   { label: "Scan", href: "/scan", icon: <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M3 9V5a2 2 0 012-2h4M3 15v4a2 2 0 002 2h4M21 9V5a2 2 0 00-2-2h-4M21 15v4a2 2 0 01-2 2h-4"/></svg> },
@@ -63,7 +49,6 @@ const MOBILE_NAV = [
   { label: "Scan", href: "/scan", icon: <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M3 9V5a2 2 0 012-2h4M3 15v4a2 2 0 002 2h4M21 9V5a2 2 0 00-2-2h-4M21 15v4a2 2 0 01-2 2h-4"/></svg> },
   { label: "Contacts", href: "/contacts", icon: <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg> },
   { label: "Events", href: "/events", icon: <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> },
-  { label: "Lead Lists", href: "/leads", icon: LEADS_NAV_ICON_MOBILE },
   { label: "Settings", href: "/settings", icon: <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M2 12h2M20 12h2M17.66 17.66l-1.41-1.41M6.34 17.66l1.41-1.41"/></svg> },
 ];
 
