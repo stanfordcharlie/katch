@@ -1,12 +1,24 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 
 export const ENRICHMENT_JOB_KEY = "katch_enrichment_job";
 
 const ENRICHMENT_RESULTS_KEY = "katch_enrichment_results";
 const OPEN_RESULTS_FLAG = "katch_open_results";
+const PILL_DISMISSED_KEY = "katch_pill_dismissed";
+
+const pillDismissXButtonStyle: CSSProperties = {
+  background: "transparent",
+  border: "none",
+  color: "#999",
+  fontSize: 16,
+  cursor: "pointer",
+  padding: "0 0 0 8px",
+  lineHeight: 1,
+  fontWeight: 400,
+};
 
 type EnrichmentJob = {
   id: number;
@@ -59,6 +71,7 @@ export function EnrichmentProgressPill() {
   const router = useRouter();
   const [job, setJob] = useState<EnrichmentJob | null>(null);
   const completeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastJobIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     const tick = () => {
@@ -73,7 +86,27 @@ export function EnrichmentProgressPill() {
           j = readJob();
         }
       }
-      setJob(j);
+      if (j?.id != null) {
+        if (lastJobIdRef.current != null && j.id !== lastJobIdRef.current) {
+          try {
+            localStorage.removeItem(PILL_DISMISSED_KEY);
+          } catch {
+            /* ignore */
+          }
+        }
+        lastJobIdRef.current = j.id;
+      }
+      let pillDismissed = false;
+      try {
+        pillDismissed = localStorage.getItem(PILL_DISMISSED_KEY) === "true";
+      } catch {
+        /* ignore */
+      }
+      let displayJob = j;
+      if (j?.status === "processing" && pillDismissed) {
+        displayJob = null;
+      }
+      setJob(displayJob);
     };
     tick();
     const iv = setInterval(tick, 1000);
@@ -109,6 +142,24 @@ export function EnrichmentProgressPill() {
   }, [router]);
 
   const dismissError = useCallback(() => {
+    patchJobMerge({ status: "dismissed" });
+    setJob(readJob());
+  }, []);
+
+  const dismissProcessingPill = useCallback(() => {
+    try {
+      localStorage.setItem(PILL_DISMISSED_KEY, "true");
+    } catch {
+      /* ignore */
+    }
+    setJob(null);
+  }, []);
+
+  const dismissCompletePill = useCallback(() => {
+    if (completeTimerRef.current) {
+      clearTimeout(completeTimerRef.current);
+      completeTimerRef.current = null;
+    }
     patchJobMerge({ status: "dismissed" });
     setJob(readJob());
   }, []);
@@ -181,6 +232,14 @@ export function EnrichmentProgressPill() {
               }}
             />
           </div>
+          <button
+            type="button"
+            aria-label="Dismiss"
+            onClick={dismissProcessingPill}
+            style={pillDismissXButtonStyle}
+          >
+            ×
+          </button>
         </div>
       </>
     );
@@ -281,6 +340,14 @@ export function EnrichmentProgressPill() {
           }}
         >
           View results
+        </button>
+        <button
+          type="button"
+          aria-label="Dismiss"
+          onClick={dismissCompletePill}
+          style={pillDismissXButtonStyle}
+        >
+          ×
         </button>
       </div>
     );

@@ -250,7 +250,7 @@ export default function LeadsPage() {
         eventName: job?.eventName || "No specific event",
         contacts: withIds,
       });
-      setSelectedIds(withIds.filter((c) => (c.icp_fit_score ?? 0) >= 6).map((c) => c.__id));
+      setSelectedIds(withIds.filter((c) => (c.icp_fit_score ?? 0) >= 5).map((c) => c.__id));
     } catch {
       /* ignore */
     }
@@ -442,7 +442,7 @@ export default function LeadsPage() {
                   eventName,
                   contacts: withIds,
                 });
-                setSelectedIds(withIds.filter((c) => (c.icp_fit_score ?? 0) >= 6).map((c) => c.__id));
+                setSelectedIds(withIds.filter((c) => (c.icp_fit_score ?? 0) >= 5).map((c) => c.__id));
               }
             } else if (event.type === "error") {
               const em = typeof event.message === "string" ? event.message : "Enrichment failed — try again.";

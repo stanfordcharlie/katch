@@ -256,64 +256,6 @@ function extractContacts(dataRows: string[][], fieldToIndex: Record<string, numb
     .filter((c) => !((c.name || '').trim() === '' && (c.email || '').trim() === ''))
 }
 
-function buildEnrichmentPrompt(contact: CsvContact, icp: Record<string, unknown> | null | undefined) {
-  return `You are an expert sales intelligence analyst. Given a contact and a company ICP profile, return enrichment data.
-
-CONTACT:
-Name: ${contact.name || 'Unknown'}
-Title: ${contact.title || 'Unknown'}
-Company: ${contact.company || 'Unknown'}
-Email: ${contact.email || 'Unknown'}
-Phone: ${contact.phone || 'Unknown'}
-LinkedIn: ${contact.linkedin || 'Unknown'}
-
-${icp ? `SELLER ICP PROFILE:
-What they sell: ${(icp as { what_we_sell?: string }).what_we_sell || 'Not specified'}
-Target customer: ${(icp as { target_customer?: string }).target_customer || 'Not specified'}
-Problems they solve: ${(icp as { problems_solved?: string }).problems_solved || 'Not specified'}
-Ideal titles: ${(icp as { ideal_titles?: string }).ideal_titles || 'Not specified'}
-Ideal industries: ${(icp as { ideal_industries?: string }).ideal_industries || 'Not specified'}
-Ideal company size: ${(icp as { ideal_company_size?: string }).ideal_company_size || 'Not specified'}
-Disqualifiers: ${(icp as { disqualifiers?: string }).disqualifiers || 'Not specified'}
-Value props: ${(icp as { value_props?: string }).value_props || 'Not specified'}` : 'No ICP profile provided.'}
-
-Return ONLY a valid JSON object, no markdown, no explanation:
-{
-  "inferred_industry": "string",
-  "inferred_company_size": "string",
-  "icp_fit_score": number 1-10,
-  "icp_fit_reason": "one sentence string",
-  "suggested_lead_score": number 1-10,
-  "talking_points": ["string", "string", "string"],
-  "red_flags": [],
-  "summary": "two sentence string"
-}`
-}
-
-async function enrichContact(contact: CsvContact, icpProfile: Record<string, unknown> | null | undefined) {
-  const prompt = buildEnrichmentPrompt(contact, icpProfile)
-  const response = await anthropic.messages.create({
-    model: 'claude-opus-4-5',
-    max_tokens: 1000,
-    messages: [{ role: 'user', content: prompt }],
-  })
-  const text = response.content[0]?.type === 'text' ? response.content[0].text : ''
-  const enrichment = parseJsonFromText(text) ?? {}
-  const ai = enrichment as Record<string, unknown>
-  const talking_points = Array.isArray(ai.talking_points) ? ai.talking_points : []
-  const red_flags = Array.isArray(ai.red_flags) ? ai.red_flags : []
-  return {
-    ...contact,
-    ai_enrichment: ai,
-    suggested_lead_score: Number(ai.suggested_lead_score ?? 5) || 5,
-    icp_fit_score: Number(ai.icp_fit_score ?? 0) || 0,
-    icp_fit_reason: typeof ai.icp_fit_reason === 'string' ? ai.icp_fit_reason : '',
-    summary: typeof ai.summary === 'string' ? ai.summary : '',
-    talking_points,
-    red_flags,
-  }
-}
-
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
@@ -388,38 +330,170 @@ export async function POST(req: NextRequest) {
       async start(controller) {
         try {
           const results: Array<Record<string, unknown>> = []
-          for (let i = 0; i < contactsToProcess.length; i++) {
-            const contact = contactsToProcess[i]
-            let row: Record<string, unknown>
-            try {
-              const enriched = await enrichContact(contact, icpProfile)
-              row = { ...contact, ...enriched }
-            } catch (e) {
-              console.error('Enrichment failed for:', contact.name, e)
-              row = {
-                ...contact,
-                icp_fit_score: 5,
-                icp_fit_reason: 'Could not enrich',
-                summary: '',
-                suggested_lead_score: 5,
-                ai_enrichment: {},
-                talking_points: [],
-                red_flags: [],
+          const chunks: CsvContact[][] = []
+          for (let i = 0; i < contactsToProcess.length; i += 10) {
+            chunks.push(contactsToProcess.slice(i, i + 10))
+          }
+
+          const apiKey = process.env.ANTHROPIC_API_KEY
+          if (!apiKey) {
+            throw new Error('Missing ANTHROPIC_API_KEY')
+          }
+
+          for (let bi = 0; bi < chunks.length; bi++) {
+            const chunk = chunks[bi]
+            let responseText = '[]'
+
+            const pushFallbackForChunk = () => {
+              for (const contact of chunk) {
+                const fallback = {
+                  ...contact,
+                  icp_fit_score: 5,
+                  icp_fit_reason: 'Could not score',
+                  suggested_lead_score: 5,
+                  summary: '',
+                  talking_points: [] as unknown[],
+                  red_flags: [] as unknown[],
+                  ai_enrichment: null,
+                }
+                results.push(fallback)
+                controller.enqueue(
+                  encoder.encode(
+                    JSON.stringify({
+                      type: 'progress',
+                      current: results.length,
+                      total: contactsToProcess.length,
+                      contact: fallback,
+                    }) + '\n'
+                  )
+                )
               }
             }
-            results.push(row)
-            const progressEvent =
-              JSON.stringify({
-                type: 'progress',
-                current: i + 1,
-                total: contactsToProcess.length,
-                contact: row,
-              }) + '\n'
-            controller.enqueue(encoder.encode(progressEvent))
-            if ((i + 1) % 5 === 0 && i + 1 < contactsToProcess.length) {
-              await new Promise((r) => setTimeout(r, 800))
+
+            try {
+              const batchPrompt = `You are a B2B sales intelligence assistant. Score each of the following contacts against this ICP profile and return a JSON array.
+
+ICP Profile:
+${JSON.stringify(icpProfile, null, 2)}
+
+Contacts to score:
+${JSON.stringify(
+                chunk.map((c, i) => ({
+                  index: i,
+                  name: c.name,
+                  title: c.title,
+                  company: c.company,
+                  email: c.email,
+                })),
+                null,
+                2
+              )}
+
+For each contact return an object with these exact fields:
+- index: the contact's index number from above
+- icp_fit_score: integer 1-10
+- icp_fit_reason: one sentence explaining the score
+- suggested_lead_score: integer 1-10
+- summary: 2-3 sentence summary of why this person is or isn't a good fit
+- talking_points: array of 2-3 specific talking points for this person
+- red_flags: array of 0-2 red flags, empty array if none
+
+Return ONLY a valid JSON array with no markdown, no backticks, no explanation. Just the raw JSON array.`
+
+              const response = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-api-key': apiKey,
+                  'anthropic-version': '2023-06-01',
+                },
+                body: JSON.stringify({
+                  model: 'claude-sonnet-4-5',
+                  max_tokens: 4000,
+                  messages: [{ role: 'user', content: batchPrompt }],
+                }),
+              })
+
+              const data = (await response.json()) as {
+                content?: Array<{ type?: string; text?: string }>
+              }
+              if (!response.ok) {
+                console.error('Batch Anthropic HTTP error:', response.status, data)
+                throw new Error('Anthropic request failed')
+              }
+              responseText = data.content?.[0]?.text || '[]'
+
+              const cleaned = responseText.replace(/```json/g, '').replace(/```/g, '').trim()
+              const scores = JSON.parse(cleaned) as Array<Record<string, unknown>>
+              if (!Array.isArray(scores)) {
+                throw new Error('Expected JSON array from Claude')
+              }
+
+              const byIndex = new Map<number, Record<string, unknown>>()
+              for (const score of scores) {
+                const idx = typeof score.index === 'number' ? score.index : NaN
+                if (!Number.isNaN(idx)) byIndex.set(idx, score)
+              }
+
+              for (let i = 0; i < chunk.length; i++) {
+                const contact = chunk[i]
+                const score = byIndex.get(i)
+                let enriched: Record<string, unknown>
+                if (score) {
+                  const talking_points = Array.isArray(score.talking_points) ? score.talking_points : []
+                  const red_flags = Array.isArray(score.red_flags) ? score.red_flags : []
+                  enriched = {
+                    ...contact,
+                    icp_fit_score: Number(score.icp_fit_score ?? 5) || 5,
+                    icp_fit_reason:
+                      typeof score.icp_fit_reason === 'string' ? score.icp_fit_reason : '',
+                    suggested_lead_score: Number(score.suggested_lead_score ?? 5) || 5,
+                    summary: typeof score.summary === 'string' ? score.summary : '',
+                    talking_points,
+                    red_flags,
+                    ai_enrichment: {
+                      icp_fit_score: score.icp_fit_score,
+                      icp_fit_reason: score.icp_fit_reason,
+                      suggested_lead_score: score.suggested_lead_score,
+                      summary: score.summary,
+                      talking_points: score.talking_points,
+                      red_flags: score.red_flags,
+                    },
+                  }
+                } else {
+                  enriched = {
+                    ...contact,
+                    icp_fit_score: 5,
+                    icp_fit_reason: 'Could not score',
+                    suggested_lead_score: 5,
+                    summary: '',
+                    talking_points: [],
+                    red_flags: [],
+                    ai_enrichment: null,
+                  }
+                }
+                results.push(enriched)
+                controller.enqueue(
+                  encoder.encode(
+                    JSON.stringify({
+                      type: 'progress',
+                      current: results.length,
+                      total: contactsToProcess.length,
+                      contact: enriched,
+                    }) + '\n'
+                  )
+                )
+              }
+            } catch (e) {
+              console.error('Batch parse failed:', e, 'Raw response:', responseText)
+              pushFallbackForChunk()
+            }
+
+            if (bi < chunks.length - 1) {
+              await new Promise((r) => setTimeout(r, 300))
             }
           }
+
           const doneEvent =
             JSON.stringify({
               type: 'done',
