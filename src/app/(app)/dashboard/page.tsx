@@ -275,25 +275,32 @@ export default function DashboardPage() {
                     value={selectedEventId}
                     onChange={(e) => setSelectedEventId(e.target.value)}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "rgba(255,255,255,0.18)";
+                      e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.22)";
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "rgba(255,255,255,0.12)";
+                      e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.15)";
                     }}
                     style={{
-                      background: "rgba(255,255,255,0.12)",
+                      backgroundColor: "rgba(255,255,255,0.15)",
                       color: "#ffffff",
-                      border: "1px solid rgba(255,255,255,0.25)",
+                      border: "1px solid rgba(255,255,255,0.3)",
                       borderRadius: 10,
                       padding: "8px 16px",
+                      paddingRight: 32,
                       fontSize: 14,
                       fontWeight: 500,
                       cursor: "pointer",
                       outline: "none",
                       appearance: "none",
                       WebkitAppearance: "none",
-                      backdropFilter: "blur(4px)",
-                      WebkitBackdropFilter: "blur(4px)",
+                      backdropFilter: "blur(8px)",
+                      WebkitBackdropFilter: "blur(8px)",
+                      backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(
+                        '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+                      )}")`,
+                      backgroundRepeat: "no-repeat",
+                      backgroundPosition: "right 12px center",
+                      backgroundSize: "12px 12px",
                     }}
                   >
                     <option value="" style={{ background: "#1a3a2a", color: "#fff" }}>All events</option>
@@ -303,27 +310,6 @@ export default function DashboardPage() {
                       </option>
                     ))}
                   </select>
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 12 12"
-                    fill="none"
-                    style={{
-                      position: "absolute",
-                      right: "12px",
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      pointerEvents: "none",
-                    }}
-                  >
-                    <path
-                      d="M2 4l4 4 4-4"
-                      stroke="#ffffff"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
                 </div>
               </div>
             )}
