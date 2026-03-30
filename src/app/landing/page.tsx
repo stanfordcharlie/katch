@@ -1,39 +1,109 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+
+function ScanFrameIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M4 8V4h4M16 4h4v4M4 16v4h4M20 16v4h-4"
+        stroke="#3b6fd4"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function LogoLockup({ small }: { small?: boolean }) {
+  const fs = small ? 15 : 18;
+  const box = small ? 28 : 32;
+  return (
+    <div style={{ display: "flex", alignItems: "center" }}>
+      <div
+        style={{
+          width: box,
+          height: box,
+          borderRadius: 10,
+          background: "#f0f2f0",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <ScanFrameIcon />
+      </div>
+      <span style={{ fontWeight: 700, fontSize: fs, color: "#111", marginLeft: 10 }}>Katch</span>
+    </div>
+  );
+}
+
+const featureItems = [
+  {
+    title: "Scan any badge",
+    desc: "Claude Vision reads badges and business cards instantly. No QR codes needed.",
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a3a2a" strokeWidth="1.8">
+        <path d="M3 9V5a2 2 0 012-2h4M3 15v4a2 2 0 002 2h4M21 9V5a2 2 0 00-2-2h-4M21 15v4a2 2 0 01-2 2h-4" />
+      </svg>
+    ),
+  },
+  {
+    title: "AI lead scoring",
+    desc: "Every contact scored against your ICP automatically. Know who to follow up with first.",
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a3a2a" strokeWidth="1.8">
+        <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    title: "Smart enrichment",
+    desc: "Get talking points, red flags, and ICP fit reasons for every contact you meet.",
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a3a2a" strokeWidth="1.8">
+        <path d="M12 5a3 3 0 00-3 3v1H7a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2h-2V8a3 3 0 00-3-3z" />
+        <path d="M9 14h6M10 11h4" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    title: "HubSpot sync",
+    desc: "Push contacts and AI insights to HubSpot in one click. Notes, scores, and signals included.",
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a3a2a" strokeWidth="1.8">
+        <path d="M4 12a8 8 0 0113.9-5M20 12a8 8 0 01-13.9 5" strokeLinecap="round" />
+        <path d="M8 12h8" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    title: "Lead list analysis",
+    desc: "Upload a conference attendee list and rank every lead before the event starts.",
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a3a2a" strokeWidth="1.8">
+        <path d="M4 6h16M4 12h10M4 18h14" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    title: "Email sequences",
+    desc: "Generate personalized follow-up sequences for each contact based on your conversation.",
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a3a2a" strokeWidth="1.8">
+        <rect x="3" y="5" width="18" height="14" rx="2" />
+        <path d="M3 7l9 6 9-6" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+];
 
 export default function LandingPageV2() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const input = e.currentTarget.querySelector('input[type=email]') as HTMLInputElement | null;
-    const email = input?.value || "";
-    router.push(`/signup?email=${encodeURIComponent(email)}`);
-  };
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            (entry.target as HTMLElement).classList.add("visible");
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      { threshold: 0.1 }
-    );
-
-    const elements = document.querySelectorAll<HTMLElement>(".reveal");
-    elements.forEach((el) => observer.observe(el));
-
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -44,994 +114,584 @@ export default function LandingPageV2() {
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
   }, []);
 
+  const navPad = isMobile ? "0 20px" : "0 40px";
+
   return (
-    <div style={{ backgroundColor: '#0a0a0a', overflowX: 'hidden' }}>
-      <style>{`html, body { background: #0a0a0a !important; }`}</style>
+    <div style={{ backgroundColor: "#ffffff", overflowX: "hidden", fontFamily: "Inter, system-ui, sans-serif" }}>
       <link
         rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,800;1,600;1,800&family=Geist:wght@300;400;500&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       />
+      <style>{`html, body { background: #ffffff !important; }`}</style>
       <style
         dangerouslySetInnerHTML={{
           __html: `
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  font-family: 'Geist', system-ui, sans-serif;
-  background: #0a0a0a;
-  color: #ffffff;
-  overflow-x: hidden;
-}
-
-/* NAV */
-nav.landing2-nav {
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: calc(100% - 80px);
-  max-width: 1100px;
-  background: rgba(255,255,255,0.12);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255,255,255,0.18);
-  border-radius: 999px;
-  padding: 10px 20px;
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.nav-logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  text-decoration: none;
-  color: #ffffff;
-}
-
-.logo-name {
-  font-family: 'Syne', sans-serif;
-  font-size: 22px;
-  letter-spacing: -0.04em;
-  color: #ffffff;
-}
-
-.nav-links { display: flex; gap: 24px; }
-.nav-links a {
-  font-size: 15px;
-  color: #ffffff;
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-.nav-links a:hover { color: #ffffff; }
-
-.nav-actions { display: flex; align-items: center; gap: 10px; }
-
-.btn-ghost {
-  font-size: 14px; padding: 8px 16px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: transparent;
-  color: rgba(255,255,255,0.72);
-  cursor: pointer;
-  font-family: 'Geist', sans-serif;
-  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-}
-.btn-ghost:hover {
-  background: rgba(255,255,255,0.06);
-  border-color: rgba(255,255,255,0.28);
-  color: #ffffff;
-}
-
-.btn-solid {
-  font-size: 14px; padding: 9px 20px;
-  border-radius: 999px;
-  border: none;
-  background: #7dde3c;
-  color: #ffffff;
-  cursor: pointer;
-  font-family: 'Geist', sans-serif;
-  font-weight: 500;
-  transition: transform 0.1s ease, box-shadow 0.2s ease, background 0.2s ease;
-  box-shadow: 0 14px 40px rgba(125,222,60,0.35);
-}
-.btn-solid:hover {
-  background: #90f04d;
-  transform: translateY(-1px);
-  box-shadow: 0 18px 55px rgba(125,222,60,0.5);
-}
-
-/* HERO */
-.hero2 {
-  position: relative;
-  min-height: 100vh;
-  padding: 120px 40px 80px 80px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  text-align: left;
-  overflow: hidden;
-  color: #ffffff;
-}
-
-.hero2-inner {
-  position: relative;
-  max-width: 650px;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
-}
-
-.hero2-title {
-  font-family: 'Syne', sans-serif;
-  
-  font-weight: 800;
-  font-size: clamp(52px, 9vw, 96px);
-  line-height: 1.0;
-  letter-spacing: -3px;
-  color: #ffffff;
-  text-shadow: 0 0 40px rgba(0,0,0,0.6);
-  margin-bottom: 20px;
-}
-
-.hero2-title span {
-  display: block;
-}
-
-.hero2-sub {
-  font-size: 20px;
-  font-weight: 400;
-  color: #ffffff;
-  margin-bottom: 32px;
-}
-
-.hero2-form {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 32px;
-}
-
-.hero2-footnote {
-  font-size: 11px;
-  color: #ffffff;
-  margin-top: 14px;
-}
-
-/* SECTIONS */
-.section-shell {
-  padding: 80px 40px;
-  background: #0d0d0d;
-}
-
-.section-shell.alt {
-  background: #111111;
-}
-
-.section-inner {
-  max-width: 1100px;
-  margin: 0 auto;
-}
-
-.section-label {
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: #ffffff;
-  font-weight: 500;
-  margin-bottom: 18px;
-}
-
-h2.section-title {
-  font-family: 'Syne', sans-serif;
-  font-size: clamp(32px, 4vw, 48px);
-  line-height: 1.1;
-  letter-spacing: -0.03em;
-  color: #ffffff;
-  margin-bottom: 40px;
-}
-
-h2.section-title em {
-  
-  color: #ffffff;
-}
-
-.steps-grid {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 1px;
-  background: #181818;
-  border-radius: 18px;
-  overflow: hidden;
-}
-
-.step {
-  background: #0f0f0f;
-  padding: 28px 22px;
-}
-
-.step-num {
-  font-family: 'Syne', sans-serif;
-  font-size: 32px;
-  color: rgba(255,255,255,0.12);
-  margin-bottom: 14px;
-}
-
-.step-title {
-  font-size: 15px;
-  font-weight: 500;
-  color: #ffffff;
-  margin-bottom: 8px;
-}
-
-.step-desc {
-  font-size: 13px;
-  line-height: 1.6;
-  color: rgba(255,255,255,0.6);
-}
-
-/* ROI */
-.roi-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-  gap: 64px;
-  align-items: center;
-}
-
-.roi-sub {
-  font-size: 15px;
-  line-height: 1.7;
-  color: #ffffff;
-  margin-bottom: 24px;
-}
-
-.roi-points {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  font-size: 14px;
-  color: #ffffff;
-}
-
-.roi-points li::before {
-  content: '→';
-  margin-right: 8px;
-  color: #ffffff;
-}
-
-.roi-stats {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.roi-stat {
-  background: #0f0f0f;
-  border-radius: 16px;
-  padding: 22px;
-  border: 1px solid rgba(255,255,255,0.08);
-}
-
-.roi-stat-num {
-  font-family: 'Syne', sans-serif;
-  font-size: 36px;
-  color: #ffffff;
-  margin-bottom: 6px;
-}
-
-.roi-stat-num span {
-  color: #ffffff;
-}
-
-.roi-stat-label {
-  font-size: 12px;
-  color: #ffffff;
-}
-
-/* TESTIMONIALS */
-.testimonials-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 20px;
-  margin-top: 40px;
-}
-
-.testimonial {
-  background: #101010;
-  border-radius: 16px;
-  border: 1px solid rgba(255,255,255,0.08);
-  padding: 26px;
-}
-
-.testimonial-quote {
-  font-family: 'Syne', sans-serif;
-  
-  font-size: 16px;
-  line-height: 1.7;
-  color: #ffffff;
-  margin-bottom: 22px;
-}
-
-.testimonial-author {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.t-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  font-size: 12px;
-  font-weight: 500;
-  font-family: 'Geist', sans-serif;
-  background: #7dde3c;
-  color: #ffffff;
-}
-
-.t-name {
-  font-size: 13px;
-  font-weight: 500;
-  color: #ffffff;
-}
-
-.t-role {
-  font-size: 11px;
-  color: rgba(255,255,255,0.6);
-  margin-top: 1px;
-}
-
-/* CTA */
-.cta-section {
-  padding: 90px 40px 80px;
-  text-align: left;
-  background: #0d0d0d;
-}
-
-.cta-title {
-  font-family: 'Syne', sans-serif;
-  font-size: clamp(40px, 5vw, 64px);
-  line-height: 1.05;
-  letter-spacing: -0.03em;
-  color: #ffffff;
-  margin-bottom: 18px;
-}
-
-.cta-title em {
-  
-  color: #ffffff;
-}
-
-.cta-sub {
-  font-size: 15px;
-  color: rgba(255,255,255,0.6);
-  margin-bottom: 32px;
-}
-
-.cta-form {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  max-width: 440px;
-  margin: 0 auto;
-  padding: 6px 6px 6px 20px;
-  border-radius: 999px;
-  background: #050505;
-  border: 1px solid rgba(255,255,255,0.16);
-  box-shadow: 0 18px 60px rgba(0,0,0,0.9);
-}
-
-.cta-form input {
-  flex: 1;
-  border: none;
-  outline: none;
-  background: transparent;
-  font-size: 14px;
-  font-family: 'Geist', sans-serif;
-  color: #ffffff;
-}
-
-.cta-form input::placeholder {
-  color: rgba(255,255,255,0.5);
-}
-
-.cta-form button {
-  border-radius: 999px;
-}
-
-.cta-note {
-  font-size: 12px;
-  color: rgba(255,255,255,0.6);
-  margin-top: 12px;
-}
-
-.cta-note a {
-  color: #ffffff;
-  text-decoration: underline;
-}
-
-/* FOOTER */
-footer {
-  padding: 26px 40px;
-  border-top: 1px solid rgba(255,255,255,0.12);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #050505;
-}
-
-.footer-copy {
-  font-size: 12px;
-  color: rgba(255,255,255,0.5);
-}
-
-.footer-links {
-  display: flex;
-  gap: 20px;
-}
-
-.footer-links a {
-  font-size: 12px;
-  color: rgba(255,255,255,0.5);
-  text-decoration: none;
-}
-
-.footer-links a:hover {
-  color: #ffffff;
-}
-
-/* Reveal animation */
-.reveal {
-  opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.6s ease, transform 0.6s ease;
-}
-
-.reveal.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-@media (max-width: 768px) {
-  .hero2 {
-    padding: 110px 16px 60px;
-    text-align: center;
-    justify-content: center;
-    align-items: center;
-    box-sizing: border-box;
-  }
-  .hero2-inner {
-    max-width: 100%;
-    width: 100%;
-    padding: 0 16px;
-    box-sizing: border-box;
-    align-items: center;
-    text-align: center;
-  }
-  .hero2-title { font-size: clamp(28px, 8vw, 56px); letter-spacing: -1px; }
-  .hero2-form {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-  }
-  .section-inner {
-    max-width: 100%;
-    width: 100%;
-    padding: 0 16px;
-    box-sizing: border-box;
-  }
-  .section-shell, .cta-section {
-    padding: 64px 16px;
-    box-sizing: border-box;
-    max-width: 100%;
-    width: 100%;
-  }
-  .cta-title { max-width: 100%; box-sizing: border-box; }
-  .cta-form {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-    max-width: 100%;
-    width: 100%;
-    margin-left: auto;
-    margin-right: auto;
-    padding: 12px 16px;
-    border-radius: 16px;
-    box-sizing: border-box;
-  }
-  .cta-form input { width: 100%; min-height: 44px; }
-  .cta-form .btn-solid, .cta-form button { width: 100%; }
-  footer {
-    flex-direction: column;
-    gap: 16px;
-    align-items: center;
-    text-align: center;
-    padding: 26px 16px;
-    box-sizing: border-box;
-    max-width: 100%;
-    width: 100%;
-  }
-  .roi-grid { grid-template-columns: 1fr; gap: 40px; }
-  .roi-stats { grid-template-columns: 1fr 1fr; }
-  .steps-grid { grid-template-columns: 1fr; }
-  .testimonials-grid { grid-template-columns: 1fr; }
-}
+select option { color: #111; background: #fff; }
+.landing-nav-link { transition: color 0.2s ease; }
+.landing-nav-link:hover { color: #111 !important; }
 `,
         }}
       />
 
-      {isMobile ? (
-        <nav
-          style={{
-            position: 'fixed',
-            top: 16,
-            left: 16,
-            right: 16,
-            zIndex: 100,
-            background: 'rgba(255,255,255,0.15)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255,255,255,0.2)',
-            borderRadius: 999,
-            padding: '10px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            boxSizing: 'border-box',
-          }}
-        >
-          <a
-            href="#"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              textDecoration: 'none',
-              color: '#ffffff',
-              minWidth: 0,
-            }}
-          >
-            <img src="/logo.svg" width={36} height={36} alt="Katch" style={{ borderRadius: 10, flexShrink: 0 }} />
-            <span style={{ color: '#ffffff', fontSize: 16, fontWeight: 700, whiteSpace: 'nowrap' }}>
-              Katch
-              {isLoggedIn && (
-                <span
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    background: '#7dde3c',
-                    display: 'inline-block',
-                    marginLeft: 6,
-                  }}
-                />
-              )}
-            </span>
-          </a>
+      <nav
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 100,
+          height: 64,
+          padding: navPad,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          background: "rgba(255,255,255,0.92)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          borderBottom: "1px solid #ebebeb",
+          boxSizing: "border-box",
+        }}
+      >
+        <a href="#" style={{ textDecoration: "none", color: "inherit" }}>
+          <LogoLockup />
+        </a>
+        {!isMobile && (
+          <div style={{ display: "flex", alignItems: "center", gap: 32, position: "absolute", left: "50%", transform: "translateX(-50%)" }}>
+            <a href="#how" className="landing-nav-link" style={{ fontSize: 14, color: "#666", cursor: "pointer", textDecoration: "none" }}>
+              How it works
+            </a>
+            <a href="#features" className="landing-nav-link" style={{ fontSize: 14, color: "#666", cursor: "pointer", textDecoration: "none" }}>
+              Features
+            </a>
+            <a href="#pricing" className="landing-nav-link" style={{ fontSize: 14, color: "#666", cursor: "pointer", textDecoration: "none" }}>
+              Pricing
+            </a>
+          </div>
+        )}
+        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 12 }}>
           {isLoggedIn ? (
             <button
               type="button"
-              onClick={() => router.push('/home')}
+              onClick={() => router.push("/home")}
               style={{
-                background: '#7dde3c',
-                color: '#0a1a0a',
-                border: 'none',
-                whiteSpace: 'nowrap',
-                fontSize: 13,
-                padding: '7px 16px',
-                borderRadius: 999,
-                fontWeight: 700,
-                cursor: 'pointer',
-                flexShrink: 0,
+                background: "#1a3a2a",
+                color: "#fff",
+                borderRadius: 10,
+                padding: isMobile ? "9px 14px" : "9px 20px",
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: "pointer",
+                border: "none",
               }}
             >
               Go to app
             </button>
           ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => router.push("/login")}
+                style={{
+                  color: "#666",
+                  fontSize: 14,
+                  cursor: "pointer",
+                  background: "none",
+                  border: "none",
+                  padding: "4px 8px",
+                }}
+              >
+                Sign in
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push("/signup")}
+                style={{
+                  background: "#1a3a2a",
+                  color: "#fff",
+                  borderRadius: 10,
+                  padding: "9px 20px",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  border: "none",
+                }}
+              >
+                Get started free
+              </button>
+            </>
+          )}
+        </div>
+      </nav>
+
+      <section
+        style={{
+          minHeight: "100vh",
+          background: "#ffffff",
+          position: "relative",
+          overflow: "hidden",
+          paddingTop: 64,
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 0,
+            opacity: 0.5,
+            backgroundImage:
+              "repeating-linear-gradient(0deg, #e8ebe8, #e8ebe8 1px, transparent 1px, transparent 40px), repeating-linear-gradient(90deg, #e8ebe8, #e8ebe8 1px, transparent 1px, transparent 40px)",
+            backgroundSize: "40px 40px",
+            pointerEvents: "none",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 0,
+            background:
+              "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.6) 60%, transparent 100%)",
+            pointerEvents: "none",
+          }}
+        />
+        <div
+          style={{
+            position: "relative",
+            zIndex: 1,
+            textAlign: "center",
+            maxWidth: 760,
+            margin: "0 auto",
+            padding: isMobile ? "72px 24px 48px" : "120px 24px 80px",
+          }}
+        >
+          <h1
+            style={{
+              fontSize: isMobile ? 40 : 64,
+              fontWeight: 800,
+              color: "#0a0a0a",
+              lineHeight: 1.1,
+              letterSpacing: "-2px",
+              marginBottom: 20,
+            }}
+          >
+            Scan it. Score it.
+            <br />
+            <span style={{ color: "#1a3a2a" }}>Close it.</span>
+          </h1>
+          <p
+            style={{
+              fontSize: isMobile ? 17 : 20,
+              color: "#666",
+              lineHeight: 1.6,
+              maxWidth: 540,
+              margin: "0 auto 40px",
+            }}
+          >
+            The AI-powered GTM platform for in-person events. Stop forgetting leads. Start closing deals.
+          </p>
+          <div style={{ display: "flex", gap: 12, justifyContent: "center", alignItems: "center", flexWrap: "wrap" }}>
             <button
               type="button"
-              onClick={() => router.push('/signup')}
+              onClick={() => router.push("/signup")}
               style={{
-                background: '#7dde3c',
-                color: '#0a1a0a',
-                border: 'none',
-                whiteSpace: 'nowrap',
-                fontSize: 13,
-                padding: '7px 16px',
-                borderRadius: 999,
-                fontWeight: 700,
-                cursor: 'pointer',
-                flexShrink: 0,
+                background: "#1a3a2a",
+                color: "#fff",
+                borderRadius: 12,
+                padding: "14px 28px",
+                fontSize: 16,
+                fontWeight: 600,
+                cursor: "pointer",
+                border: "none",
+              }}
+            >
+              Get started free
+            </button>
+            <a
+              href="#how"
+              style={{
+                background: "#fff",
+                border: "1px solid #e0e0e0",
+                color: "#111",
+                borderRadius: 12,
+                padding: "14px 28px",
+                fontSize: 16,
+                fontWeight: 500,
+                cursor: "pointer",
+                textDecoration: "none",
+                display: "inline-block",
+              }}
+            >
+              See how it works
+            </a>
+          </div>
+          <p style={{ fontSize: 13, color: "#999", marginTop: 16 }}>Free to start. No credit card required.</p>
+
+          <div
+            style={{
+              background: "linear-gradient(135deg, #1a3a2a 0%, #2d5a3d 30%, #1e4d6b 70%, #0f2a3d 100%)",
+              borderRadius: 20,
+              height: isMobile ? 280 : 420,
+              maxWidth: 900,
+              margin: "60px auto 0",
+              border: "1px solid #e0e0e0",
+              boxShadow: "0 40px 80px rgba(0,0,0,0.12)",
+              overflow: "hidden",
+              position: "relative",
+            }}
+          >
+            <div
+              style={{
+                height: 44,
+                background: "rgba(255,255,255,0.1)",
+                display: "flex",
+                alignItems: "center",
+                padding: "0 16px",
+                gap: 8,
+              }}
+            >
+              <span style={{ width: 10, height: 10, borderRadius: 99, background: "rgba(255,255,255,0.2)" }} />
+              <span style={{ width: 10, height: 10, borderRadius: 99, background: "rgba(255,255,255,0.2)" }} />
+              <span style={{ width: 10, height: 10, borderRadius: 99, background: "rgba(255,255,255,0.2)" }} />
+            </div>
+            <div style={{ padding: 16 }}>
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: "10px 12px",
+                    background: "rgba(255,255,255,0.05)",
+                    borderRadius: 8,
+                    marginBottom: 8,
+                  }}
+                >
+                  <div style={{ width: 36, height: 10, borderRadius: 4, background: "rgba(255,255,255,0.15)" }} />
+                  <div style={{ flex: 1, height: 10, borderRadius: 4, background: "rgba(255,255,255,0.1)" }} />
+                  <div
+                    style={{
+                      padding: "4px 10px",
+                      borderRadius: 99,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      background: i % 3 === 0 ? "#7dde3c" : "#f59e0b",
+                      color: i % 3 === 0 ? "#0a1a0a" : "#111",
+                    }}
+                  >
+                    {i % 3 === 0 ? "8" : "5"}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="features" style={{ background: "#ffffff", padding: isMobile ? "80px 24px" : "100px 40px" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: "#7dde3c",
+              letterSpacing: "0.15em",
+              textAlign: "center",
+              marginBottom: 12,
+            }}
+          >
+            FEATURES
+          </div>
+          <h2
+            style={{
+              fontSize: isMobile ? 28 : 40,
+              fontWeight: 800,
+              color: "#111",
+              textAlign: "center",
+              marginBottom: 16,
+            }}
+          >
+            Everything you need at a conference
+          </h2>
+          <p
+            style={{
+              fontSize: 18,
+              color: "#666",
+              textAlign: "center",
+              marginBottom: 64,
+            }}
+          >
+            From badge to CRM in seconds. No manual entry, no lost leads.
+          </p>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)",
+              gap: 32,
+            }}
+          >
+            {featureItems.map((f) => (
+              <div
+                key={f.title}
+                style={{
+                  background: "#f8f9f8",
+                  borderRadius: 16,
+                  padding: "28px 24px",
+                  border: "1px solid #ebebeb",
+                }}
+              >
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 12,
+                    background: "#f0f7eb",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: 16,
+                  }}
+                >
+                  {f.icon}
+                </div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: "#111", marginBottom: 8 }}>{f.title}</div>
+                <p style={{ fontSize: 14, color: "#666", lineHeight: 1.6, margin: 0 }}>{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="how" style={{ background: "#f8f9f8", padding: isMobile ? "80px 24px" : "100px 40px" }}>
+        <div style={{ maxWidth: 900, margin: "0 auto" }}>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: "#7dde3c",
+              letterSpacing: "0.15em",
+              textAlign: "center",
+              marginBottom: 12,
+            }}
+          >
+            HOW IT WORKS
+          </div>
+          <h2
+            style={{
+              fontSize: isMobile ? 28 : 36,
+              fontWeight: 800,
+              color: "#111",
+              textAlign: "center",
+              marginBottom: 16,
+            }}
+          >
+            How Katch works
+          </h2>
+          <p style={{ fontSize: 18, color: "#666", textAlign: "center", marginBottom: 48 }}>
+            Three steps from handshake to pipeline.
+          </p>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: isMobile ? "column" : "row",
+              alignItems: isMobile ? "stretch" : "flex-start",
+              gap: isMobile ? 32 : 0,
+            }}
+          >
+            {[
+              { n: 1, t: "Scan", d: "Capture badges and cards with your camera." },
+              { n: 2, t: "Score", d: "AI scores every lead against your ICP." },
+              { n: 3, t: "Close", d: "Sync to HubSpot and run sequences." },
+            ].map((step, idx) => (
+              <div key={step.n} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", position: "relative" }}>
+                {!isMobile && idx < 2 && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: 20,
+                      left: "calc(50% + 28px)",
+                      width: "calc(100% - 56px)",
+                      borderTop: "2px dashed #d0d0d0",
+                      zIndex: 0,
+                    }}
+                  />
+                )}
+                <div
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 99,
+                    background: "#1a3a2a",
+                    color: "#fff",
+                    fontSize: 18,
+                    fontWeight: 700,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    position: "relative",
+                    zIndex: 1,
+                  }}
+                >
+                  {step.n}
+                </div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: "#111", marginTop: 16 }}>{step.t}</div>
+                <p style={{ fontSize: 14, color: "#666", marginTop: 8, marginBottom: 0, maxWidth: 220 }}>{step.d}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="pricing" style={{ background: "#ffffff", padding: isMobile ? "64px 24px" : "80px 40px", textAlign: "center" }}>
+        <h2 style={{ fontSize: isMobile ? 28 : 36, fontWeight: 800, color: "#111", marginBottom: 12 }}>Simple pricing</h2>
+        <p style={{ fontSize: 18, color: "#666", marginBottom: 40 }}>Start free, upgrade when you need more.</p>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+            gap: 24,
+            maxWidth: 600,
+            margin: "0 auto",
+          }}
+        >
+          <div
+            style={{
+              background: "#f8f9f8",
+              border: "1px solid #ebebeb",
+              borderRadius: 16,
+              padding: "28px 24px",
+              textAlign: "left",
+            }}
+          >
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#666", marginBottom: 8 }}>Free</div>
+            <div style={{ fontSize: 32, fontWeight: 800, color: "#111", marginBottom: 16 }}>
+              $0<span style={{ fontSize: 16, fontWeight: 500, color: "#666" }}>/mo</span>
+            </div>
+            <ul style={{ listStyle: "none", padding: 0, margin: "0 0 24px", fontSize: 14, color: "#666", lineHeight: 1.8 }}>
+              <li>Core scanning and scoring</li>
+              <li>Limited enrichments per month</li>
+              <li>Single user</li>
+            </ul>
+            <button
+              type="button"
+              onClick={() => router.push("/signup")}
+              style={{
+                width: "100%",
+                background: "#fff",
+                border: "1px solid #e0e0e0",
+                color: "#111",
+                borderRadius: 10,
+                padding: "12px 20px",
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: "pointer",
               }}
             >
               Get started
             </button>
-          )}
-        </nav>
-      ) : (
-        <nav className="landing2-nav">
-          <a href="#" className="nav-logo">
-            <img src="/logo.svg" width={36} height={36} alt="Katch" style={{ borderRadius: 10 }} />
-            <span className="logo-name" style={{ whiteSpace: 'nowrap' }}>
-              Katch
-              {isLoggedIn && (
-                <span
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: "50%",
-                    background: "#7dde3c",
-                    display: "inline-block",
-                    marginLeft: 6,
-                  }}
-                />
-              )}
-            </span>
-          </a>
-          {!isMobile && (
-            <div className="nav-links">
-              <a href="#how">How it works</a>
-              <a href="#roi">Event ROI</a>
-              <a href="/pricing">Pricing</a>
-            </div>
-          )}
-          <div className="nav-actions">
-            {isLoggedIn ? (
-              <button
-                onClick={() => router.push('/home')}
-                style={{
-                  background: '#7dde3c',
-                  color: '#0a1a0a',
-                  borderRadius: 999,
-                  padding: '7px 14px',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  border: 'none',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                Go to app
-              </button>
-            ) : (
-              <>
-                {!isMobile && (
-                  <button className="btn-ghost" onClick={() => router.push("/login")}>
-                    Sign in
-                  </button>
-                )}
-                <button className="btn-solid" onClick={() => router.push("/signup")}>
-                  Get started
-                </button>
-              </>
-            )}
           </div>
-        </nav>
-      )}
+          <div
+            style={{
+              background: "#1a3a2a",
+              border: "1px solid #1a3a2a",
+              borderRadius: 16,
+              padding: "28px 24px",
+              textAlign: "left",
+              position: "relative",
+            }}
+          >
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#7dde3c", marginBottom: 8 }}>PRO</div>
+            <div style={{ fontSize: 32, fontWeight: 800, color: "#fff", marginBottom: 16 }}>
+              $49<span style={{ fontSize: 16, fontWeight: 500, color: "rgba(255,255,255,0.7)" }}>/mo</span>
+            </div>
+            <ul style={{ listStyle: "none", padding: 0, margin: "0 0 24px", fontSize: 14, color: "rgba(255,255,255,0.85)", lineHeight: 1.8 }}>
+              <li>Unlimited scans and lists</li>
+              <li>HubSpot sync and sequences</li>
+              <li>Priority support</li>
+            </ul>
+            <button
+              type="button"
+              onClick={() => router.push("/pricing")}
+              style={{
+                width: "100%",
+                background: "#7dde3c",
+                color: "#0a1a0a",
+                border: "none",
+                borderRadius: 10,
+                padding: "12px 20px",
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              View all plans
+            </button>
+          </div>
+        </div>
+      </section>
 
-      {/* HERO */}
       <section
-        className="hero2"
         style={{
-          backgroundColor: "#000000",
-          backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.07) 1px, transparent 1px)",
-          backgroundSize: "60px 60px",
-          ...(isMobile
-            ? {
-                padding: "0 16px",
-                paddingTop: "110px",
-                paddingBottom: "60px",
-                textAlign: "center",
-                justifyContent: "center",
-                alignItems: "center",
-                boxSizing: "border-box",
-              }
-            : {}),
+          background: "linear-gradient(135deg, #1a3a2a 0%, #2d5a3d 30%, #1e4d6b 70%, #0f2a3d 100%)",
+          padding: isMobile ? "64px 24px" : "80px 40px",
+          textAlign: "center",
+          borderRadius: 24,
+          maxWidth: 900,
+          margin: isMobile ? "0 16px 64px" : "0 auto 80px",
         }}
       >
-        <div
-          className="hero2-inner"
-          style={
-            isMobile
-              ? {
-                  textAlign: 'center',
-                  alignItems: 'center',
-                  paddingLeft: 0,
-                  paddingBottom: '60px',
-                  maxWidth: '100%',
-                  width: '100%',
-                  boxSizing: 'border-box',
-                  padding: '0 16px',
-                }
-              : {
-                  textAlign: 'left',
-                  alignItems: 'flex-start',
-                  paddingLeft: '80px',
-                  paddingBottom: '100px',
-                  maxWidth: '750px',
-                }
-          }
-        >
-          <h1
-            className="hero2-title"
-            style={{
-              color: '#7dde3c',
-              fontFamily: 'Syne, sans-serif',
-              fontWeight: 800,
-              fontSize: isMobile ? 'clamp(28px, 8vw, 56px)' : 'clamp(40px, 6vw, 72px)',
-              lineHeight: 1.0,
-              letterSpacing: isMobile ? '-1px' : '-3px',
-              marginBottom: '20px',
-              textAlign: isMobile ? 'center' : undefined,
-              padding: isMobile ? '0 16px' : undefined,
-              boxSizing: 'border-box',
-            }}
-          >
-            <span
-              style={{
-                color: "#ffffff",
-                WebkitTextFillColor: "#ffffff",
-                display: "block",
-              }}
-            >
-              Scan it. Score it. Close it.
-            </span>
-          </h1>
-          <p className="hero2-sub" style={{ textAlign: isMobile ? 'center' : 'left' }}>
-            The GTM platform for in-person events. Because "I'll remember them" isn't a strategy.
-          </p>
-          <form
-            className="hero2-form"
-            onSubmit={handleSubmit}
-            style={{
-              display: 'flex',
-              flexDirection: isMobile ? 'column' : 'row',
-              alignItems: isMobile ? 'stretch' : 'center',
-              gap: isMobile ? 10 : 12,
-              justifyContent: isMobile ? 'center' : 'flex-start',
-              width: isMobile ? '100%' : undefined,
-              maxWidth: isMobile ? '100%' : undefined,
-              boxSizing: 'border-box',
-            }}
-          >
-            <input
-              type="email"
-              placeholder="Work email address"
-              required
-              style={{
-                height: '48px',
-                width: isMobile ? '100%' : '280px',
-                maxWidth: isMobile ? '100%' : undefined,
-                borderRadius: '8px',
-                border: 'none',
-                background: '#ffffff',
-                color: '#0a0a0a',
-                padding: '0 16px',
-                fontSize: '15px',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-            />
-            <button
-              type="submit"
-              style={{
-                height: '48px',
-                minHeight: isMobile ? 44 : undefined,
-                width: isMobile ? '100%' : undefined,
-                padding: '0 24px',
-                background: '#7dde3c',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '15px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                boxSizing: 'border-box',
-              }}
-            >
-              Get started free →
-            </button>
-          </form>
-          <div className="hero2-footnote" style={{ textAlign: isMobile ? 'center' : 'left' }}>
-            Free to start. No credit card required.
-          </div>
-        </div>
-      </section>
-
-      {/* HOW IT WORKS */}
-      <section className="section-shell reveal" id="how">
-        <div className="section-inner">
-          <div className="section-label">How it works</div>
-          <h2 className="section-title">
-            From badge to pipeline
-            <br />
-            <em>in under a minute.</em>
-          </h2>
-          <div className="steps-grid">
-            <div className="step">
-              <div className="step-num">01</div>
-              <div className="step-title">Scan</div>
-              <div className="step-desc">
-                Point your camera at any badge or card. Claude Vision reads it in seconds.
-              </div>
-            </div>
-            <div className="step">
-              <div className="step-num">02</div>
-              <div className="step-title">Extract</div>
-              <div className="step-desc">
-                Name, title, company, email, phone, LinkedIn — structured automatically.
-              </div>
-            </div>
-            <div className="step">
-              <div className="step-num">03</div>
-              <div className="step-title">Enrich</div>
-              <div className="step-desc">
-                Apollo fills in verified contact data and firmographics instantly.
-              </div>
-            </div>
-            <div className="step">
-              <div className="step-num">04</div>
-              <div className="step-title">Score</div>
-              <div className="step-desc">
-                Log buying signals. Rate 1–10. Never lose context from the conversation.
-              </div>
-            </div>
-            <div className="step">
-              <div className="step-num">05</div>
-              <div className="step-title">Follow up</div>
-              <div className="step-desc">
-                3-email AI sequence, personalized to what you actually talked about.
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* EVENT ROI */}
-      <section className="section-shell alt reveal" id="roi">
-        <div className="section-inner">
-          <div className="roi-grid">
-            <div>
-              <div className="section-label">Event ROI</div>
-              <h2 className="section-title">
-                Prove every
-                <br />
-                conference <em>pays off.</em>
-              </h2>
-              <p className="roi-sub">Give your VP a number, not a stack of business cards.</p>
-              <ul className="roi-points">
-                <li style={{ color: '#ffffff' }}>Leads collected per event, broken down by score</li>
-                <li style={{ color: '#ffffff' }}>Which shows consistently produce the hottest leads</li>
-                <li style={{ color: '#ffffff' }}>One-click CSV export for RevOps or your manager</li>
-                <li style={{ color: '#ffffff' }}>Side-by-side event comparison before you sign contracts</li>
-              </ul>
-            </div>
-            <div className="roi-stats">
-              <div className="roi-stat">
-                <div className="roi-stat-num">
-                  74<span>→</span>
-                </div>
-                <div className="roi-stat-label">Avg leads per event</div>
-              </div>
-              <div className="roi-stat">
-                <div className="roi-stat-num">
-                  36%
-                </div>
-                <div className="roi-stat-label">Hot or Fire leads</div>
-              </div>
-              <div className="roi-stat">
-                <div className="roi-stat-num">$2.8M</div>
-                <div className="roi-stat-label">Pipeline attributed</div>
-              </div>
-              <div className="roi-stat">
-                <div className="roi-stat-num">
-                  3×
-                </div>
-                <div className="roi-stat-label">More follow-ups sent</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* TESTIMONIALS */}
-      <section className="section-shell reveal">
-        <div className="section-inner">
-          <div className="section-label">What reps say</div>
-          <h2 className="section-title">
-            Deals that would&apos;ve
-            <br />
-            <em>slipped through.</em>
-          </h2>
-          <div className="testimonials-grid">
-            <div className="testimonial">
-              <div className="testimonial-quote">
-                &quot;Scanned 47 contacts at SaaStr. Had sequences queued before I left the venue. Closed two from that
-                trip.&quot;
-              </div>
-              <div className="testimonial-author">
-                <div className="t-avatar">MR</div>
-                <div>
-                  <div className="t-name">Michael R.</div>
-                  <div className="t-role">AE · Series B SaaS</div>
-                </div>
-              </div>
-            </div>
-            <div className="testimonial">
-              <div className="testimonial-quote">
-                &quot;The conversation signals feature is genius. I finally stopped forgetting who said what at every
-                conference.&quot;
-              </div>
-              <div className="testimonial-author">
-                <div className="t-avatar">JL</div>
-                <div>
-                  <div className="t-name">Jamie L.</div>
-                  <div className="t-role">VP Sales · Fintech</div>
-                </div>
-              </div>
-            </div>
-            <div className="testimonial">
-              <div className="testimonial-quote">
-                &quot;We went from 20% follow-up rate to over 90%. Our entire team uses it at every trade show now.&quot;
-              </div>
-              <div className="testimonial-author">
-                <div className="t-avatar">SC</div>
-                <div>
-                  <div className="t-name">Sarah C.</div>
-                  <div className="t-role">Director of Sales · Enterprise</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="cta-section reveal" id="pricing">
-        <div className="cta-title">
-          Your next deal starts
-          <br />
-          with a <em>scan.</em>
-        </div>
-        <p className="cta-sub">Free to start. No credit card required.</p>
-        <form className="cta-form" onSubmit={handleSubmit}>
-          <input type="email" placeholder="Work email address" required />
-          <button type="submit" className="btn-solid">
-            Get started free
-          </button>
-        </form>
-        <p className="cta-note">
-          Already have an account?{" "}
-          <a href="/login">Sign in</a>
+        <h2 style={{ fontSize: isMobile ? 28 : 40, fontWeight: 800, color: "#fff", marginBottom: 16 }}>Ready to close more deals?</h2>
+        <p style={{ fontSize: 18, color: "rgba(255,255,255,0.7)", marginBottom: 32 }}>
+          Join teams who never lose a lead at the booth again.
         </p>
+        <button
+          type="button"
+          onClick={() => router.push("/signup")}
+          style={{
+            background: "#7dde3c",
+            color: "#0a1a0a",
+            borderRadius: 12,
+            padding: "14px 32px",
+            fontSize: 16,
+            fontWeight: 700,
+            cursor: "pointer",
+            border: "none",
+          }}
+        >
+          Get started free
+        </button>
       </section>
 
-      <footer>
-        <div className="footer-copy">© 2026 Katch. All rights reserved.</div>
-        <div className="footer-links">
-          <a href="#">Privacy</a>
-          <a href="#">Terms</a>
-          <a href="mailto:hello@katch.app">Contact</a>
+      <footer
+        style={{
+          background: "#f8f9f8",
+          borderTop: "1px solid #ebebeb",
+          padding: isMobile ? "32px 24px" : "40px 40px",
+          display: "flex",
+          flexDirection: isMobile ? "column" : "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: isMobile ? 20 : 0,
+        }}
+      >
+        <LogoLockup small />
+        <div style={{ display: "flex", gap: 24 }}>
+          <a href="#" style={{ fontSize: 13, color: "#999", textDecoration: "none" }}>
+            Privacy
+          </a>
+          <a href="#" style={{ fontSize: 13, color: "#999", textDecoration: "none" }}>
+            Terms
+          </a>
+          <a href="mailto:hello@katch.app" style={{ fontSize: 13, color: "#999", textDecoration: "none" }}>
+            Contact
+          </a>
         </div>
+        <span style={{ fontSize: 13, color: "#bbb" }}>2026 Katch</span>
       </footer>
     </div>
   );
 }
-
