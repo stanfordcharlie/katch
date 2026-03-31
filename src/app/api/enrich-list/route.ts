@@ -344,7 +344,7 @@ export async function POST(req: NextRequest) {
             const chunk = chunks[bi]
             let responseText = '[]'
 
-            const pushFallbackForChunk = () => {
+            const pushFallbackForChunk = async () => {
               for (const contact of chunk) {
                 const fallback = {
                   ...contact,
@@ -367,6 +367,7 @@ export async function POST(req: NextRequest) {
                     }) + '\n'
                   )
                 )
+                await new Promise((r) => setTimeout(r, 20))
               }
             }
 
@@ -483,10 +484,11 @@ Return ONLY a valid JSON array with no markdown, no backticks, no explanation. J
                     }) + '\n'
                   )
                 )
+                await new Promise((r) => setTimeout(r, 20))
               }
             } catch (e) {
               console.error('Batch parse failed:', e, 'Raw response:', responseText)
-              pushFallbackForChunk()
+              await pushFallbackForChunk()
             }
 
             if (bi < chunks.length - 1) {

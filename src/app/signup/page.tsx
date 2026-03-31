@@ -1,4 +1,4 @@
- "use client";
+"use client";
 
 import { useEffect, Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -25,6 +25,100 @@ const PLANS: Record<
     price: "$49.99",
   },
 };
+
+function ScanFrameIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M4 8V4h4M16 4h4v4M4 16v4h4M20 16v4h-4"
+        stroke="#3b6fd4"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function LogoLockup() {
+  return (
+    <div style={{ display: "flex", alignItems: "center" }}>
+      <div
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: 10,
+          background: "#f0f2f0",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <ScanFrameIcon />
+      </div>
+      <span style={{ fontWeight: 700, fontSize: 18, color: "#111", marginLeft: 10 }}>Katch</span>
+    </div>
+  );
+}
+
+function CheckIcon({ color }: { color: string }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, marginTop: 2 }}>
+      <path
+        d="M3.5 8L6.5 11L12.5 5"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function SignupNav({ onLogin, navPad }: { onLogin: () => void; navPad: string }) {
+  return (
+    <nav
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 100,
+        height: 64,
+        padding: navPad,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        background: "rgba(255,255,255,0.92)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        borderBottom: "1px solid #ebebeb",
+        boxSizing: "border-box",
+      }}
+    >
+      <a href="/landing" style={{ textDecoration: "none", color: "inherit" }}>
+        <LogoLockup />
+      </a>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ fontSize: 14, color: "#666" }}>Already have an account?</span>
+        <button
+          type="button"
+          onClick={onLogin}
+          style={{
+            fontSize: 14,
+            color: "#1a3a2a",
+            fontWeight: 600,
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            padding: 0,
+          }}
+        >
+          Log in
+        </button>
+      </div>
+    </nav>
+  );
+}
 
 function SignupForm({
   initialEmail,
@@ -78,36 +172,89 @@ function SignupForm({
     }
   };
 
-  return (
-    showConfirmation ? (
-      <div style={{ minHeight: '100vh', background: '#f7f7f5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif' }}>
-        <div style={{ background: '#fff', borderRadius: 20, border: '1px solid #ebebeb', padding: '48px 40px', maxWidth: 440, width: '100%', textAlign: 'center' }}>
-          <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#f0f7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-            <svg width='28' height='28' fill='none' viewBox='0 0 24 24' stroke='#7dde3c' strokeWidth='2.5'>
-              <path d='M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z'/>
-              <polyline points='22,6 12,13 2,6'/>
-            </svg>
-          </div>
-          <h2 style={{ fontSize: 22, fontWeight: 700, color: '#111', marginBottom: 10 }}>Check your email</h2>
-          <p style={{ fontSize: 14, color: '#666', marginBottom: 8, lineHeight: 1.6 }}>
-            We sent a confirmation link to <strong>{email}</strong>. Click it to activate your account and start scanning.
-          </p>
-          <p style={{ fontSize: 12, color: '#bbb', marginTop: 12 }}>Did not get it? Check your spam folder.</p>
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    borderRadius: 10,
+    border: "1px solid #e8e8e8",
+    background: "#ffffff",
+    padding: "10px 12px",
+    fontSize: 16,
+    outline: "none",
+    color: "#111",
+    height: 44,
+    boxSizing: "border-box",
+    fontFamily: "Inter, system-ui, sans-serif",
+  };
+
+  return showConfirmation ? (
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#ffffff",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontFamily: "Inter, system-ui, sans-serif",
+        padding: 24,
+      }}
+    >
+      <div
+        style={{
+          background: "#fff",
+          borderRadius: 20,
+          border: "1px solid #ebebeb",
+          padding: "48px 40px",
+          maxWidth: 440,
+          width: "100%",
+          textAlign: "center",
+        }}
+      >
+        <div
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: "50%",
+            background: "#f0f7eb",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            margin: "0 auto 20px",
+          }}
+        >
+          <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#7dde3c" strokeWidth="2.5">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+            <polyline points="22,6 12,13 2,6" />
+          </svg>
         </div>
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: "#111", marginBottom: 10 }}>Check your email</h2>
+        <p style={{ fontSize: 14, color: "#666", marginBottom: 8, lineHeight: 1.6 }}>
+          We sent a confirmation link to <strong>{email}</strong>. Click it to activate your account and start scanning.
+        </p>
+        <p style={{ fontSize: 12, color: "#bbb", marginTop: 12 }}>Did not get it? Check your spam folder.</p>
       </div>
-    ) : (
-    <section className="max-w-lg mx-auto border border-[#dce8d0] rounded-2xl bg-white/90 p-5 md:p-6 shadow-sm">
-      <div className="mb-4 flex items-center justify-between gap-3">
+    </div>
+  ) : (
+    <section
+      style={{
+        maxWidth: 512,
+        margin: "0 auto",
+        border: "1px solid #e8e8e8",
+        borderRadius: 20,
+        background: "#ffffff",
+        padding: "24px 28px",
+        boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
+        fontFamily: "Inter, system-ui, sans-serif",
+      }}
+    >
+      <div style={{ marginBottom: 16, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
         <div>
-          <p className="text-[11px] tracking-[0.22em] uppercase text-[#7ab648] mb-1">
+          <p style={{ fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", color: "#7dde3c", marginBottom: 8, fontWeight: 700 }}>
             SIGN UP
           </p>
-          <h2 className="heading-font text-xl tracking-[-0.03em] text-[#1a2e1a]">
+          <h2 style={{ fontSize: 20, fontWeight: 800, color: "#0a0a0a", letterSpacing: "-0.02em", marginBottom: 4 }}>
             {PLANS[selectedPlan].name}
           </h2>
-          <p className="text-xs text-[#5b534c]">
-            {PLANS[selectedPlan].subtitle}
-          </p>
+          <p style={{ fontSize: 13, color: "#666" }}>{PLANS[selectedPlan].subtitle}</p>
         </div>
         <button
           type="button"
@@ -115,160 +262,127 @@ function SignupForm({
             onBack();
             setError(null);
           }}
-          className="text-[11px] underline underline-offset-4 decoration-[#d4cdc3] hover:text-[#1a2e1a] hover:decoration-[#7ab648] transition-colors cursor-pointer"
-          style={{ color: "#7a7067" }}
+          style={{
+            fontSize: 12,
+            textDecoration: "underline",
+            color: "#666",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            padding: 0,
+          }}
         >
           Back to plans
         </button>
       </div>
 
-      <div style={{ minHeight: "40px" }}>
+      <div style={{ minHeight: 40 }}>
         {error && (
-          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm" style={{ color: "#991b1b" }}>
+          <div style={{ marginBottom: 16, borderRadius: 10, border: "1px solid #fecaca", background: "#fef2f2", padding: "10px 12px", fontSize: 14, color: "#991b1b" }}>
             {error}
           </div>
         )}
       </div>
 
-      {showConfirmation ? (
-        <div style={{ textAlign: "center", padding: "12px 4px" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
-            <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="#7dde3c" strokeWidth="2.2">
-              <path d="M20 7 10 17l-6-6" />
-            </svg>
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div>
+            <label htmlFor="email" style={{ display: "block", marginBottom: 6, fontSize: 14, fontWeight: 500, color: "#111" }}>
+              Work email
+            </label>
+            <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required style={inputStyle} />
           </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: "#111", marginBottom: 8 }}>
-            Check your email
+
+          <div>
+            <label htmlFor="screen-name" style={{ display: "block", marginBottom: 6, fontSize: 14, fontWeight: 500, color: "#111" }}>
+              Screen Name
+            </label>
+            <input
+              id="screen-name"
+              type="text"
+              value={screenName}
+              onChange={(e) => setScreenName(e.target.value)}
+              required
+              placeholder="Your name in the app"
+              style={inputStyle}
+            />
           </div>
-          <div style={{ fontSize: 14, color: "#999" }}>
-            We sent a confirmation link to {email}. Click it to activate your account.
+
+          <div>
+            <label htmlFor="company" style={{ display: "block", marginBottom: 6, fontSize: 14, fontWeight: 500, color: "#111" }}>
+              Company Name
+            </label>
+            <input
+              id="company"
+              type="text"
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+              placeholder="Acme Inc."
+              style={inputStyle}
+            />
           </div>
-          <div style={{ fontSize: 12, color: "#bbb", marginTop: 8 }}>
-            Didn&apos;t get it? Check your spam folder.
+
+          <div>
+            <label htmlFor="phone" style={{ display: "block", marginBottom: 6, fontSize: 14, fontWeight: 500, color: "#111" }}>
+              Phone Number
+            </label>
+            <input
+              id="phone"
+              type="text"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+1 (555) 000-0000"
+              style={inputStyle}
+            />
           </div>
-        </div>
-      ) : (
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label
-            htmlFor="email"
-            className="mb-1 block text-sm font-medium"
-            style={{ color: "#1a2e1a" }}
+
+          <div>
+            <label htmlFor="password" style={{ display: "block", marginBottom: 6, fontSize: 14, fontWeight: 500, color: "#111" }}>
+              Password
+            </label>
+            <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required style={inputStyle} />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              marginTop: 4,
+              width: "100%",
+              borderRadius: 10,
+              padding: "12px 16px",
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: loading ? "not-allowed" : "pointer",
+              opacity: loading ? 0.7 : 1,
+              background: "#1a3a2a",
+              color: "#fff",
+              border: "none",
+              fontFamily: "Inter, system-ui, sans-serif",
+            }}
           >
-            Work email
-          </label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full rounded-lg border border-[#d4cdc3] bg-[#f0f0ec] px-3 py-2 text-sm outline-none focus:border-[#7ab648] focus:ring-1 focus:ring-[#7ab648]"
-            style={{ color: "#1a2e1a", height: "44px", fontSize: 16 }}
-          />
-        </div>
+            {loading ? "Creating your account..." : "Create account"}
+          </button>
+        </form>
 
-        <div>
-          <label
-            htmlFor="screen-name"
-            className="mb-1 block text-sm font-medium"
-            style={{ color: "#1a2e1a" }}
-          >
-            Screen Name
-          </label>
-          <input
-            id="screen-name"
-            type="text"
-            value={screenName}
-            onChange={(e) => setScreenName(e.target.value)}
-            required
-            placeholder="Your name in the app"
-            className="w-full rounded-lg border border-[#d4cdc3] bg-[#f0f0ec] px-3 py-2 text-sm outline-none focus:border-[#7ab648] focus:ring-1 focus:ring-[#7ab648]"
-            style={{ color: "#1a2e1a", height: "44px", fontSize: 16 }}
-          />
-        </div>
-
-        <div>
-          <label
-            htmlFor="company"
-            className="mb-1 block text-sm font-medium"
-            style={{ color: "#1a2e1a" }}
-          >
-            Company Name
-          </label>
-          <input
-            id="company"
-            type="text"
-            value={company}
-            onChange={(e) => setCompany(e.target.value)}
-            placeholder="Acme Inc."
-            className="w-full rounded-lg border border-[#d4cdc3] bg-[#f0f0ec] px-3 py-2 text-sm outline-none focus:border-[#7ab648] focus:ring-1 focus:ring-[#7ab648]"
-            style={{ color: "#1a2e1a", height: "44px", fontSize: 16 }}
-          />
-        </div>
-
-        <div>
-          <label
-            htmlFor="phone"
-            className="mb-1 block text-sm font-medium"
-            style={{ color: "#1a2e1a" }}
-          >
-            Phone Number
-          </label>
-          <input
-            id="phone"
-            type="text"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="+1 (555) 000-0000"
-            className="w-full rounded-lg border border-[#d4cdc3] bg-[#f0f0ec] px-3 py-2 text-sm outline-none focus:border-[#7ab648] focus:ring-1 focus:ring-[#7ab648]"
-            style={{ color: "#1a2e1a", height: "44px", fontSize: 16 }}
-          />
-        </div>
-
-        <div>
-          <label
-            htmlFor="password"
-            className="mb-1 block text-sm font-medium"
-            style={{ color: "#1a2e1a" }}
-          >
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="w-full rounded-lg border border-[#d4cdc3] bg-[#f0f0ec] px-3 py-2 text-sm outline-none focus:border-[#7ab648] focus:ring-1 focus:ring-[#7ab648]"
-            style={{ color: "#1a2e1a", height: "44px", fontSize: 16 }}
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="mt-1 inline-flex w-full items-center justify-center rounded-full border border-[#1a3a2a] bg-[#f0f0ec] px-4 py-2.5 text-sm font-medium cursor-pointer hover:bg-[#f7faf4] hover:text-[#1a2e1a] transition-colors disabled:cursor-not-allowed disabled:opacity-70"
-          style={{ color: "#1a2e1a" }}
-        >
-          {loading ? "Creating your account..." : "Create account"}
-        </button>
-      </form>
-      )}
-
-      <p className="mt-4 text-[11px] text-[#7a7067]">
+      <p style={{ marginTop: 16, fontSize: 12, color: "#666" }}>
         Already have a Katch account?{" "}
         <button
           type="button"
           onClick={onLogin}
-          className="underline underline-offset-4 decoration-[#d4cdc3] hover:text-[#1a2e1a] hover:decoration-[#7ab648] transition-colors cursor-pointer"
-          style={{ color: "#1a2e1a" }}
+          style={{
+            color: "#1a3a2a",
+            fontWeight: 600,
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            padding: 0,
+            textDecoration: "underline",
+          }}
         >
           Log in
         </button>
       </p>
     </section>
-    )
   );
 }
 
@@ -277,6 +391,7 @@ function SignupInner() {
   const searchParams = useSearchParams();
   const emailParam = searchParams.get("email");
   const [selectedPlan, setSelectedPlan] = useState<PlanKey | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -286,173 +401,260 @@ function SignupInner() {
     });
   }, [router]);
 
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  const navPad = isMobile ? "0 20px" : "0 40px";
+
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "#f0f0ec",
-        color: "#1a2e1a",
-      }}
-    >
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=DM+Sans:wght@400;500;600&display=swap');
-html, body {
-  font-family: 'DM Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-}
-.heading-font {
-  font-family: 'Cormorant Garamond', "Times New Roman", serif;
-}
-`,
-        }}
+    <div style={{ minHeight: "100vh", backgroundColor: "#ffffff", color: "#111", fontFamily: "Inter, system-ui, sans-serif" }}>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       />
+      <style>{`html, body { background: #ffffff !important; }`}</style>
 
-      <main className="max-w-5xl mx-auto px-4 py-10 md:py-16">
-        {/* Header */}
-        <header className="mb-10 md:mb-12 flex items-center justify-between gap-4">
-          <a href="/landing" className="flex items-center gap-2 text-[#1a2e1a] no-underline">
-            <img src="/logo.svg" width={36} height={36} alt="Katch" style={{ borderRadius: 10 }} />
-            <span
-              className="heading-font tracking-tight text-[#1a2e1a]"
-              style={{ fontSize: 19, lineHeight: 1.1 }}
-            >
-              Katch
-            </span>
-          </a>
-          <button
-            type="button"
-            className="text-xs underline underline-offset-4 decoration-[#d4cdc3] hover:text-[#1a2e1a] hover:decoration-[#7ab648] transition-colors cursor-pointer"
-            style={{ color: "#5b534c" }}
-            onClick={() => router.push("/login")}
-          >
-            Already have an account? Log in
-          </button>
-        </header>
+      <SignupNav onLogin={() => router.push("/login")} navPad={navPad} />
 
-        {/* Intro copy */}
-        <section className="mb-8 md:mb-10 max-w-2xl">
-          <p className="text-[11px] tracking-[0.22em] uppercase text-[#7ab648] mb-2">
-            PRICING
-          </p>
-          <h1 className="heading-font text-3xl md:text-[2.2rem] tracking-[-0.03em] text-[#1a2e1a] mb-3">
-            Pick your plan, start scanning.
-          </h1>
-          <p className="text-sm md:text-[0.9rem] text-[#5b534c]">
-            Start with a free trial or go straight to Pro. No implementation project, no revops
-            ticket — just a clean way to capture and follow up on every conference lead.
-          </p>
-        </section>
-
-        {/* Pricing cards */}
+      <main style={{ paddingTop: 120, paddingBottom: 80 }}>
         {!selectedPlan && (
-          <section className="grid md:grid-cols-3 gap-5 md:gap-6 mb-10 md:mb-14">
-            {/* Free Trial */}
-            <div className="flex flex-col rounded-2xl border border-[#dce8d0] bg-white/90 p-5 md:p-6 shadow-sm">
-              <div className="mb-4">
-                <h2 className="heading-font text-xl tracking-[-0.03em] text-[#1a2e1a] mb-1">
-                  Free Trial
-                </h2>
-                <p className="text-xs text-[#5b534c]">$0 · no credit card required</p>
-              </div>
-              <div className="mb-4">
-                <span className="text-2xl heading-font text-[#1a2e1a] tracking-[-0.03em]">
-                  $0
-                </span>
-                <span className="ml-1 text-xs text-[#7a7067]">/ month</span>
-              </div>
-              <ul className="mb-5 space-y-1.5 text-xs text-[#5b534c]">
-                <li>• 10 badge scans per month</li>
-                <li>• Basic contact extraction</li>
-                <li>• 1 event</li>
-                <li>• No AI sequences</li>
-              </ul>
-              <button
-                type="button"
-                onClick={() => setSelectedPlan("free")}
-                className="mt-auto inline-flex w-full items-center justify-center rounded-full border border-[#1a3a2a] bg-[#f0f0ec] px-4 py-2 text-xs font-medium cursor-pointer hover:bg-[#f7faf4] hover:text-[#1a2e1a] transition-colors"
-                style={{ color: "#1a2e1a" }}
+          <>
+            <header
+              style={{
+                textAlign: "center",
+                maxWidth: 600,
+                margin: "0 auto",
+                paddingBottom: 48,
+                paddingLeft: isMobile ? 24 : 0,
+                paddingRight: isMobile ? 24 : 0,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: "#7dde3c",
+                  letterSpacing: "0.15em",
+                  marginBottom: 12,
+                }}
               >
-                Start free trial
-              </button>
-            </div>
+                PRICING
+              </div>
+              <h1
+                style={{
+                  fontSize: isMobile ? 28 : 40,
+                  fontWeight: 800,
+                  color: "#0a0a0a",
+                  letterSpacing: "-1px",
+                  marginBottom: 12,
+                  lineHeight: 1.15,
+                }}
+              >
+                Pick your plan, start scanning.
+              </h1>
+              <p style={{ fontSize: 16, color: "#666", lineHeight: 1.6 }}>
+                Start free or go straight to Pro. No setup, no revops ticket — just clean conference lead capture.
+              </p>
+            </header>
 
-            {/* Pro - Most popular */}
-            <div className="relative flex flex-col rounded-2xl border border-[#7ab648] bg-white p-5 md:p-6 shadow-md md:-mt-2">
-              <div className="absolute -top-3 left-4 rounded-full bg-[#7ab648] px-3 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-[#1a3a2a] shadow-sm">
-                Most popular
-              </div>
-              <div className="mb-4 pt-2">
-                <h2 className="heading-font text-xl tracking-[-0.03em] text-[#1a2e1a] mb-1">
-                  Pro
-                </h2>
-                <p className="text-xs text-[#5b534c]">For reps who live on the show floor</p>
-              </div>
-              <div className="mb-4">
-                <span className="text-2xl heading-font text-[#1a2e1a] tracking-[-0.03em]">
-                  $49.99
-                </span>
-                <span className="ml-1 text-xs text-[#7a7067]">/ month per user</span>
-              </div>
-              <ul className="mb-5 space-y-1.5 text-xs text-[#5b534c]">
-                <li>• Unlimited badge scans</li>
-                <li>• Claude Vision + Apollo enrichment</li>
-                <li>• Unlimited events</li>
-                <li>• AI follow-up sequences</li>
-                <li>• Pipeline dashboard</li>
-                <li>• CRM sync</li>
-              </ul>
-              <button
-                type="button"
-                onClick={() => setSelectedPlan("pro")}
-                className="mt-auto inline-flex w-full items-center justify-center rounded-full border border-[#1a3a2a] bg-[#f0f0ec] px-4 py-2 text-xs font-medium cursor-pointer hover:bg-[#f7faf4] hover:text-[#1a2e1a] transition-colors"
-                style={{ color: "#1a2e1a" }}
+            <section
+              style={{
+                display: "grid",
+                gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)",
+                gap: 24,
+                maxWidth: 1000,
+                margin: "0 auto",
+                padding: isMobile ? "0 24px 80px" : "0 40px 80px",
+              }}
+            >
+              <div
+                style={{
+                  background: "#f8f9f8",
+                  border: "1px solid #e8e8e8",
+                  borderRadius: 20,
+                  padding: "28px 24px",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
               >
-                Get started
-              </button>
-            </div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#666", marginBottom: 4 }}>Free Trial</div>
+                <div style={{ fontSize: 12, color: "#999", marginBottom: 20 }}>No credit card required</div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 4, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 44, fontWeight: 800, color: "#111" }}>$0</span>
+                  <span style={{ fontSize: 16, color: "#999" }}>/month</span>
+                </div>
+                <ul style={{ listStyle: "none", padding: 0, margin: "20px 0 0", display: "flex", flexDirection: "column", gap: 10 }}>
+                  {["10 badge scans per month", "Basic contact extraction", "1 event", "No AI sequences"].map((t) => (
+                    <li key={t} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 14, color: "#444" }}>
+                      <CheckIcon color="#2d6a1f" />
+                      <span>{t}</span>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => setSelectedPlan("free")}
+                  style={{
+                    width: "100%",
+                    borderRadius: 10,
+                    padding: 12,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    marginTop: 24,
+                    background: "#f0f0f0",
+                    color: "#111",
+                    border: "none",
+                    fontFamily: "Inter, system-ui, sans-serif",
+                  }}
+                >
+                  Start free trial
+                </button>
+              </div>
 
-            {/* Enterprise */}
-            <div className="flex flex-col rounded-2xl border border-[#dce8d0] bg-white/90 p-5 md:p-6 shadow-sm">
-              <div className="mb-4">
-                <h2 className="heading-font text-xl tracking-[-0.03em] text-[#1a2e1a] mb-1">
-                  Enterprise
-                </h2>
-                <p className="text-xs text-[#5b534c]">For field marketing and large sales orgs</p>
-              </div>
-              <div className="mb-4">
-                <span className="text-2xl heading-font text-[#1a2e1a] tracking-[-0.03em]">
-                  Custom
-                </span>
-                <span className="ml-1 text-xs text-[#7a7067]">pricing</span>
-              </div>
-              <ul className="mb-5 space-y-1.5 text-xs text-[#5b534c]">
-                <li>• Everything in Pro</li>
-                <li>• Team management + SSO</li>
-                <li>• Dedicated onboarding</li>
-                <li>• Custom CRM integrations</li>
-                <li>• SLA + priority support</li>
-              </ul>
-              <a
-                href="mailto:hello@katch.app"
-                className="mt-auto inline-flex w-full items-center justify-center rounded-full border border-[#d4cdc3] bg-[#f0f0ec] px-4 py-2 text-xs font-medium cursor-pointer hover:bg-[#f7faf4] hover:border-[#dce8d0] hover:text-[#1a2e1a] transition-colors"
-                style={{ color: "#1a2e1a" }}
+              <div
+                style={{
+                  background: "#1a3a2a",
+                  border: "2px solid #7dde3c",
+                  borderRadius: 20,
+                  padding: "28px 24px",
+                  boxShadow: "0 8px 40px rgba(26,58,42,0.2)",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
               >
-                Contact us
-              </a>
-            </div>
-          </section>
+                <div
+                  style={{
+                    background: "#7dde3c",
+                    color: "#0a1a0a",
+                    borderRadius: 99,
+                    padding: "3px 12px",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    display: "inline-block",
+                    marginBottom: 12,
+                    alignSelf: "flex-start",
+                  }}
+                >
+                  MOST POPULAR
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)", marginBottom: 4 }}>Pro</div>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginBottom: 20 }}>For reps who live on the show floor</div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 44, fontWeight: 800, color: "#ffffff" }}>$49.99</span>
+                  <span style={{ fontSize: 14, color: "rgba(255,255,255,0.6)" }}>/month per user</span>
+                </div>
+                <ul style={{ listStyle: "none", padding: 0, margin: "20px 0 0", display: "flex", flexDirection: "column", gap: 10 }}>
+                  {[
+                    "Unlimited badge scans",
+                    "Claude Vision + Apollo enrichment",
+                    "Unlimited events",
+                    "AI follow-up sequences",
+                    "Pipeline dashboard",
+                    "CRM sync",
+                  ].map((t) => (
+                    <li key={t} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 14, color: "#ffffff" }}>
+                      <CheckIcon color="#7dde3c" />
+                      <span>{t}</span>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => setSelectedPlan("pro")}
+                  style={{
+                    width: "100%",
+                    background: "#7dde3c",
+                    color: "#0a1a0a",
+                    borderRadius: 10,
+                    padding: 12,
+                    fontSize: 14,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    marginTop: 24,
+                    border: "none",
+                    fontFamily: "Inter, system-ui, sans-serif",
+                  }}
+                >
+                  Get started
+                </button>
+              </div>
+
+              <div
+                style={{
+                  background: "#f8f9f8",
+                  border: "1px solid #e8e8e8",
+                  borderRadius: 20,
+                  padding: "28px 24px",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#666", marginBottom: 4 }}>Enterprise</div>
+                <div style={{ fontSize: 12, color: "#999", marginBottom: 20 }}>For field marketing and large sales orgs</div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                  <span style={{ fontSize: 36, fontWeight: 800, color: "#111" }}>Custom</span>
+                  <span style={{ fontSize: 16, color: "#999" }}>pricing</span>
+                </div>
+                <ul style={{ listStyle: "none", padding: 0, margin: "20px 0 0", display: "flex", flexDirection: "column", gap: 10 }}>
+                  {[
+                    "Everything in Pro",
+                    "Team management + SSO",
+                    "Dedicated onboarding",
+                    "Custom CRM integrations",
+                    "SLA + priority support",
+                  ].map((t) => (
+                    <li key={t} style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 14, color: "#444" }}>
+                      <CheckIcon color="#2d6a1f" />
+                      <span>{t}</span>
+                    </li>
+                  ))}
+                </ul>
+                <a
+                  href="mailto:hello@katch.app"
+                  style={{
+                    width: "100%",
+                    borderRadius: 10,
+                    padding: 12,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    marginTop: 24,
+                    background: "#f0f0f0",
+                    color: "#111",
+                    border: "none",
+                    fontFamily: "Inter, system-ui, sans-serif",
+                    textAlign: "center",
+                    textDecoration: "none",
+                    display: "block",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  Talk to sales
+                </a>
+              </div>
+            </section>
+
+            <p style={{ textAlign: "center", fontSize: 12, color: "#999", marginTop: 8, padding: "0 24px" }}>
+              By signing up you agree to our Terms of Service and Privacy Policy.
+            </p>
+          </>
         )}
 
-        {/* Signup form — isolated so keystrokes only re-render this section */}
         {selectedPlan && (
-          <SignupForm
-            initialEmail={emailParam ?? ""}
-            selectedPlan={selectedPlan}
-            onBack={() => setSelectedPlan(null)}
-            onSuccess={() => router.push("/home")}
-            onLogin={() => router.push("/login")}
-          />
+          <div style={{ padding: isMobile ? "0 24px" : "0 40px", maxWidth: 560, margin: "0 auto" }}>
+            <SignupForm
+              initialEmail={emailParam ?? ""}
+              selectedPlan={selectedPlan}
+              onBack={() => setSelectedPlan(null)}
+              onSuccess={() => router.push("/home")}
+              onLogin={() => router.push("/login")}
+            />
+          </div>
         )}
       </main>
     </div>
@@ -461,7 +663,7 @@ html, body {
 
 export default function SignupPage() {
   return (
-    <Suspense fallback={<div style={{ minHeight: "100vh", background: "#f7f7f5" }} />}>
+    <Suspense fallback={<div style={{ minHeight: "100vh", background: "#ffffff" }} />}>
       <SignupInner />
     </Suspense>
   );

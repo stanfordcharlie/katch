@@ -7,6 +7,68 @@ import { supabase } from "@/lib/supabase";
 import { findDuplicateContact } from "@/lib/duplicates";
 import { DEFAULT_SIGNAL_LABELS } from "@/lib/katch-constants";
 
+async function fetchLeadListProspectId(
+  userId: string,
+  emailRaw: string | null | undefined
+): Promise<string | null> {
+  const em = (emailRaw ?? "").trim();
+  if (!em) return null;
+  const { data, error } = await supabase
+    .from("contacts")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("source", "lead_list")
+    .eq("status", "prospect")
+    .ilike("email", em);
+  if (error || !data?.[0]?.id) return null;
+  return data[0].id as string;
+}
+
+async function mergeLeadListProspectIfExists(
+  userId: string,
+  email: string | null | undefined,
+  patch: Record<string, unknown>
+): Promise<"merged" | "no_match" | "failed"> {
+  const prospectId = await fetchLeadListProspectId(userId, email);
+  if (!prospectId) return "no_match";
+  const { error } = await supabase.from("contacts").update(patch).eq("id", prospectId);
+  if (error) {
+    console.error("mergeLeadListProspectIfExists", error);
+    return "failed";
+  }
+  return "merged";
+}
+
+async function uploadDataUrlAsContactImage(
+  sessionUser: User,
+  dataUrl: string | null,
+  fileSuffix: string
+): Promise<string | null> {
+  if (!dataUrl || !dataUrl.startsWith("data:")) return null;
+  try {
+    const arr = dataUrl.split(",");
+    if (arr.length !== 2) return null;
+    const mimeMatch = arr[0].match(/data:(.*?);base64/);
+    const mime = mimeMatch ? mimeMatch[1] : "image/jpeg";
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    const file = new File([u8arr], "contact-image.jpg", { type: mime });
+    const filePath = `contacts/${sessionUser.id}/${Date.now()}-${fileSuffix}.jpg`;
+    const { error: uploadError } = await supabase.storage.from("avatars").upload(filePath, file, {
+      upsert: false,
+    });
+    if (uploadError) return null;
+    const { data: publicData } = supabase.storage.from("avatars").getPublicUrl(filePath);
+    return publicData?.publicUrl ?? null;
+  } catch {
+    return null;
+  }
+}
+
 type DuplicateExistingContact = {
   id: string;
   name?: string | null;
@@ -439,30 +501,8 @@ export default function ScanPage() {
     sessionUser: User,
     eventId: string | null,
     reviewItemIndex: number
-  ) => {
-    let imageUrl: string | null = null;
-    try {
-      const arr = item.dataUrl.split(",");
-      const mimeMatch = arr[0].match(/:(.*?);/);
-      const mime = mimeMatch ? mimeMatch[1] : "image/jpeg";
-      const bstr = atob(arr[1]);
-      let n = bstr.length;
-      const u8arr = new Uint8Array(n);
-      while (n--) {
-        u8arr[n] = bstr.charCodeAt(n);
-      }
-      const blob = new Blob([u8arr], { type: mime });
-      const filePath = `contacts/${sessionUser.id}/${Date.now()}-${item.id}.jpg`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(filePath, blob, { contentType: "image/jpeg", upsert: true });
-      if (!uploadError && uploadData?.path) {
-        const { data: publicData } = supabase.storage.from("avatars").getPublicUrl(uploadData.path);
-        imageUrl = publicData?.publicUrl ?? null;
-      }
-    } catch {
-      // image optional
-    }
+  ): Promise<"inserted" | "merged"> => {
+    const imageUrl = await uploadDataUrlAsContactImage(sessionUser, item.dataUrl, item.id);
     const r = reviewData[item.id];
     const lead_score = r?.lead_score ?? 5;
     const checks = r?.checks ?? [];
@@ -474,7 +514,22 @@ export default function ScanPage() {
       typeof enrichmentForContact === "object" &&
       !Array.isArray(enrichmentForContact);
 
-    // Bulk save: persist event as the selected event UUID from the picker, not a display name.
+    const mergePatch: Record<string, unknown> = {
+      source: "scan",
+      status: "captured",
+      lead_score,
+      checks,
+      free_note,
+      event: eventId,
+      ai_enrichment: hasEnrichmentForContact ? enrichmentForContact : null,
+      enriched: hasEnrichmentForContact,
+      enriched_at: hasEnrichmentForContact ? new Date().toISOString() : null,
+    };
+    if (imageUrl) mergePatch.image = imageUrl;
+    const mergeOutcome = await mergeLeadListProspectIfExists(sessionUser.id, item.contact.email, mergePatch);
+    if (mergeOutcome === "failed") throw new Error("merge prospect failed");
+    if (mergeOutcome === "merged") return "merged";
+
     const { error } = await supabase.from("contacts").insert({
       user_id: sessionUser.id,
       name: item.contact.name ?? "",
@@ -491,8 +546,11 @@ export default function ScanPage() {
       enriched: hasEnrichmentForContact,
       enriched_at: hasEnrichmentForContact ? new Date().toISOString() : null,
       image: imageUrl,
+      source: "scan",
+      status: "captured",
     });
     if (error) throw error;
+    return "inserted";
   };
 
   const handleBulkSaveAll = async () => {
@@ -505,9 +563,11 @@ export default function ScanPage() {
         return;
       }
       const doneItems = bulkFiles.filter((x) => x.status === "done" && x.contact);
-      await Promise.all(
-        doneItems.map((item, index) => saveContact(item, sessionUser, selectedEventId ?? null, index))
+      const saveResults = await Promise.all(
+        doneItems.map((item, index) => saveContact(item, sessionUser as User, selectedEventId ?? null, index))
       );
+      const mergedN = saveResults.filter((r) => r === "merged").length;
+      const insertedN = saveResults.filter((r) => r === "inserted").length;
       setBulkMode(false);
       setBulkFiles([]);
       setBulkProgress(0);
@@ -523,7 +583,17 @@ export default function ScanPage() {
       setContactEnrichments({});
       setEnrichmentExpanded({});
       setEnrichErrorIndex(null);
-      showToast(`${doneItems.length} contacts saved`);
+      if (mergedN > 0 && insertedN > 0) {
+        showToast(`${insertedN} saved, ${mergedN} matched from lead list`);
+      } else if (mergedN > 0) {
+        showToast(
+          mergedN === 1
+            ? "Matched existing prospect — contact updated."
+            : `Matched ${mergedN} existing prospects — contacts updated.`
+        );
+      } else {
+        showToast(`${insertedN} contacts saved`);
+      }
       setIsSaving(false);
       router.push("/contacts");
     } catch {
@@ -752,34 +822,31 @@ export default function ScanPage() {
   const persistScannedContact = async (sessionUser: User) => {
     const activeChecks = signalLabels.filter((label) => checks[label]);
 
-    let imageUrl: string | null = null;
-    if (uploadedImage && uploadedImage.startsWith("data:")) {
-      try {
-        const arr = uploadedImage.split(",");
-        if (arr.length === 2) {
-          const mimeMatch = arr[0].match(/data:(.*?);base64/);
-          const mime = mimeMatch ? mimeMatch[1] : "image/jpeg";
-          const bstr = atob(arr[1]);
-          let n = bstr.length;
-          const u8arr = new Uint8Array(n);
-          while (n--) {
-            u8arr[n] = bstr.charCodeAt(n);
-          }
-          const file = new File([u8arr], "contact-image.jpg", { type: mime });
-          const filePath = `contacts/${sessionUser.id}/${Date.now()}-scan.jpg`;
-          const { error: uploadError } = await supabase.storage.from("avatars").upload(filePath, file, {
-            upsert: false,
-          });
-          if (!uploadError) {
-            const { data: publicData } = supabase.storage.from("avatars").getPublicUrl(filePath);
-            if (publicData?.publicUrl) {
-              imageUrl = publicData.publicUrl;
-            }
-          }
-        }
-      } catch (e) {
-        imageUrl = null;
-      }
+    const imageUrl = await uploadDataUrlAsContactImage(sessionUser, uploadedImage, "scan");
+
+    const hasEnrichment = !!singleEnrichment;
+    const mergePatch: Record<string, unknown> = {
+      source: "scan",
+      status: "captured",
+      lead_score: leadScore,
+      checks: activeChecks,
+      free_note: freeNote,
+      event: eventTag || "Untagged",
+      ai_enrichment: singleEnrichment,
+      enriched: hasEnrichment,
+      enriched_at: hasEnrichment ? new Date().toISOString() : null,
+    };
+    if (imageUrl) mergePatch.image = imageUrl;
+    const mergedProspect = await mergeLeadListProspectIfExists(sessionUser.id, extracted?.email, mergePatch);
+    if (mergedProspect === "failed") {
+      showToast("Failed to save contact");
+      return;
+    }
+    if (mergedProspect === "merged") {
+      resetScan();
+      showToast("Matched existing prospect — contact updated.");
+      router.push("/contacts");
+      return;
     }
 
     const payload: Record<string, unknown> = {
@@ -797,6 +864,8 @@ export default function ScanPage() {
       ai_enrichment: singleEnrichment,
       enriched: !!singleEnrichment,
       enriched_at: singleEnrichment ? new Date().toISOString() : null,
+      source: "scan",
+      status: "captured",
     };
 
     if (imageUrl) {
@@ -841,6 +910,32 @@ export default function ScanPage() {
     }
 
     const activeChecks = signalLabels.filter((label) => checks[label]);
+    const imageUrlEarly = await uploadDataUrlAsContactImage(sessionUser as User, uploadedImage, "scan");
+    const hasEnrichmentEarly = !!singleEnrichment;
+    const mergePatchEarly: Record<string, unknown> = {
+      source: "scan",
+      status: "captured",
+      lead_score: leadScore,
+      checks: activeChecks,
+      free_note: freeNote,
+      event: eventTag || "Untagged",
+      ai_enrichment: singleEnrichment,
+      enriched: hasEnrichmentEarly,
+      enriched_at: hasEnrichmentEarly ? new Date().toISOString() : null,
+    };
+    if (imageUrlEarly) mergePatchEarly.image = imageUrlEarly;
+    const mergedEarly = await mergeLeadListProspectIfExists(sessionUser.id, extracted?.email, mergePatchEarly);
+    if (mergedEarly === "failed") {
+      showToast("Failed to save contact");
+      return;
+    }
+    if (mergedEarly === "merged") {
+      showToast("Matched existing prospect — contact updated.");
+      resetScan();
+      router.push("/contacts");
+      return;
+    }
+
     const dup = await findDuplicateContact(
       extracted?.name ?? "",
       extracted?.email ?? "",
@@ -954,6 +1049,8 @@ export default function ScanPage() {
           ? nw.event
           : (ex.event || "Untagged") as string,
       enriched: !!(ex.enriched || nw.enriched),
+      source: "scan",
+      status: "captured",
     };
     if (imageUrl) merged.image = imageUrl;
 

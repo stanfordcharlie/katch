@@ -101,6 +101,23 @@ function readStoredLists(): StoredLeadList[] {
   }
 }
 
+function mapRawContactsToEnrichedRows(enriched: unknown[], jobId: number): EnrichedRow[] {
+  return enriched.map((c: unknown, i: number) => {
+    const row = c as EnrichedRow;
+    return {
+      ...row,
+      __id: row.__id || `row-${jobId}-${i}`,
+      icp_fit_score: Number(row.icp_fit_score) || 0,
+      suggested_lead_score: Number(row.suggested_lead_score) || 5,
+      icp_fit_reason: typeof row.icp_fit_reason === "string" ? row.icp_fit_reason : "",
+      summary: typeof row.summary === "string" ? row.summary : "",
+      talking_points: Array.isArray(row.talking_points) ? row.talking_points : [],
+      red_flags: Array.isArray(row.red_flags) ? row.red_flags : [],
+      ai_enrichment: (row.ai_enrichment as Record<string, unknown>) || {},
+    };
+  });
+}
+
 function formatBytes(n: number) {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
@@ -165,6 +182,7 @@ export default function LeadsPage() {
   const [barProgress, setBarProgress] = useState(0);
   const [scoringCurrent, setScoringCurrent] = useState(0);
   const [scoringTotal, setScoringTotal] = useState(0);
+  const [progressText, setProgressText] = useState("");
   const [resultsModal, setResultsModal] = useState<{
     filename: string;
     eventId: string | null;
@@ -198,6 +216,132 @@ export default function LeadsPage() {
       mountedRef.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    const job = readEnrichmentJob();
+    if (!job) return;
+    if (job.status !== "processing") return;
+    const startedAt = typeof job.startedAt === "string" ? job.startedAt : "";
+    const startedMs = new Date(startedAt).getTime();
+    if (Number.isNaN(startedMs) || Date.now() - startedMs > 10 * 60 * 1000) return;
+    const totalContacts = typeof job.totalContacts === "number" ? job.totalContacts : 0;
+    const processed = typeof job.processed === "number" ? job.processed : 0;
+    const pct =
+      typeof job.progress === "number"
+        ? job.progress
+        : totalContacts > 0
+          ? Math.round((processed / totalContacts) * 100)
+          : 0;
+    setEnrichLoading(true);
+    setBarProgress(pct);
+    setScoringCurrent(processed);
+    setScoringTotal(totalContacts || 1);
+    const storedLine =
+      typeof job.progressText === "string" && job.progressText.trim()
+        ? job.progressText
+        : `Scoring contact ${processed} of ${totalContacts || 1} against your ICP...`;
+    setProgressText(storedLine);
+  }, []);
+
+  useEffect(() => {
+    if (!enrichLoading) return;
+    let intervalId: ReturnType<typeof setInterval> | undefined;
+    const clear = () => {
+      if (intervalId !== undefined) {
+        window.clearInterval(intervalId);
+        intervalId = undefined;
+      }
+    };
+    const tick = () => {
+      const job = readEnrichmentJob();
+      if (!job || !mountedRef.current) return;
+      const st = job.status;
+      if (st === "complete") {
+        clear();
+        const raw = localStorage.getItem(ENRICHMENT_RESULTS_KEY);
+        if (!raw) {
+          setEnrichLoading(false);
+          setProgressText("");
+          return;
+        }
+        try {
+          const data = JSON.parse(raw) as {
+            contacts?: unknown[];
+            filename?: string;
+          };
+          if (!data.contacts || !Array.isArray(data.contacts)) {
+            setEnrichLoading(false);
+            setProgressText("");
+            return;
+          }
+          const jid = typeof job.id === "number" ? job.id : Date.now();
+          const withIds = mapRawContactsToEnrichedRows(data.contacts, jid);
+          const fn =
+            (typeof data.filename === "string" && data.filename) ||
+            (typeof job.filename === "string" ? job.filename : "leads.csv");
+          const evId = job.eventId === undefined ? null : (job.eventId as string | null);
+          const evName =
+            typeof job.eventName === "string" && job.eventName ? job.eventName : "No specific event";
+          setEnrichLoading(false);
+          setProgressText("");
+          setBarProgress(100);
+          setScoringCurrent(withIds.length);
+          setScoringTotal(withIds.length);
+          setResultsModal({
+            filename: fn,
+            eventId: evId,
+            eventName: evName,
+            contacts: withIds,
+          });
+          setSelectedIds(withIds.filter((c) => (c.icp_fit_score ?? 0) >= 5).map((c) => c.__id));
+        } catch {
+          setEnrichLoading(false);
+          setProgressText("");
+        }
+        return;
+      }
+      if (st === "error") {
+        clear();
+        const msg =
+          typeof job.errorMessage === "string" && job.errorMessage.trim()
+            ? job.errorMessage
+            : "Enrichment failed — try again.";
+        setEnrichLoading(false);
+        setProgressText("");
+        showToast(msg, "error");
+        return;
+      }
+      if (st === "dismissed") {
+        clear();
+        setEnrichLoading(false);
+        setProgressText("");
+        return;
+      }
+      if (st === "processing") {
+        const totalC = typeof job.totalContacts === "number" ? job.totalContacts : 0;
+        const proc = typeof job.processed === "number" ? job.processed : 0;
+        const realProgress =
+          typeof job.progress === "number"
+            ? job.progress
+            : totalC > 0
+              ? Math.round((proc / totalC) * 100)
+              : 0;
+        const line =
+          typeof job.progressText === "string" && job.progressText.trim()
+            ? job.progressText
+            : `Scoring contact ${proc} of ${totalC || 1} against your ICP...`;
+        setBarProgress(realProgress);
+        setScoringCurrent(proc);
+        setScoringTotal(totalC || 1);
+        setProgressText(line);
+      }
+    };
+    tick();
+    intervalId = window.setInterval(tick, 500);
+    return () => {
+      if (intervalId !== undefined) window.clearInterval(intervalId);
+    };
+  }, [enrichLoading, showToast]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -363,6 +507,7 @@ export default function LeadsPage() {
     setScoringTotal(cappedForEta);
     setScoringCurrent(0);
     setBarProgress(0);
+    setProgressText(`Scoring contact 0 of ${cappedForEta} against your ICP...`);
     setEnrichLoading(true);
 
     const jobId = Date.now();
@@ -373,6 +518,8 @@ export default function LeadsPage() {
       startedAt: new Date().toISOString(),
       status: "processing",
       progress: 0,
+      processed: 0,
+      progressText: `Scoring contact 0 of ${cappedForEta} against your ICP...`,
       eventId: selectedEventId || null,
       eventName,
     });
@@ -445,15 +592,18 @@ export default function LeadsPage() {
               const cur = event.current ?? 0;
               const tot = event.total ?? 1;
               const realProgress = Math.round((cur / tot) * 100);
+              const line = `Scoring contact ${cur} of ${tot} against your ICP...`;
               patchEnrichmentJob({
                 progress: realProgress,
                 processed: cur,
                 totalContacts: tot,
+                progressText: line,
               });
               if (mountedRef.current) {
                 setBarProgress(realProgress);
                 setScoringCurrent(cur);
                 setScoringTotal(tot);
+                setProgressText(line);
               }
             } else if (event.type === "done" && Array.isArray(event.contacts)) {
               const enriched = event.contacts;
@@ -477,20 +627,7 @@ export default function LeadsPage() {
                 eventId: selectedEventId || null,
                 eventName,
               });
-              const withIds: EnrichedRow[] = enriched.map((c, i) => {
-                const row = c as EnrichedRow;
-                return {
-                  ...row,
-                  __id: row.__id || `row-${jobId}-${i}`,
-                  icp_fit_score: Number(row.icp_fit_score) || 0,
-                  suggested_lead_score: Number(row.suggested_lead_score) || 5,
-                  icp_fit_reason: typeof row.icp_fit_reason === "string" ? row.icp_fit_reason : "",
-                  summary: typeof row.summary === "string" ? row.summary : "",
-                  talking_points: Array.isArray(row.talking_points) ? row.talking_points : [],
-                  red_flags: Array.isArray(row.red_flags) ? row.red_flags : [],
-                  ai_enrichment: (row.ai_enrichment as Record<string, unknown>) || {},
-                };
-              });
+              const withIds = mapRawContactsToEnrichedRows(enriched, jobId);
               if (mountedRef.current) {
                 setBarProgress(100);
                 setScoringCurrent(withIds.length);
@@ -518,7 +655,10 @@ export default function LeadsPage() {
         }
       }
     } finally {
-      if (mountedRef.current) setEnrichLoading(false);
+      if (mountedRef.current) {
+        setEnrichLoading(false);
+        setProgressText("");
+      }
     }
   };
 
@@ -562,6 +702,8 @@ export default function LeadsPage() {
         enriched: true,
         enriched_at: new Date().toISOString(),
         checks: [],
+        source: "lead_list",
+        status: "prospect",
       })
     );
     const outcomes = await Promise.all(inserts.map((p) => p.then((r) => ({ error: r.error }))));
@@ -684,7 +826,8 @@ export default function LeadsPage() {
               />
             </div>
             <p style={{ fontSize: 13, color: "#666", marginTop: 16, textAlign: "center" }}>
-              Scoring contact {scoringCurrent} of {scoringTotal} against your ICP...
+              {progressText ||
+                `Scoring contact ${scoringCurrent} of ${scoringTotal} against your ICP...`}
             </p>
             <p style={{ fontSize: 12, color: "#999", marginTop: 6 }}>
               ~{formatTime(etaSeconds)} remaining
@@ -1124,7 +1267,14 @@ export default function LeadsPage() {
                   <tr key={list.id} style={{ borderBottom: "1px solid #f5f5f5" }}>
                     <td style={{ padding: "12px 14px", color: "#111", fontWeight: 500 }}>{list.filename}</td>
                     <td style={{ padding: "12px 14px", color: "#666" }}>{list.eventName}</td>
-                    <td style={{ padding: "12px 14px", color: "#666" }}>{list.contactCount}</td>
+                    <td style={{ padding: "12px 14px", color: "#666" }}>
+                      <div>{list.contactCount}</div>
+                      {list.savedCount > 0 ? (
+                        <div style={{ color: "#4a6fa5", fontSize: 12, marginTop: 4 }}>
+                          {list.savedCount} prospect{list.savedCount === 1 ? "" : "s"}
+                        </div>
+                      ) : null}
+                    </td>
                     <td style={{ padding: "12px 14px", color: "#666" }}>{list.topScore}/10</td>
                     <td style={{ padding: "12px 14px", color: "#666" }}>{formatTableDate(list.uploadDate)}</td>
                     <td style={{ padding: "12px 14px" }}>

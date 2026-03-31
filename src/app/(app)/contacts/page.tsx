@@ -30,6 +30,8 @@ type Contact = {
   hubspot_synced_at?: string | null;
   ai_enrichment?: Record<string, unknown> | null;
   enriched_at?: string | null;
+  source?: string | null;
+  status?: string | null;
 };
 
 type EditForm = {
@@ -54,13 +56,14 @@ const scoreAccent = (score: number | null | undefined): 'high' | 'mid' | 'low' =
 
 const CONTACTS_TABLE_GRID_DESKTOP = [
   '44px',
-  'minmax(0, calc((100% - 44px - 140px) * 20 / 84))',
-  'minmax(0, calc((100% - 44px - 140px) * 16 / 84))',
-  'minmax(0, calc((100% - 44px - 140px) * 16 / 84))',
-  'minmax(0, calc((100% - 44px - 140px) * 18 / 84))',
-  '140px',
-  'minmax(0, calc((100% - 44px - 140px) * 7 / 84))',
-  'minmax(0, calc((100% - 44px - 140px) * 7 / 84))',
+  'minmax(0, 18%)',
+  'minmax(0, 14%)',
+  'minmax(0, 14%)',
+  'minmax(0, 16%)',
+  'minmax(0, 10%)',
+  'minmax(0, 6%)',
+  'minmax(0, 6%)',
+  '90px',
 ].join(' ');
 
 
@@ -151,6 +154,65 @@ const findDuplicateGroups = (list: Contact[]): Contact[][] => {
 
   return Object.values(buckets).filter((g) => g.length >= 2);
 };
+
+function ContactSourceCell({ contact }: { contact: Contact }) {
+  const src = contact.source;
+
+  if (src === 'scan' || src == null) {
+    return (
+      <span
+        style={{
+          background: '#f0f7eb',
+          color: '#2d6a1f',
+          border: '1px solid #c8e6c0',
+          borderRadius: 4,
+          padding: '2px 8px',
+          fontSize: 11,
+          fontWeight: 500,
+          whiteSpace: 'nowrap',
+        }}
+      >
+        Badge Scan
+      </span>
+    );
+  }
+
+  if (src === 'lead_list') {
+    return (
+      <span
+        style={{
+          background: '#f0f4ff',
+          color: '#4a6fa5',
+          border: '1px solid #c5d3f0',
+          borderRadius: 4,
+          padding: '2px 8px',
+          fontSize: 11,
+          fontWeight: 500,
+          whiteSpace: 'nowrap',
+        }}
+      >
+        Lead List
+      </span>
+    );
+  }
+
+  return (
+    <span
+      style={{
+        background: '#f5f5f5',
+        color: '#666',
+        border: '1px solid #e0e0e0',
+        borderRadius: 4,
+        padding: '2px 8px',
+        fontSize: 11,
+        fontWeight: 500,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {String(src)}
+    </span>
+  );
+}
 
 export default function ContactsPage() {
   const searchParams = useSearchParams();
@@ -1281,7 +1343,7 @@ export default function ContactsPage() {
                 gridTemplateColumns: CONTACTS_TABLE_GRID_DESKTOP,
               }}
             >
-              {['', 'NAME', 'COMPANY', 'TITLE', 'EMAIL', 'EVENT', 'SCORE', 'SYNCED'].map((h, i) => (
+              {['', 'NAME', 'COMPANY', 'TITLE', 'EMAIL', 'EVENT', 'SCORE', 'SYNCED', 'SOURCE'].map((h, i) => (
                 <div
                   key={h + i}
                   style={{
@@ -1295,13 +1357,12 @@ export default function ContactsPage() {
                     paddingLeft: i === 0 ? 0 : 12,
                     paddingRight: i === 0 ? 0 : 12,
                     textAlign: i === 0 ? 'center' : i >= 6 ? 'center' : 'left',
-                    width: i === 0 ? 44 : i === 5 ? 140 : '100%',
-                    maxWidth: i === 5 ? 140 : undefined,
-                    overflow: i === 5 ? 'hidden' : undefined,
-                    textOverflow: i === 5 ? 'ellipsis' : undefined,
-                    whiteSpace: i === 5 ? 'nowrap' : undefined,
+                    width: i === 0 ? 44 : '100%',
                     boxSizing: 'border-box',
                     minWidth: 0,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   {h}
@@ -1391,7 +1452,19 @@ export default function ContactsPage() {
             </select>
           </div>
         )}
-        {sortedContacts.map((contact) => {
+        {sortedContacts.length === 0 && contacts.length > 0 ? (
+          <div
+            style={{
+              padding: '40px 24px',
+              textAlign: 'center',
+              fontSize: 13,
+              color: '#999',
+            }}
+          >
+            No contacts match your filters.
+          </div>
+        ) : (
+          sortedContacts.map((contact) => {
           const rawScore =
             (contact.lead_score ??
               contact.leadScore ??
@@ -1735,8 +1808,7 @@ export default function ContactsPage() {
                       title={eventLabel ?? undefined}
                       style={{
                         padding: '12px 12px',
-                        width: 140,
-                        maxWidth: 140,
+                        width: '100%',
                         minWidth: 0,
                         boxSizing: 'border-box',
                         overflow: 'hidden',
@@ -1826,6 +1898,21 @@ export default function ContactsPage() {
                     ) : (
                       <span style={{ color: '#ccc', fontSize: 12 }}>—</span>
                     )}
+                  </div>
+                )}
+                {!isMobile && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      padding: '12px 12px',
+                      width: '100%',
+                      minWidth: 0,
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <ContactSourceCell contact={contact} />
                   </div>
                 )}
               </div>
@@ -2951,7 +3038,8 @@ export default function ContactsPage() {
               )}
             </div>
           );
-        })}
+        })
+        )}
         </div>
       </div>
       )}

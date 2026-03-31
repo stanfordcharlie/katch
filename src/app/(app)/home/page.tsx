@@ -11,6 +11,7 @@ interface Contact {
   company: string | null;
   event: string | null;
   lead_score: number | null;
+  events?: { name: string | null } | null;
 }
 
 interface EventRow {
@@ -53,7 +54,7 @@ export default function HomePage() {
       const [{ data: contactsData }, { data: eventsData }] = await Promise.all([
         supabase
           .from("contacts")
-          .select("id,name,company,event,lead_score")
+          .select("id,name,company,event,lead_score,events(name)")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false }),
         supabase
@@ -745,7 +746,7 @@ export default function HomePage() {
                           color: "#999",
                         }}
                       >
-                        {c.company || c.event || "No company info"}
+                        {c.company || c.events?.name || c.event || "No company info"}
                       </div>
                       </div>
                     </div>

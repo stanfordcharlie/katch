@@ -167,7 +167,7 @@ select option { color: #111; background: #fff; }
             <a href="#features" className="landing-nav-link" style={{ fontSize: 14, color: "#666", cursor: "pointer", textDecoration: "none" }}>
               Features
             </a>
-            <a href="#pricing" className="landing-nav-link" style={{ fontSize: 14, color: "#666", cursor: "pointer", textDecoration: "none" }}>
+            <a href="/pricing" className="landing-nav-link" style={{ fontSize: 14, color: "#666", cursor: "pointer", textDecoration: "none" }}>
               Pricing
             </a>
           </div>
@@ -542,94 +542,6 @@ select option { color: #111; background: #fff; }
                 <p style={{ fontSize: 14, color: "#666", marginTop: 8, marginBottom: 0, maxWidth: 220 }}>{step.d}</p>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="pricing" style={{ background: "#ffffff", padding: isMobile ? "64px 24px" : "80px 40px", textAlign: "center" }}>
-        <h2 style={{ fontSize: isMobile ? 28 : 36, fontWeight: 800, color: "#111", marginBottom: 12 }}>Simple pricing</h2>
-        <p style={{ fontSize: 18, color: "#666", marginBottom: 40 }}>Start free, upgrade when you need more.</p>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
-            gap: 24,
-            maxWidth: 600,
-            margin: "0 auto",
-          }}
-        >
-          <div
-            style={{
-              background: "#f8f9f8",
-              border: "1px solid #ebebeb",
-              borderRadius: 16,
-              padding: "28px 24px",
-              textAlign: "left",
-            }}
-          >
-            <div style={{ fontSize: 14, fontWeight: 600, color: "#666", marginBottom: 8 }}>Free</div>
-            <div style={{ fontSize: 32, fontWeight: 800, color: "#111", marginBottom: 16 }}>
-              $0<span style={{ fontSize: 16, fontWeight: 500, color: "#666" }}>/mo</span>
-            </div>
-            <ul style={{ listStyle: "none", padding: 0, margin: "0 0 24px", fontSize: 14, color: "#666", lineHeight: 1.8 }}>
-              <li>Core scanning and scoring</li>
-              <li>Limited enrichments per month</li>
-              <li>Single user</li>
-            </ul>
-            <button
-              type="button"
-              onClick={() => router.push("/signup")}
-              style={{
-                width: "100%",
-                background: "#fff",
-                border: "1px solid #e0e0e0",
-                color: "#111",
-                borderRadius: 10,
-                padding: "12px 20px",
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              Get started
-            </button>
-          </div>
-          <div
-            style={{
-              background: "#1a3a2a",
-              border: "1px solid #1a3a2a",
-              borderRadius: 16,
-              padding: "28px 24px",
-              textAlign: "left",
-              position: "relative",
-            }}
-          >
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#7dde3c", marginBottom: 8 }}>PRO</div>
-            <div style={{ fontSize: 32, fontWeight: 800, color: "#fff", marginBottom: 16 }}>
-              $49<span style={{ fontSize: 16, fontWeight: 500, color: "rgba(255,255,255,0.7)" }}>/mo</span>
-            </div>
-            <ul style={{ listStyle: "none", padding: 0, margin: "0 0 24px", fontSize: 14, color: "rgba(255,255,255,0.85)", lineHeight: 1.8 }}>
-              <li>Unlimited scans and lists</li>
-              <li>HubSpot sync and sequences</li>
-              <li>Priority support</li>
-            </ul>
-            <button
-              type="button"
-              onClick={() => router.push("/pricing")}
-              style={{
-                width: "100%",
-                background: "#7dde3c",
-                color: "#0a1a0a",
-                border: "none",
-                borderRadius: 10,
-                padding: "12px 20px",
-                fontSize: 14,
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
-            >
-              View all plans
-            </button>
           </div>
         </div>
       </section>
