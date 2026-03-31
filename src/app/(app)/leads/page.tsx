@@ -245,7 +245,7 @@ export default function LeadsPage() {
 
   useEffect(() => {
     if (!enrichLoading) return;
-    let intervalId: ReturnType<typeof setInterval> | undefined;
+    let intervalId: ReturnType<typeof setTimeout> | undefined;
     const clear = () => {
       if (intervalId !== undefined) {
         window.clearInterval(intervalId);
@@ -337,7 +337,7 @@ export default function LeadsPage() {
       }
     };
     tick();
-    intervalId = window.setInterval(tick, 500) as unknown as ReturnType<typeof setInterval>;
+    intervalId = setInterval(tick, 500) as unknown as ReturnType<typeof setTimeout>;
     return () => {
       if (intervalId !== undefined) window.clearInterval(intervalId);
     };
