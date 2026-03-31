@@ -54,9 +54,11 @@ export default function HomePage() {
       const [{ data: contactsData }, { data: eventsData }] = await Promise.all([
         supabase
           .from("contacts")
-          .select("id,name,company,event,lead_score,events(name)")
+          .select("*, events(name)")
           .eq("user_id", user.id)
-          .order("created_at", { ascending: false }),
+          .gte("lead_score", 7)
+          .order("lead_score", { ascending: false })
+          .limit(5),
         supabase
           .from("events")
           .select("id,name,date,location")
@@ -115,7 +117,7 @@ export default function HomePage() {
     return group.reduce((max, c) => Math.max(max, c.lead_score ?? 0), 0);
   };
 
-  const needsFollowUp = contacts.filter((c) => (c.lead_score ?? 0) >= 8).slice(0, 6);
+  const needsFollowUp = contacts;
 
   const formatDate = (iso: string | null) => {
     if (!iso) return "";
@@ -345,7 +347,7 @@ export default function HomePage() {
           {
             label: "Import attendees",
             desc: "Upload event lists and enrich them automatically.",
-            href: "/import",
+            href: "/leads",
             iconBg: "#fff3eb",
             iconColor: "#b07020",
             icon: (
@@ -746,7 +748,7 @@ export default function HomePage() {
                           color: "#999",
                         }}
                       >
-                        {c.company || c.events?.name || c.event || "No company info"}
+                        {c.events?.name || "—"}
                       </div>
                       </div>
                     </div>

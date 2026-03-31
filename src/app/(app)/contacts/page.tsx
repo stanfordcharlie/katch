@@ -2202,11 +2202,15 @@ export default function ContactsPage() {
                     </div>
                   ) : (
                     <>
+                      {/* EXPANDED_ROW_START */}
+                      {/* spacing check: container gap=32px, avatar marginRight=0 */}
+                      {/* expanded-row grid: gridTemplateColumns=isMobile ? '1fr' : '200px 1fr', gap=32 */}
                       <div
                         style={{
                           display: 'grid',
                           gridTemplateColumns: isMobile ? '1fr' : '200px 1fr',
-                          gap: 24,
+                          gap: 32,
+                          columnGap: 32,
                           alignItems: 'start',
                         }}
                       >
@@ -2225,8 +2229,8 @@ export default function ContactsPage() {
                           ) : (
                             <div
                               style={{
-                                width: 200,
-                                height: 200,
+                                width: 160,
+                                height: 160,
                                 maxWidth: '100%',
                                 borderRadius: '50%',
                                 background: '#f0f0f0',
@@ -2238,7 +2242,7 @@ export default function ContactsPage() {
                             >
                               <span
                                 style={{
-                                  fontSize: 48,
+                                  fontSize: 38,
                                   fontWeight: 600,
                                   color: '#999',
                                 }}
@@ -3032,6 +3036,7 @@ export default function ContactsPage() {
                       </div>
                         </div>
                       </div>
+                      {/* EXPANDED_ROW_END */}
                     </>
                   )}
                 </div>
@@ -3107,7 +3112,7 @@ export default function ContactsPage() {
                     const created = c.created_at ? new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
                     const initials = (c.name || '?').toString().trim().charAt(0).toUpperCase();
                     return (
-                      <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid #f0f0f0' }}>
+                      <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 24, padding: '10px 0', borderBottom: '1px solid #f0f0f0' }}>
                         {c.image ? (
                           <img src={c.image as string} alt={c.name || 'Contact'} style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
                         ) : (
