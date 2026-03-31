@@ -1920,7 +1920,7 @@ export default function ContactsPage() {
               {selected?.id === contact.id && (
                 <div
                   style={{
-                    padding: editingContactId === contact.id ? '0 18px 18px' : '20px 24px',
+                    padding: editingContactId === contact.id ? '0 18px 18px' : '20px 32px',
                     borderTop: '1px solid rgba(0,0,0,0.05)',
                     marginTop: 8,
                     paddingTop: editingContactId === contact.id ? 16 : undefined,
@@ -2211,6 +2211,7 @@ export default function ContactsPage() {
                           gridTemplateColumns: isMobile ? '1fr' : '200px 1fr',
                           gap: 32,
                           columnGap: 32,
+                          paddingTop: 24,
                           alignItems: 'start',
                         }}
                       >
