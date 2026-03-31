@@ -337,7 +337,7 @@ export default function LeadsPage() {
       }
     };
     tick();
-    intervalId = window.setInterval(tick, 500);
+    intervalId = window.setInterval(tick, 500) as unknown as ReturnType<typeof setInterval>;
     return () => {
       if (intervalId !== undefined) window.clearInterval(intervalId);
     };
