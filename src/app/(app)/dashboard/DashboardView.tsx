@@ -1175,104 +1175,121 @@ export function DashboardView(props: DashboardViewProps) {
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 <section
                   style={{
-                    background: "#ffffff",
-                    borderRadius: 16,
-                    border: "1px solid #ebebeb",
-                    padding: 24,
+                    background: "#fff",
+                    borderRadius: 12,
+                    border: "1px solid #f0f0f0",
+                    padding: "24px 28px",
                     position: "relative",
                     overflow: "hidden",
                   }}
                 >
                   <p
                     style={{
-                      fontSize: "13px",
-                      fontWeight: 600,
-                      letterSpacing: "0.04em",
+                      fontSize: 11,
+                      fontWeight: 500,
+                      letterSpacing: "0.08em",
                       textTransform: "uppercase",
                       color: "#999",
                       margin: 0,
-                      marginBottom: 20,
+                      marginBottom: 24,
                     }}
                   >
                     LEAD SCORE DISTRIBUTION
                   </p>
-                  <div
-                    style={{
-                      display: "flex",
-                      flexDirection: "row",
-                      gap: 8,
-                      alignItems: "flex-end",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    {scoreBuckets.map((b) => {
-                      const barColor: Record<string, string> = {
-                        "1-2": "#e55a5a",
-                        "3-4": "#f0a050",
-                        "5-6": "#f0c040",
-                        "7-8": "#7dde3c",
-                        "9-10": "#2d6a1f",
-                      };
-                      let barHPx = 0;
-                      if (b.count > 0 && chartMaxCount > 0) {
-                        barHPx = Math.max((b.count / chartMaxCount) * 120, 4);
-                      }
-                      return (
-                        <div
-                          key={b.label}
-                          style={{
-                            flex: 1,
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            minWidth: 0,
-                          }}
-                        >
+                  <div style={{ borderBottom: "1px solid #f0f0f0" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-end",
+                        gap: 12,
+                        paddingBottom: 0,
+                      }}
+                    >
+                      {scoreBuckets.map((b) => {
+                        const barColor: Record<string, string> = {
+                          "1-2": "#fca5a5",
+                          "3-4": "#fdba74",
+                          "5-6": "#fcd34d",
+                          "7-8": "#86efac",
+                          "9-10": "#4ade80",
+                        };
+                        let barHPx = 0;
+                        if (b.count > 0 && chartMaxCount > 0) {
+                          barHPx = Math.max((b.count / chartMaxCount) * 140, 4);
+                        } else if (b.count > 0) {
+                          barHPx = 4;
+                        }
+                        return (
                           <div
+                            key={b.label}
                             style={{
-                              fontSize: 13,
-                              fontWeight: 600,
-                              color: "#111",
-                              marginBottom: 4,
-                            }}
-                          >
-                            {b.count}
-                          </div>
-                          <div
-                            style={{
-                              height: 140,
-                              width: "100%",
-                              maxWidth: 48,
+                              flex: 1,
                               display: "flex",
                               flexDirection: "column",
-                              justifyContent: "flex-end",
                               alignItems: "center",
+                              gap: 6,
+                              minWidth: 0,
                             }}
                           >
                             <div
                               style={{
-                                display: "block",
-                                width: "100%",
-                                height: `${barHPx}px`,
-                                borderRadius: "6px 6px 0 0",
-                                backgroundColor: barColor[b.label] ?? "#ccc",
-                                flexShrink: 0,
+                                fontSize: 13,
+                                fontWeight: 600,
+                                color: "#111",
+                                marginBottom: 4,
                               }}
-                            />
+                            >
+                              {b.count}
+                            </div>
+                            <div
+                              style={{
+                                height: 140,
+                                width: "100%",
+                                display: "flex",
+                                flexDirection: "column",
+                                justifyContent: "flex-end",
+                                alignItems: "stretch",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: "100%",
+                                  height: `${barHPx}px`,
+                                  minHeight: b.count > 0 ? 4 : 0,
+                                  borderRadius: "6px 6px 0 0",
+                                  backgroundColor: barColor[b.label] ?? "#e5e5e5",
+                                  transition: "height 0.3s ease",
+                                  flexShrink: 0,
+                                }}
+                              />
+                            </div>
                           </div>
-                          <div
-                            style={{
-                              fontSize: 11,
-                              color: "#999",
-                              marginTop: 6,
-                              textAlign: "center",
-                            }}
-                          >
-                            {b.label}
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 12,
+                      marginTop: 8,
+                    }}
+                  >
+                    {scoreBuckets.map((b) => (
+                      <div
+                        key={`${b.label}-axis`}
+                        style={{
+                          flex: 1,
+                          fontSize: 11,
+                          color: "#bbb",
+                          fontWeight: 400,
+                          textAlign: "center",
+                          minWidth: 0,
+                        }}
+                      >
+                        {b.label}
+                      </div>
+                    ))}
                   </div>
                 </section>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -16,6 +16,7 @@ type ContactRow = {
   company: string | null;
   email: string | null;
   event: string | null;
+  events?: { name: string } | null;
   lead_score?: number | null;
   checks?: string[] | null;
   free_note?: string | null;
@@ -50,6 +51,8 @@ const DEFAULT_CADENCE: CadenceStep[] = [
 
 const PER_CONTACT_FETCH_TIMEOUT_MS = 300_000;
 
+type BulkTargetMode = "event" | "contact";
+
 export default function SequencesPage() {
   const searchParams = useSearchParams();
   const eventFromUrl = searchParams.get("event");
@@ -72,11 +75,20 @@ export default function SequencesPage() {
   const [savedEmailExpanded, setSavedEmailExpanded] = useState<Record<string, boolean>>({});
   const [bulkViewExpanded, setBulkViewExpanded] = useState<Record<string, boolean>>({});
   const [bulkEmailExpanded, setBulkEmailExpanded] = useState<Record<string, boolean>>({});
+  const [bulkTargetMode, setBulkTargetMode] = useState<BulkTargetMode>("event");
+  const [contactSearchInput, setContactSearchInput] = useState("");
+  const [contactSearchResults, setContactSearchResults] = useState<ContactRow[]>([]);
+  const [contactSearchLoading, setContactSearchLoading] = useState(false);
+  const [contactSearchOpen, setContactSearchOpen] = useState(false);
+  const [selectedBulkContact, setSelectedBulkContact] = useState<ContactRow | null>(null);
+  const contactSearchWrapRef = useRef<HTMLDivElement | null>(null);
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<{ subject: string; body: string } | null>(null);
   const [savedEditing, setSavedEditing] = useState<{ contactId: string; emailIndex: number } | null>(null);
   const [savedEditDraft, setSavedEditDraft] = useState<{ subject: string; body: string } | null>(null);
   const [savedEditSaving, setSavedEditSaving] = useState(false);
+  const [sequenceDeleteToast, setSequenceDeleteToast] = useState<string | null>(null);
+  const [savedBulkSelectedIds, setSavedBulkSelectedIds] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -100,7 +112,7 @@ export default function SequencesPage() {
         supabase
           .from("contacts")
           .select(
-            "id, name, title, company, email, checks, free_note, ai_enrichment, lead_score, event, sequences, created_at"
+            "id, name, title, company, email, checks, free_note, ai_enrichment, lead_score, event, sequences, created_at, events(name)"
           )
           .eq("user_id", userId)
           .order("created_at", { ascending: false }),
@@ -125,6 +137,65 @@ export default function SequencesPage() {
     }
   }, [eventFromUrl, events]);
 
+  useEffect(() => {
+    if (bulkTargetMode !== "contact") return;
+    const onDown = (e: MouseEvent) => {
+      if (contactSearchWrapRef.current && !contactSearchWrapRef.current.contains(e.target as Node)) {
+        setContactSearchOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [bulkTargetMode]);
+
+  useEffect(() => {
+    if (bulkTargetMode !== "contact") {
+      setContactSearchResults([]);
+      setContactSearchLoading(false);
+      return;
+    }
+    const q = contactSearchInput.trim();
+    if (q.length < 1) {
+      setContactSearchResults([]);
+      setContactSearchLoading(false);
+      return;
+    }
+    let cancelled = false;
+    const t = setTimeout(() => {
+      void (async () => {
+        setContactSearchLoading(true);
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        const userId = session?.user?.id;
+        if (!userId) {
+          if (!cancelled) {
+            setContactSearchLoading(false);
+            setContactSearchResults([]);
+          }
+          return;
+        }
+        const { data, error } = await supabase
+          .from("contacts")
+          .select(
+            "id, name, title, company, email, checks, free_note, ai_enrichment, lead_score, event, sequences, created_at"
+          )
+          .eq("user_id", userId)
+          .ilike("name", `%${q}%`)
+          .order("created_at", { ascending: false })
+          .limit(20);
+        if (cancelled) return;
+        setContactSearchLoading(false);
+        if (!error && data) setContactSearchResults(data as ContactRow[]);
+        else setContactSearchResults([]);
+      })();
+    }, 200);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [bulkTargetMode, contactSearchInput]);
+
   const eventsMap = useMemo(() => {
     const m: Record<string, string> = {};
     events.forEach((e) => {
@@ -144,16 +215,39 @@ export default function SequencesPage() {
     return contacts.filter((c) => Array.isArray(c.sequences?.emails) && (c.sequences!.emails.length ?? 0) > 0);
   }, [contacts]);
 
-  const savedByEvent = useMemo(() => {
-    const map = new Map<string, { name: string; list: ContactRow[] }>();
+  type SavedSequenceGroup = { groupKey: string; headerLabel: string | null; list: ContactRow[] };
+
+  const savedByEvent = useMemo((): SavedSequenceGroup[] => {
+    const map = new Map<string, { headerLabel: string | null; list: ContactRow[] }>();
     for (const c of withSavedSequences) {
-      const eid = c.event || "__none__";
-      const name = c.event ? eventsMap[eid] ?? "Unknown event" : "No event";
-      if (!map.has(eid)) map.set(eid, { name, list: [] });
-      map.get(eid)!.list.push(c);
+      const eventId = c.event;
+      const resolvedName = c.events?.name ?? null;
+      let groupKey: string;
+      let headerLabel: string | null;
+      if (eventId && resolvedName) {
+        groupKey = eventId;
+        headerLabel = resolvedName;
+      } else {
+        groupKey = "__ungrouped__";
+        headerLabel = null;
+      }
+      if (!map.has(groupKey)) {
+        map.set(groupKey, { headerLabel, list: [] });
+      }
+      map.get(groupKey)!.list.push(c);
     }
-    return Array.from(map.entries()).sort((a, b) => a[1].name.localeCompare(b[1].name));
-  }, [withSavedSequences, eventsMap]);
+    const out: SavedSequenceGroup[] = [];
+    for (const [groupKey, { headerLabel, list }] of map.entries()) {
+      out.push({ groupKey, headerLabel, list });
+    }
+    out.sort((a, b) => {
+      if (a.headerLabel === null && b.headerLabel === null) return 0;
+      if (a.headerLabel === null) return 1;
+      if (b.headerLabel === null) return -1;
+      return a.headerLabel.localeCompare(b.headerLabel);
+    });
+    return out;
+  }, [withSavedSequences]);
 
   const updateCadenceDay = (index: number, day: number) => {
     setCadence((prev) => prev.map((s, i) => (i === index ? { ...s, day: Math.max(0, day) } : s)));
@@ -181,13 +275,7 @@ export default function SequencesPage() {
   };
 
   const handleBulkGenerate = async () => {
-    if (!selectedEventId || eventContacts.length === 0) return;
-    setBulkGenerating(true);
-    setBulkError(null);
-    setBulkResults([]);
-    setBulkProgress({ current: 0, total: eventContacts.length });
-
-    const contactsPayload = eventContacts.map((c) => ({
+    const toPayload = (c: ContactRow) => ({
       id: c.id,
       name: c.name,
       title: c.title,
@@ -198,7 +286,30 @@ export default function SequencesPage() {
       ai_enrichment: c.ai_enrichment,
       lead_score: c.lead_score,
       event: c.event,
-    }));
+    });
+
+    let contactsPayload: ReturnType<typeof toPayload>[];
+    if (bulkTargetMode === "event") {
+      if (!selectedEventId || eventContacts.length === 0) return;
+      contactsPayload = eventContacts.map(toPayload);
+    } else {
+      if (!selectedBulkContact) return;
+      contactsPayload = [toPayload(selectedBulkContact)];
+    }
+
+    const rowName = (id: string) =>
+      contacts.find((x) => x.id === id)?.name ??
+      (selectedBulkContact?.id === id ? selectedBulkContact.name : null) ??
+      "Contact";
+    const rowCompany = (id: string) =>
+      contacts.find((x) => x.id === id)?.company ??
+      (selectedBulkContact?.id === id ? selectedBulkContact.company : null) ??
+      null;
+
+    setBulkGenerating(true);
+    setBulkError(null);
+    setBulkResults([]);
+    setBulkProgress({ current: 0, total: contactsPayload.length });
 
     const cadencePayload = cadence.map((c) => ({ day: c.day, tone: c.tone }));
     const contextTrimmed = bulkContext.trim() || undefined;
@@ -241,8 +352,8 @@ export default function SequencesPage() {
             console.log("[sequences bulk] response not ok — contact:", c.id, "status:", res.status, "body:", errBody);
             rows.push({
               contactId: c.id,
-              name: eventContacts.find((x) => x.id === c.id)?.name ?? "Contact",
-              company: eventContacts.find((x) => x.id === c.id)?.company ?? null,
+              name: rowName(c.id),
+              company: rowCompany(c.id),
               emails: [],
             });
             setBulkResults([...rows]);
@@ -257,8 +368,8 @@ export default function SequencesPage() {
             console.log("[sequences bulk] JSON parse failed — contact:", c.id, parseErr);
             rows.push({
               contactId: c.id,
-              name: eventContacts.find((x) => x.id === c.id)?.name ?? "Contact",
-              company: eventContacts.find((x) => x.id === c.id)?.company ?? null,
+              name: rowName(c.id),
+              company: rowCompany(c.id),
               emails: [],
             });
             setBulkResults([...rows]);
@@ -268,8 +379,8 @@ export default function SequencesPage() {
           const emails = data.emails ?? [];
           rows.push({
             contactId,
-            name: eventContacts.find((x) => x.id === contactId)?.name ?? "Contact",
-            company: eventContacts.find((x) => x.id === contactId)?.company ?? null,
+            name: rowName(contactId),
+            company: rowCompany(contactId),
             emails,
           });
           setBulkResults([...rows]);
@@ -279,8 +390,8 @@ export default function SequencesPage() {
           console.log("[sequences bulk] contact failed:", c.id, e);
           rows.push({
             contactId: c.id,
-            name: eventContacts.find((x) => x.id === c.id)?.name ?? "Contact",
-            company: eventContacts.find((x) => x.id === c.id)?.company ?? null,
+            name: rowName(c.id),
+            company: rowCompany(c.id),
             emails: [],
           });
           setBulkResults([...rows]);
@@ -315,12 +426,99 @@ export default function SequencesPage() {
     }
   };
 
+  const handleDeleteSequence = async (contactId: string, _contactName?: string | null | undefined) => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    if (!userId) return;
+    const { error } = await supabase
+      .from("contacts")
+      .update({ sequences: null })
+      .eq("id", contactId)
+      .eq("user_id", userId);
+    if (error) {
+      console.error(error);
+      return;
+    }
+    setBulkResults((prev) => {
+      if (!prev) return null;
+      const next = prev.filter((r) => r.contactId !== contactId);
+      return next.length === 0 ? null : next;
+    });
+    setContacts((prev) => prev.map((c) => (c.id === contactId ? { ...c, sequences: null } : c)));
+    setEditingKey((k) => (k && k.startsWith(`${contactId}-`) ? null : k));
+    setSavedEditing((s) => (s?.contactId === contactId ? null : s));
+    setSavedBulkSelectedIds((prev) => {
+      if (!prev.has(contactId)) return prev;
+      const n = new Set(prev);
+      n.delete(contactId);
+      return n;
+    });
+    setSequenceDeleteToast("Sequence deleted");
+    window.setTimeout(() => setSequenceDeleteToast(null), 2500);
+  };
+
+  const handleSavedBulkDeleteSelected = async () => {
+    const ids = Array.from(savedBulkSelectedIds);
+    if (ids.length === 0) return;
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    if (!userId) return;
+    const { error } = await supabase
+      .from("contacts")
+      .update({ sequences: null })
+      .in("id", ids)
+      .eq("user_id", userId);
+    if (error) {
+      console.error(error);
+      return;
+    }
+    const idSet = new Set(ids);
+    setBulkResults((prev) => {
+      if (!prev) return null;
+      const next = prev.filter((r) => !idSet.has(r.contactId));
+      return next.length === 0 ? null : next;
+    });
+    setContacts((prev) => prev.map((c) => (idSet.has(c.id) ? { ...c, sequences: null } : c)));
+    setEditingKey((k) => {
+      if (!k) return k;
+      return ids.some((id) => k.startsWith(`${id}-`)) ? null : k;
+    });
+    setSavedEditing((s) => (s && idSet.has(s.contactId) ? null : s));
+    setSavedBulkSelectedIds(new Set());
+    setSequenceDeleteToast("Sequence deleted");
+    window.setTimeout(() => setSequenceDeleteToast(null), 2500);
+  };
+
   if (!user) {
     return <div style={{ minHeight: "100vh", background: "#f7f7f5" }} />;
   }
 
   return (
     <div style={{ minHeight: "100vh", background: "#f7f7f5", padding: "20px 24px 40px", maxWidth: 960, margin: "0 auto" }}>
+      {sequenceDeleteToast && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 32,
+            right: 32,
+            zIndex: 9999,
+            background: "#1a3a2a",
+            color: "#fff",
+            borderRadius: 10,
+            padding: "12px 16px",
+            fontSize: 14,
+            fontWeight: 500,
+            boxShadow: "0 4px 20px rgba(0,0,0,0.12)",
+            maxWidth: "calc(100vw - 64px)",
+          }}
+        >
+          {sequenceDeleteToast}
+        </div>
+      )}
       <div
         style={{
           background: "linear-gradient(135deg, #1a3a2a 0%, #2d5a3d 30%, #1e4d6b 70%, #0f2a3d 100%)",
@@ -346,30 +544,156 @@ export default function SequencesPage() {
         }}
       >
         <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111", margin: "0 0 6px" }}>Post-Conference Bulk Sequence</h2>
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          <button
+            type="button"
+            onClick={() => {
+              setBulkTargetMode("event");
+              setContactSearchInput("");
+              setSelectedBulkContact(null);
+              setContactSearchResults([]);
+              setContactSearchOpen(false);
+              setBulkResults(null);
+              setBulkError(null);
+            }}
+            style={{
+              background: bulkTargetMode === "event" ? "#1a3a2a" : "#f0f0f0",
+              color: bulkTargetMode === "event" ? "#fff" : "#666",
+              border: "none",
+              borderRadius: 8,
+              padding: "8px 14px",
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            By Event
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setBulkTargetMode("contact");
+              setBulkResults(null);
+              setBulkError(null);
+            }}
+            style={{
+              background: bulkTargetMode === "contact" ? "#1a3a2a" : "#f0f0f0",
+              color: bulkTargetMode === "contact" ? "#fff" : "#666",
+              border: "none",
+              borderRadius: 8,
+              padding: "8px 14px",
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            By Contact
+          </button>
+        </div>
         <p style={{ fontSize: 14, color: "#666", margin: "0 0 20px" }}>
           Generate a follow-up sequence for all contacts from an event.
         </p>
 
-        <label style={{ fontSize: 13, color: "#666", display: "block", marginBottom: 6 }}>Event</label>
-        <select
-          className={FIELD}
-          style={{ fontFamily: "Inter, sans-serif", marginBottom: 20 }}
-          value={selectedEventId}
-          onChange={(e) => {
-            setSelectedEventId(e.target.value);
-            setBulkResults(null);
-            setBulkError(null);
-          }}
-        >
-          <option value="">Select an event…</option>
-          {events.map((ev) => (
-            <option key={ev.id} value={ev.id}>
-              {ev.name}
-            </option>
-          ))}
-        </select>
+        {bulkTargetMode === "event" ? (
+          <>
+            <label style={{ fontSize: 13, color: "#666", display: "block", marginBottom: 6 }}>Event</label>
+            <select
+              className={FIELD}
+              style={{ fontFamily: "Inter, sans-serif", marginBottom: 20 }}
+              value={selectedEventId}
+              onChange={(e) => {
+                setSelectedEventId(e.target.value);
+                setBulkResults(null);
+                setBulkError(null);
+              }}
+            >
+              <option value="">Select an event…</option>
+              {events.map((ev) => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.name}
+                </option>
+              ))}
+            </select>
+          </>
+        ) : (
+          <>
+            <label style={{ fontSize: 13, color: "#666", display: "block", marginBottom: 6 }}>Contact</label>
+            <div ref={contactSearchWrapRef} style={{ position: "relative", marginBottom: 20 }}>
+              <input
+                type="text"
+                className={FIELD}
+                placeholder="Search contacts..."
+                value={contactSearchInput}
+                onChange={(e) => {
+                  setContactSearchInput(e.target.value);
+                  setSelectedBulkContact(null);
+                  setContactSearchOpen(true);
+                }}
+                onFocus={() => setContactSearchOpen(true)}
+                style={{ fontFamily: "Inter, sans-serif", width: "100%", boxSizing: "border-box" }}
+              />
+              {contactSearchOpen && contactSearchInput.trim().length > 0 && (
+                <div
+                  style={{
+                    position: "absolute",
+                    left: 0,
+                    right: 0,
+                    top: "100%",
+                    marginTop: 4,
+                    background: "#fff",
+                    border: "1px solid #e8e8e8",
+                    borderRadius: 8,
+                    boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
+                    maxHeight: 240,
+                    overflowY: "auto",
+                    zIndex: 20,
+                  }}
+                >
+                  {contactSearchLoading ? (
+                    <div style={{ padding: 12, fontSize: 13, color: "#999" }}>Searching…</div>
+                  ) : contactSearchResults.length === 0 ? (
+                    <div style={{ padding: 12, fontSize: 13, color: "#999" }}>No contacts found.</div>
+                  ) : (
+                    contactSearchResults.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          setSelectedBulkContact(c);
+                          setContactSearchInput(c.name || "");
+                          setContactSearchOpen(false);
+                          setBulkResults(null);
+                          setBulkError(null);
+                        }}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          width: "100%",
+                          padding: "10px 12px",
+                          border: "none",
+                          background: "transparent",
+                          cursor: "pointer",
+                          textAlign: "left",
+                          boxSizing: "border-box",
+                        }}
+                      >
+                        <Avatar name={c.name} size="sm" />
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>{c.name || "Unknown"}</div>
+                          <div style={{ fontSize: 12, color: "#999" }}>{c.company || "—"}</div>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          </>
+        )}
 
-        {selectedEventId && eventContacts.length > 10 && (
+        {bulkTargetMode === "event" && selectedEventId && eventContacts.length > 10 && (
           <p
             style={{
               fontSize: 14,
@@ -458,23 +782,39 @@ export default function SequencesPage() {
 
         <button
           type="button"
-          disabled={bulkGenerating || !selectedEventId || eventContacts.length === 0}
+          disabled={
+            bulkGenerating ||
+            (bulkTargetMode === "event" && (!selectedEventId || eventContacts.length === 0)) ||
+            (bulkTargetMode === "contact" && !selectedBulkContact)
+          }
           onClick={() => void handleBulkGenerate()}
           style={{
             width: "100%",
-            background: !selectedEventId || eventContacts.length === 0 ? "#ccc" : "#1a3a2a",
+            background:
+              bulkGenerating ||
+              (bulkTargetMode === "event" && (!selectedEventId || eventContacts.length === 0)) ||
+              (bulkTargetMode === "contact" && !selectedBulkContact)
+                ? "#ccc"
+                : "#1a3a2a",
             color: "#fff",
             border: "none",
             borderRadius: 10,
             padding: "14px 20px",
             fontSize: 15,
             fontWeight: 600,
-            cursor: bulkGenerating || !selectedEventId || eventContacts.length === 0 ? "not-allowed" : "pointer",
+            cursor:
+              bulkGenerating ||
+              (bulkTargetMode === "event" && (!selectedEventId || eventContacts.length === 0)) ||
+              (bulkTargetMode === "contact" && !selectedBulkContact)
+                ? "not-allowed"
+                : "pointer",
           }}
         >
           {bulkGenerating
             ? "Generating sequences…"
-            : `Generate Sequence for ${selectedEventId ? selectedEventName : "…"}`}
+            : bulkTargetMode === "event"
+              ? `Generate Sequence for ${selectedEventId ? selectedEventName : "…"}`
+              : `Generate Sequence for ${selectedBulkContact?.name?.trim() || "…"}`}
         </button>
         {bulkGenerating && bulkProgress && (
           <p style={{ fontSize: 14, color: "#666", marginTop: 12, marginBottom: 0 }}>
@@ -495,7 +835,7 @@ export default function SequencesPage() {
             {bulkError}
           </p>
         )}
-        {selectedEventId && eventContacts.length === 0 && (
+        {bulkTargetMode === "event" && selectedEventId && eventContacts.length === 0 && (
           <p style={{ fontSize: 13, color: "#999", marginTop: 10 }}>No contacts tagged to this event yet.</p>
         )}
       </div>
@@ -530,24 +870,64 @@ export default function SequencesPage() {
                       <div style={{ fontWeight: 600, color: "#111", fontSize: 14 }}>{row.name}</div>
                       <div style={{ fontSize: 12, color: "#999" }}>{row.company ?? "—"}</div>
                     </div>
-                    <span style={{ fontSize: 12, color: "#666" }}>{row.emails.length} emails</span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setBulkViewExpanded((p) => ({ ...p, [row.contactId]: !open }))
-                      }
+                    <div
                       style={{
-                        background: "#f5f5f5",
-                        border: "1px solid #e8e8e8",
-                        borderRadius: 8,
-                        padding: "6px 12px",
-                        fontSize: 12,
-                        fontWeight: 500,
-                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        flexShrink: 0,
                       }}
                     >
-                      {open ? "Hide" : "View"}
-                    </button>
+                      <span style={{ fontSize: 12, color: "#666" }}>{row.emails.length} emails</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setBulkViewExpanded((p) => ({ ...p, [row.contactId]: !open }))
+                        }
+                        style={{
+                          background: "#f5f5f5",
+                          border: "1px solid #e8e8e8",
+                          borderRadius: 8,
+                          padding: "6px 12px",
+                          fontSize: 12,
+                          fontWeight: 500,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {open ? "Hide" : "View"}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSequence(row.contactId, row.name || "")}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = "#e55a5a")}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = "#ccc")}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          padding: "4px 6px",
+                          borderRadius: 4,
+                          color: "#ccc",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                      >
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6l-1 14H6L5 6" />
+                          <path d="M10 11v6M14 11v6" />
+                          <path d="M9 6V4h6v2" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                   {open && (
                     <div style={{ padding: 16 }}>
@@ -693,6 +1073,37 @@ export default function SequencesPage() {
 
       <div>
         <h2 style={{ fontSize: 17, fontWeight: 700, color: "#111", margin: "0 0 14px" }}>Saved Sequences</h2>
+        {savedBulkSelectedIds.size > 0 && (
+          <div
+            style={{
+              background: "#fff",
+              border: "1px solid #ebebeb",
+              borderRadius: 8,
+              padding: "10px 16px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 12,
+            }}
+          >
+            <span style={{ fontSize: 13, color: "#111" }}>{savedBulkSelectedIds.size} selected</span>
+            <button
+              type="button"
+              onClick={() => void handleSavedBulkDeleteSelected()}
+              style={{
+                background: "#fff",
+                border: "1px solid #fde8e8",
+                color: "#e55a5a",
+                fontSize: 12,
+                padding: "6px 14px",
+                borderRadius: 8,
+                cursor: "pointer",
+              }}
+            >
+              Delete selected
+            </button>
+          </div>
+        )}
         {dataLoading ? (
           <p style={{ color: "#999", fontSize: 14 }}>Loading…</p>
         ) : savedByEvent.length === 0 ? (
@@ -711,34 +1122,73 @@ export default function SequencesPage() {
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {savedByEvent.map(([eid, { name, list }]) => {
-              const key = eid;
-              const open = savedExpandedEvents.has(key);
+            {savedByEvent.map(({ groupKey, headerLabel, list }) => {
+              const open = headerLabel === null ? true : savedExpandedEvents.has(groupKey);
               return (
                 <div
-                  key={key}
+                  key={groupKey}
                   style={{ border: "1px solid #ebebeb", borderRadius: 12, background: "#fff", overflow: "hidden" }}
                 >
-                  <button
-                    type="button"
-                    onClick={() => toggleSavedEvent(key)}
-                    style={{
-                      width: "100%",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      padding: "14px 16px",
-                      background: open ? "#fafafa" : "#fff",
-                      border: "none",
-                      cursor: "pointer",
-                      textAlign: "left",
-                    }}
-                  >
-                    <span style={{ fontWeight: 600, color: "#111", fontSize: 15 }}>{name}</span>
-                    <span style={{ fontSize: 13, color: "#666" }}>{list.length} contact{list.length !== 1 ? "s" : ""}</span>
-                  </button>
-                  {open && (
-                    <div style={{ borderTop: "1px solid #f0f0f0" }}>
+                  {headerLabel !== null && (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        padding: "14px 16px",
+                        background: open ? "#fafafa" : "#fff",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        ref={(el) => {
+                          if (!el) return;
+                          const allSelected = list.length > 0 && list.every((c) => savedBulkSelectedIds.has(c.id));
+                          const someSelected = list.some((c) => savedBulkSelectedIds.has(c.id));
+                          el.indeterminate = someSelected && !allSelected;
+                        }}
+                        checked={list.length > 0 && list.every((c) => savedBulkSelectedIds.has(c.id))}
+                        onChange={() => {
+                          setSavedBulkSelectedIds((prev) => {
+                            const n = new Set(prev);
+                            const allSelected = list.every((c) => n.has(c.id));
+                            if (allSelected) list.forEach((c) => n.delete(c.id));
+                            else list.forEach((c) => n.add(c.id));
+                            return n;
+                          });
+                        }}
+                        style={{ flexShrink: 0, width: 16, height: 16, cursor: "pointer" }}
+                        aria-label="Select all contacts in this group"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => toggleSavedEvent(groupKey)}
+                        style={{
+                          flex: 1,
+                          minWidth: 0,
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          background: "transparent",
+                          border: "none",
+                          cursor: "pointer",
+                          textAlign: "left",
+                          padding: 0,
+                        }}
+                      >
+                        <span style={{ fontWeight: 600, color: "#111", fontSize: 15 }}>{headerLabel}</span>
+                        <span style={{ fontSize: 13, color: "#666" }}>
+                          {list.length} contact{list.length !== 1 ? "s" : ""}
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                  {(headerLabel === null || open) && (
+                    <div
+                      style={{
+                        borderTop: headerLabel !== null ? "1px solid #f0f0f0" : "none",
+                      }}
+                    >
                       {list.map((c) => {
                         const seq = c.sequences!;
                         const n = seq.emails.length;
@@ -753,12 +1203,26 @@ export default function SequencesPage() {
                                 padding: "12px 16px",
                               }}
                             >
-                              <Avatar name={c.name ?? ''} size="sm" />
+                              <input
+                                type="checkbox"
+                                checked={savedBulkSelectedIds.has(c.id)}
+                                onChange={() => {
+                                  setSavedBulkSelectedIds((prev) => {
+                                    const n = new Set(prev);
+                                    if (n.has(c.id)) n.delete(c.id);
+                                    else n.add(c.id);
+                                    return n;
+                                  });
+                                }}
+                                style={{ flexShrink: 0, width: 16, height: 16, cursor: "pointer" }}
+                                aria-label={`Select ${c.name || "contact"}`}
+                              />
+                              <Avatar name={c.name ?? ""} size="sm" />
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontWeight: 600, fontSize: 14, color: "#111" }}>{c.name}</div>
                                 <div style={{ fontSize: 12, color: "#999" }}>{c.company ?? "—"}</div>
                               </div>
-                              <span style={{ fontSize: 12, color: "#666" }}>{n} emails</span>
+                              <span style={{ fontSize: 12, color: "#666", flexShrink: 0 }}>{n} emails</span>
                               <button
                                 type="button"
                                 onClick={() =>
@@ -771,9 +1235,31 @@ export default function SequencesPage() {
                                   padding: "6px 12px",
                                   fontSize: 12,
                                   cursor: "pointer",
+                                  flexShrink: 0,
                                 }}
                               >
                                 {vOpen ? "Hide" : "View"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteSequence(c.id, c.name || "")}
+                                onMouseEnter={(e) => (e.currentTarget.style.color = "#e55a5a")}
+                                onMouseLeave={(e) => (e.currentTarget.style.color = "#ccc")}
+                                style={{
+                                  background: "none",
+                                  border: "none",
+                                  cursor: "pointer",
+                                  color: "#ccc",
+                                  padding: "2px 6px",
+                                  borderRadius: 4,
+                                  fontSize: 18,
+                                  lineHeight: 1,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  flexShrink: 0,
+                                }}
+                              >
+                                <span style={{ fontSize: 16, lineHeight: 1 }}>×</span>
                               </button>
                             </div>
                             {vOpen && (

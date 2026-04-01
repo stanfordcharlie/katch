@@ -835,35 +835,6 @@ export default function EventsPage() {
           </p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {!isMobile && <button
-            type="button"
-            onClick={() => {
-              const visibleIds = events.map((e) => e.id);
-              const allSelected =
-                visibleIds.length > 0 && visibleIds.every((id: string) => selectedIds.includes(id));
-              if (allSelected) {
-                setSelectedIds((prev) => prev.filter((id) => !visibleIds.includes(id)));
-              } else {
-                setSelectedIds(visibleIds);
-              }
-            }}
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "#1a3a2a",
-              fontSize: 14,
-              fontWeight: 500,
-              cursor: "pointer",
-              padding: "8px 12px",
-            }}
-          >
-            {(() => {
-              const visibleIds = events.map((e) => e.id);
-              const allSelected =
-                visibleIds.length > 0 && visibleIds.every((id: string) => selectedIds.includes(id));
-              return allSelected ? "Deselect all" : "Select all";
-            })()}
-          </button>}
           <button
             type="button"
             onClick={() => {
