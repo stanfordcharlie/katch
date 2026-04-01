@@ -209,8 +209,8 @@ export function TopBar({
 
   if (isMobile) return null;
 
-  const left = sidebarCollapsed ? "64px" : "230px";
-  const barWidth = sidebarCollapsed ? "calc(100% - 64px)" : "calc(100% - 230px)";
+  const left = sidebarCollapsed ? "64px" : "200px";
+  const barWidth = sidebarCollapsed ? "calc(100% - 64px)" : "calc(100% - 200px)";
 
   return (
     <header

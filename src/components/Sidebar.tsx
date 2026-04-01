@@ -66,18 +66,13 @@ function getTourId(label: string): string | undefined {
   return map[label];
 }
 
-export function Sidebar({
-  user,
-  collapsed,
-  onCollapsedChange,
-  isMobile,
-}: {
-  user: User;
-  collapsed: boolean;
-  onCollapsedChange: (collapsed: boolean) => void;
-  isMobile: boolean;
-}) {
+export function Sidebar({ user, isMobile }: { user: User; isMobile: boolean }) {
   const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const saved = localStorage.getItem("sidebarCollapsed");
+    return saved === "true";
+  });
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState(() => getDisplayName(user));
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -153,11 +148,16 @@ export function Sidebar({
   }
 
   return (
-    <aside style={{ width: collapsed ? 64 : 230, flexShrink: 0, position: "fixed", left: 0, top: 0, bottom: 0, backgroundColor: "#ffffff", borderRight: "1px solid #ebebeb", display: "flex", flexDirection: "column", zIndex: 30, transition: "width 0.2s ease" }}>
+    <aside style={{ width: collapsed ? 64 : 200, flexShrink: 0, position: "fixed", left: 0, top: 0, bottom: 0, backgroundColor: "#ffffff", borderRight: "1px solid #ebebeb", display: "flex", flexDirection: "column", zIndex: 30, transition: "width 0.2s ease" }}>
       <button
         type="button"
         title={collapsed ? "Expand navigation" : "Collapse navigation"}
-        onClick={() => onCollapsedChange(!collapsed)}
+        onClick={() => {
+          const newValue = !collapsed;
+          setCollapsed(newValue);
+          localStorage.setItem("sidebarCollapsed", String(newValue));
+          window.dispatchEvent(new Event("sidebarToggle"));
+        }}
         style={{
           position: "absolute",
           right: -12,

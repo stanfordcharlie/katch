@@ -15,13 +15,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [showTour, setShowTour] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("katch_sidebar_collapsed");
-      return stored !== null ? stored === "true" : true;
-    }
-    return true;
-  });
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -31,8 +25,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("katch_sidebar_collapsed", sidebarCollapsed ? "true" : "false");
-  }, [sidebarCollapsed]);
+    const saved = localStorage.getItem("sidebarCollapsed");
+    setIsCollapsed(saved === "true");
+    const onSidebarToggle = () => {
+      const s = localStorage.getItem("sidebarCollapsed");
+      setIsCollapsed(s === "true");
+    };
+    window.addEventListener("sidebarToggle", onSidebarToggle);
+    return () => window.removeEventListener("sidebarToggle", onSidebarToggle);
+  }, []);
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -104,13 +105,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       )}
-      <Sidebar
-        user={user}
-        collapsed={sidebarCollapsed}
-        onCollapsedChange={setSidebarCollapsed}
-        isMobile={isMobile}
-      />
-      {!isMobile && <TopBar sidebarCollapsed={sidebarCollapsed} isMobile={isMobile} user={user} />}
+      <Sidebar user={user} isMobile={isMobile} />
+      {!isMobile && <TopBar sidebarCollapsed={isCollapsed} isMobile={isMobile} user={user} />}
       <main
         style={{
           boxSizing: "border-box",
@@ -122,9 +118,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 transition: "margin-left 0.2s ease, width 0.2s ease",
               }
             : {
-                marginLeft: sidebarCollapsed ? "64px" : "230px",
-                transition: "margin-left 0.2s ease, width 0.2s ease",
-                width: sidebarCollapsed ? "calc(100% - 64px)" : "calc(100% - 230px)",
+                marginLeft: isCollapsed ? 64 : 200,
+                transition: "margin-left 0.2s ease",
+                width: isCollapsed ? "calc(100% - 64px)" : "calc(100% - 200px)",
               }),
           paddingTop: isMobile ? 48 : 56,
           paddingBottom: isMobile ? 80 : 0,

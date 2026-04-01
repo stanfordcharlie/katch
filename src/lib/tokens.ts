@@ -95,7 +95,7 @@ export const shadow = {
 };
 
 export const layout = {
-  sidebarExpanded:    '230px',
+  sidebarExpanded:    '200px',
   sidebarCollapsed:   '64px',
   mobileNavHeight:    '64px',
   mobileTopBar:       '56px',
