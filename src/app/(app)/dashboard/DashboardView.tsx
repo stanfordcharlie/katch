@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { User } from "@supabase/supabase-js";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { jsPDF } from "jspdf";
 import { supabase } from "@/lib/supabase";
 import { NOTE_CHECKS } from "@/lib/katch-constants";
 
@@ -19,10 +20,21 @@ export type DashboardViewProps =
   | { mode: "overview" }
   | { mode: "event"; eventId: string };
 
+function safeDashboardPdfName(name: string): string {
+  const s = name
+    .trim()
+    .replace(/[/\\?%*:|"<>]/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 60);
+  return s || "Event";
+}
+
 export function DashboardView(props: DashboardViewProps) {
   const router = useRouter();
   const isOverview = props.mode === "overview";
   const scopedEventId = props.mode === "event" ? props.eventId : null;
+  const [pdfGenerating, setPdfGenerating] = useState(false);
 
   const [user, setUser] = useState<User | null>(null);
   const [contacts, setContacts] = useState<any[]>([]);
@@ -41,7 +53,6 @@ export function DashboardView(props: DashboardViewProps) {
     warm: 0,
     avg: 0,
   });
-  const [barHeights, setBarHeights] = useState<number[]>([]);
   const [isMobile, setIsMobile] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -158,10 +169,7 @@ export function DashboardView(props: DashboardViewProps) {
     }).length,
   }));
 
-  const maxBucketCount = Math.max(
-    ...scoreBuckets.map((b) => b.count),
-    1
-  );
+  const chartMaxCount = Math.max(0, ...scoreBuckets.map((b) => b.count));
 
   useEffect(() => {
     if (!contacts.length) return;
@@ -189,15 +197,231 @@ export function DashboardView(props: DashboardViewProps) {
     requestAnimationFrame(frame);
   }, [contacts.length, filteredContacts.length, hotContacts.length, warmContacts.length, avgScore]);
 
-  useEffect(() => {
-    if (!scoreBuckets.length) return;
-    const heights = scoreBuckets.map((b) => {
-      if (b.count === 0) return 3;
-      const pct = (b.count / maxBucketCount) * 100;
-      return Math.max(pct, 8);
-    });
-    setBarHeights(heights);
-  }, [contacts.length, maxBucketCount]);
+  const handleDownloadPDF = useCallback(() => {
+    if (loading) return;
+    setPdfGenerating(true);
+    try {
+      const W = 841;
+      const pdf = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+
+      const bucketDefs = [
+        { label: "1-2", min: 1, max: 2, color: "#e55a5a" },
+        { label: "3-4", min: 3, max: 4, color: "#f0a050" },
+        { label: "5-6", min: 5, max: 6, color: "#f0c040" },
+        { label: "7-8", min: 7, max: 8, color: "#7dde3c" },
+        { label: "9-10", min: 9, max: 10, color: "#2d6a1f" },
+      ];
+      const buckets = bucketDefs.map((b) => ({
+        ...b,
+        count: filteredContacts.filter((c) => {
+          const s = Number(c.lead_score) || 0;
+          return s >= b.min && s <= b.max;
+        }).length,
+      }));
+      const chartMax = Math.max(0, ...buckets.map((b) => b.count));
+
+      const total = filteredContacts.length;
+      const hotN = filteredContacts.filter((c) => (Number(c.lead_score) || 0) >= 8).length;
+      const warmN = filteredContacts.filter((c) => {
+        const s = Number(c.lead_score) || 0;
+        return s >= 5 && s <= 7;
+      }).length;
+      const avg =
+        total > 0
+          ? filteredContacts.reduce((sum, c) => sum + (Number(c.lead_score) || 0), 0) / total
+          : 0;
+      const avgStr = avg % 1 === 0 ? String(Math.round(avg)) : avg.toFixed(1);
+
+      const recentFive = [...filteredContacts]
+        .sort((a, b) => {
+          const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return tb - ta;
+        })
+        .slice(0, 5);
+
+      const eventTitle =
+        props.mode === "overview" ? "All events" : currentEvent?.name || "Event";
+      const today = new Date();
+      const dateHeader = today.toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+      const dateFooter = today.toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      });
+
+      const hexRgb = (hex: string) => {
+        const h = hex.replace("#", "");
+        return {
+          r: parseInt(h.slice(0, 2), 16),
+          g: parseInt(h.slice(2, 4), 16),
+          b: parseInt(h.slice(4, 6), 16),
+        };
+      };
+
+      pdf.setFillColor(26, 58, 42);
+      pdf.rect(0, 0, W, 80, "F");
+
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(24);
+      pdf.setFont("helvetica", "bold");
+      pdf.text(eventTitle, 40, 48);
+
+      pdf.setFontSize(11);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(179, 179, 179);
+      pdf.text("Lead Pipeline Report", 40, 65);
+      pdf.text(dateHeader, 801, 65, { align: "right" });
+
+      const cardW = 180;
+      const cardH = 72;
+      const gap = 16;
+      const cardY = 100;
+      const cards: { label: string; value: string }[] = [
+        { label: "TOTAL CONTACTS", value: String(total) },
+        { label: "HOT LEADS", value: String(hotN) },
+        { label: "WARM LEADS", value: String(warmN) },
+        { label: "AVG SCORE", value: avgStr },
+      ];
+      cards.forEach((card, i) => {
+        const x = 40 + i * (cardW + gap);
+        pdf.setDrawColor(235, 235, 235);
+        pdf.setFillColor(255, 255, 255);
+        pdf.roundedRect(x, cardY, cardW, cardH, 4, 4, "FD");
+        pdf.setTextColor(153, 153, 153);
+        pdf.setFontSize(9);
+        pdf.setFont("helvetica", "normal");
+        pdf.text(card.label, x + 12, cardY + 22);
+        pdf.setTextColor(17, 17, 17);
+        pdf.setFontSize(28);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(card.value, x + 12, cardY + 52);
+      });
+
+      const chartLeft = 40;
+      const chartTop = 235;
+      const chartW = 480;
+      const chartH = 200;
+      const baselineY = chartTop + chartH - 20;
+      const maxBarH = 120;
+      const barW = 56;
+      const barGap = 24;
+
+      pdf.setTextColor(153, 153, 153);
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "normal");
+      pdf.text("LEAD SCORE DISTRIBUTION", chartLeft, 220);
+
+      buckets.forEach((b, i) => {
+        const bx = chartLeft + i * (barW + barGap);
+        let barH = 0;
+        if (b.count > 0 && chartMax > 0) {
+          barH = Math.max((b.count / chartMax) * maxBarH, 4);
+        }
+        const { r, g, b: bl } = hexRgb(b.color);
+        pdf.setFillColor(r, g, bl);
+        pdf.rect(bx, baselineY - barH, barW, barH, "F");
+
+        pdf.setTextColor(17, 17, 17);
+        pdf.setFontSize(11);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(String(b.count), bx + barW / 2, baselineY - barH - 8, { align: "center" });
+
+        pdf.setTextColor(153, 153, 153);
+        pdf.setFontSize(9);
+        pdf.setFont("helvetica", "normal");
+        pdf.text(b.label, bx + barW / 2, baselineY + 14, { align: "center" });
+      });
+
+      const actX = 560;
+      const actW = 260;
+      pdf.setTextColor(153, 153, 153);
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "normal");
+      pdf.text("RECENT ACTIVITY", actX, 220);
+
+      let rowY = 240;
+      recentFive.forEach((c) => {
+        const score = Number(c.lead_score) || 0;
+        let br = 240,
+          bg = 240,
+          bb = 240;
+        let fr = 17,
+          fg = 17,
+          fb = 17;
+        if (score >= 8) {
+          br = 240;
+          bg = 247;
+          bb = 235;
+          fr = 45;
+          fg = 106;
+          fb = 31;
+        } else if (score >= 5) {
+          br = 255;
+          bg = 243;
+          bb = 235;
+          fr = 176;
+          fg = 112;
+          fb = 32;
+        } else if (score > 0) {
+          br = 253;
+          bg = 232;
+          bb = 232;
+          fr = 229;
+          fg = 90;
+          fb = 90;
+        }
+
+        pdf.setTextColor(17, 17, 17);
+        pdf.setFontSize(11);
+        pdf.setFont("helvetica", "normal");
+        const nameStr = (c.name || "Untitled contact").slice(0, 28);
+        pdf.text(nameStr, actX, rowY);
+
+        pdf.setTextColor(153, 153, 153);
+        pdf.setFontSize(9);
+        const co = ((c.company as string) || "—").slice(0, 32);
+        pdf.text(co, actX, rowY + 14);
+
+        const badgeX = actX + actW - 36;
+        pdf.setFillColor(br, bg, bb);
+        pdf.roundedRect(badgeX, rowY - 10, 28, 16, 3, 3, "F");
+        pdf.setTextColor(fr, fg, fb);
+        pdf.setFontSize(9);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(String(score), badgeX + 14, rowY + 3, { align: "center" });
+
+        rowY += 42;
+      });
+
+      pdf.setDrawColor(230, 230, 230);
+      pdf.setLineWidth(0.5);
+      pdf.line(40, 560, 801, 560);
+      pdf.setTextColor(153, 153, 153);
+      pdf.setFontSize(8);
+      pdf.setFont("helvetica", "normal");
+      pdf.text("Generated by Katch", 40, 575);
+      pdf.text(dateFooter, 801, 575, { align: "right" });
+
+      const eventSegment =
+        props.mode === "overview"
+          ? "All-events"
+          : safeDashboardPdfName(currentEvent?.name || "Event");
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const filename = `${eventSegment}-dashboard-${dateStr}.pdf`;
+      pdf.save(filename);
+    } catch (e) {
+      console.error("Dashboard PDF export failed:", e);
+    } finally {
+      setPdfGenerating(false);
+    }
+  }, [loading, props.mode, currentEvent?.name, filteredContacts]);
 
   if (!user) return <div className="min-h-screen" style={{ backgroundColor: "#f4f4f2" }} />;
 
@@ -400,8 +624,20 @@ export function DashboardView(props: DashboardViewProps) {
             >
               Your lead pipeline at a glance.
             </p>
-            {isOverview && events.length > 0 && (
-              <div style={{ marginTop: isMobile ? 14 : 0, position: isMobile ? "static" : "absolute", top: 0, right: 0 }}>
+            <div
+              style={{
+                marginTop: isMobile ? 14 : 0,
+                position: isMobile ? "static" : "absolute",
+                top: 0,
+                right: 0,
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                flexWrap: "wrap",
+                justifyContent: isMobile ? "flex-start" : "flex-end",
+              }}
+            >
+              {isOverview && events.length > 0 && (
                 <div
                   style={{
                     position: "relative",
@@ -469,8 +705,25 @@ export function DashboardView(props: DashboardViewProps) {
                     </svg>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+              <button
+                type="button"
+                disabled={loading || pdfGenerating}
+                onClick={() => void handleDownloadPDF()}
+                style={{
+                  background: "#fff",
+                  border: "1px solid #e8e8e8",
+                  color: "#111",
+                  fontSize: 13,
+                  padding: "8px 16px",
+                  borderRadius: 8,
+                  cursor: loading || pdfGenerating ? "default" : "pointer",
+                  opacity: loading || pdfGenerating ? 0.75 : 1,
+                }}
+              >
+                {pdfGenerating ? "Generating..." : "Download PDF"}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -945,93 +1198,81 @@ export function DashboardView(props: DashboardViewProps) {
                   </p>
                   <div
                     style={{
-                      position: "relative",
-                      height: isMobile ? 100 : 160,
-                      marginBottom: 28,
+                      display: "flex",
+                      flexDirection: "row",
+                      gap: 8,
+                      alignItems: "flex-end",
+                      justifyContent: "space-between",
                     }}
                   >
-                    {[0.25, 0.5, 0.75].map((r) => (
-                      <div
-                        key={r}
-                        style={{
-                          position: "absolute",
-                          insetInline: 0,
-                          top: `${r * 100}%`,
-                          borderTop: "1px dashed #f0f0f0",
-                        }}
-                      />
-                    ))}
-                    <div
-                      style={{
-                        position: "absolute",
-                        inset: 0,
-                        display: "flex",
-                        alignItems: "flex-end",
-                        gap: 8,
-                        padding: "0 0 28px 0",
-                      }}
-                    >
-                      {scoreBuckets.map((b) => {
-                        const count = b.count;
-                        const maxCount = Math.max(
-                          ...scoreBuckets.map((x) => x.count),
-                          1
-                        );
-                        const heightPct =
-                          filteredContacts.length > 0
-                            ? (count / maxCount) * 100
-                            : 0;
-                        const barHeight =
-                          count === 0 ? "3px" : `${Math.max(heightPct, 8)}%`;
-                        return (
+                    {scoreBuckets.map((b) => {
+                      const barColor: Record<string, string> = {
+                        "1-2": "#e55a5a",
+                        "3-4": "#f0a050",
+                        "5-6": "#f0c040",
+                        "7-8": "#7dde3c",
+                        "9-10": "#2d6a1f",
+                      };
+                      let barHPx = 0;
+                      if (b.count > 0 && chartMaxCount > 0) {
+                        barHPx = Math.max((b.count / chartMaxCount) * 120, 4);
+                      }
+                      return (
+                        <div
+                          key={b.label}
+                          style={{
+                            flex: 1,
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            minWidth: 0,
+                          }}
+                        >
                           <div
-                            key={b.label}
                             style={{
-                              flex: 1,
+                              fontSize: 13,
+                              fontWeight: 600,
+                              color: "#111",
+                              marginBottom: 4,
+                            }}
+                          >
+                            {b.count}
+                          </div>
+                          <div
+                            style={{
+                              height: 140,
+                              width: "100%",
+                              maxWidth: 48,
                               display: "flex",
                               flexDirection: "column",
-                              alignItems: "center",
                               justifyContent: "flex-end",
-                              position: "relative",
+                              alignItems: "center",
                             }}
                           >
                             <div
                               style={{
-                                fontSize: "14px",
-                                fontWeight: 400,
-                                lineHeight: 1.5,
-                                color: "#111111",
-                                marginBottom: 6,
-                              }}
-                            >
-                              {count}
-                            </div>
-                            <div
-                              style={{
+                                display: "block",
                                 width: "100%",
+                                height: `${barHPx}px`,
                                 borderRadius: "6px 6px 0 0",
-                                height: barHeight,
-                                background:
-                                  count > 0
-                                    ? "linear-gradient(to top, #5ab82e, #7dde3c)"
-                                    : "#f0f0ee",
+                                backgroundColor: barColor[b.label] ?? "#ccc",
+                                flexShrink: 0,
                               }}
                             />
-                            <div
-                              style={{
-                                position: "absolute",
-                                bottom: -22,
-                                fontSize: "13px",
-                                fontWeight: 400,
-                                color: "#999",
-                              }}
-                            >
-                              {b.label}
-                            </div>
                           </div>
-                        );
-                      })}
-                    </div>
+                          <div
+                            style={{
+                              fontSize: 11,
+                              color: "#999",
+                              marginTop: 6,
+                              textAlign: "center",
+                            }}
+                          >
+                            {b.label}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </section>
 
