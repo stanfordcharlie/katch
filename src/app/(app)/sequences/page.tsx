@@ -48,6 +48,8 @@ const DEFAULT_CADENCE: CadenceStep[] = [
   { day: 14, tone: "professional" },
 ];
 
+const PER_CONTACT_FETCH_TIMEOUT_MS = 300_000;
+
 export default function SequencesPage() {
   const searchParams = useSearchParams();
   const eventFromUrl = searchParams.get("event");
@@ -61,6 +63,8 @@ export default function SequencesPage() {
   const [cadence, setCadence] = useState<CadenceStep[]>(() => DEFAULT_CADENCE.map((c) => ({ ...c })));
   const [bulkContext, setBulkContext] = useState("");
   const [bulkGenerating, setBulkGenerating] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number } | null>(null);
+  const [bulkError, setBulkError] = useState<string | null>(null);
   const [bulkResults, setBulkResults] = useState<BulkResultRow[] | null>(null);
 
   const [savedExpandedEvents, setSavedExpandedEvents] = useState<Set<string>>(new Set());
@@ -93,7 +97,13 @@ export default function SequencesPage() {
         return;
       }
       const [{ data: contactsData, error: ce }, { data: eventsData, error: ee }] = await Promise.all([
-        supabase.from("contacts").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
+        supabase
+          .from("contacts")
+          .select(
+            "id, name, title, company, email, checks, free_note, ai_enrichment, lead_score, event, sequences, created_at"
+          )
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false }),
         supabase.from("events").select("id, name").eq("user_id", userId).order("created_at", { ascending: false }),
       ]);
       if (!ce && contactsData) setContacts(contactsData as ContactRow[]);
@@ -173,33 +183,134 @@ export default function SequencesPage() {
   const handleBulkGenerate = async () => {
     if (!selectedEventId || eventContacts.length === 0) return;
     setBulkGenerating(true);
-    setBulkResults(null);
+    setBulkError(null);
+    setBulkResults([]);
+    setBulkProgress({ current: 0, total: eventContacts.length });
+
+    const contactsPayload = eventContacts.map((c) => ({
+      id: c.id,
+      name: c.name,
+      title: c.title,
+      company: c.company,
+      email: c.email,
+      checks: c.checks,
+      free_note: c.free_note,
+      ai_enrichment: c.ai_enrichment,
+      lead_score: c.lead_score,
+      event: c.event,
+    }));
+
+    const cadencePayload = cadence.map((c) => ({ day: c.day, tone: c.tone }));
+    const contextTrimmed = bulkContext.trim() || undefined;
+
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const userId = session?.user?.id;
+    if (!userId) {
+      setBulkError("Not signed in.");
+      setBulkGenerating(false);
+      setBulkProgress(null);
+      setBulkResults(null);
+      return;
+    }
+
+    const rows: BulkResultRow[] = [];
+
     try {
-      const res = await fetch("/api/sequence", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contacts: eventContacts,
-          cadence: cadence.map((c) => ({ day: c.day, tone: c.tone })),
-          context: bulkContext.trim() || undefined,
-        }),
-      });
-      const data = await res.json();
-      const raw: { contactId: string; emails: SeqEmail[] }[] = data.results ?? [];
-      const rows: BulkResultRow[] = raw.map((r) => {
-        const c = eventContacts.find((x) => x.id === r.contactId);
-        return {
-          contactId: r.contactId,
-          name: c?.name ?? "Contact",
-          company: c?.company ?? null,
-          emails: r.emails ?? [],
-        };
-      });
-      setBulkResults(rows);
+      for (let i = 0; i < contactsPayload.length; i++) {
+        const c = contactsPayload[i];
+        setBulkProgress({ current: i + 1, total: contactsPayload.length });
+
+        const singleBody = { contact: c, cadence: cadencePayload, context: contextTrimmed };
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), PER_CONTACT_FETCH_TIMEOUT_MS);
+
+        try {
+          const res = await fetch("/api/sequence", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(singleBody),
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
+
+          if (!res.ok) {
+            const errBody = await res.text().catch(() => "(could not read body)");
+            console.log("[sequences bulk] request body (one contact):", JSON.stringify(singleBody));
+            console.log("[sequences bulk] response not ok — contact:", c.id, "status:", res.status, "body:", errBody);
+            rows.push({
+              contactId: c.id,
+              name: eventContacts.find((x) => x.id === c.id)?.name ?? "Contact",
+              company: eventContacts.find((x) => x.id === c.id)?.company ?? null,
+              emails: [],
+            });
+            setBulkResults([...rows]);
+            continue;
+          }
+
+          let data: { contactId?: string; emails?: SeqEmail[] };
+          try {
+            data = (await res.json()) as { contactId?: string; emails?: SeqEmail[] };
+          } catch (parseErr) {
+            console.log("[sequences bulk] request body (one contact):", JSON.stringify(singleBody));
+            console.log("[sequences bulk] JSON parse failed — contact:", c.id, parseErr);
+            rows.push({
+              contactId: c.id,
+              name: eventContacts.find((x) => x.id === c.id)?.name ?? "Contact",
+              company: eventContacts.find((x) => x.id === c.id)?.company ?? null,
+              emails: [],
+            });
+            setBulkResults([...rows]);
+            continue;
+          }
+          const contactId = data.contactId ?? c.id;
+          const emails = data.emails ?? [];
+          rows.push({
+            contactId,
+            name: eventContacts.find((x) => x.id === contactId)?.name ?? "Contact",
+            company: eventContacts.find((x) => x.id === contactId)?.company ?? null,
+            emails,
+          });
+          setBulkResults([...rows]);
+        } catch (e) {
+          clearTimeout(timeoutId);
+          console.log("[sequences bulk] request body (one contact):", JSON.stringify(singleBody));
+          console.log("[sequences bulk] contact failed:", c.id, e);
+          rows.push({
+            contactId: c.id,
+            name: eventContacts.find((x) => x.id === c.id)?.name ?? "Contact",
+            company: eventContacts.find((x) => x.id === c.id)?.company ?? null,
+            emails: [],
+          });
+          setBulkResults([...rows]);
+        }
+      }
+
+      const cadenceToSave = cadence.map((x) => ({ day: x.day, tone: x.tone }));
+      for (const row of rows) {
+        if (row.emails.length === 0) continue;
+        const { error } = await supabase
+          .from("contacts")
+          .update({
+            sequences: {
+              generatedAt: new Date().toISOString(),
+              cadence: cadenceToSave,
+              emails: row.emails,
+              context: contextTrimmed,
+            },
+          })
+          .eq("id", row.contactId)
+          .eq("user_id", userId);
+        if (error) console.error("[sequences bulk] save failed:", row.contactId, error);
+      }
+
+      await fetchData();
     } catch (e) {
-      console.error(e);
-      setBulkResults([]);
+      console.log("[sequences bulk] error:", e);
+      setBulkError(e instanceof Error ? e.message : "Something went wrong.");
     } finally {
+      setBulkProgress(null);
       setBulkGenerating(false);
     }
   };
@@ -247,6 +358,7 @@ export default function SequencesPage() {
           onChange={(e) => {
             setSelectedEventId(e.target.value);
             setBulkResults(null);
+            setBulkError(null);
           }}
         >
           <option value="">Select an event…</option>
@@ -256,6 +368,23 @@ export default function SequencesPage() {
             </option>
           ))}
         </select>
+
+        {selectedEventId && eventContacts.length > 10 && (
+          <p
+            style={{
+              fontSize: 14,
+              color: "#b45309",
+              background: "#fffbeb",
+              border: "1px solid #fcd34d",
+              borderRadius: 10,
+              padding: "12px 14px",
+              marginBottom: 16,
+              lineHeight: 1.45,
+            }}
+          >
+            This will generate sequences for {eventContacts.length} contacts. This may take a few minutes.
+          </p>
+        )}
 
         <p style={{ fontSize: 12, fontWeight: 600, color: "#999", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 10px" }}>
           Cadence
@@ -347,6 +476,25 @@ export default function SequencesPage() {
             ? "Generating sequences…"
             : `Generate Sequence for ${selectedEventId ? selectedEventName : "…"}`}
         </button>
+        {bulkGenerating && bulkProgress && (
+          <p style={{ fontSize: 14, color: "#666", marginTop: 12, marginBottom: 0 }}>
+            Generating {bulkProgress.current} of {bulkProgress.total}…
+          </p>
+        )}
+        {bulkError && (
+          <p
+            role="alert"
+            style={{
+              fontSize: 14,
+              color: "#b91c1c",
+              marginTop: 12,
+              marginBottom: 0,
+              lineHeight: 1.45,
+            }}
+          >
+            {bulkError}
+          </p>
+        )}
         {selectedEventId && eventContacts.length === 0 && (
           <p style={{ fontSize: 13, color: "#999", marginTop: 10 }}>No contacts tagged to this event yet.</p>
         )}

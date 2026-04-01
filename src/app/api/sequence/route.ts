@@ -1,5 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 
+export const maxDuration = 300;
+export const runtime = "nodejs";
+
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export type CadenceStep = { day: number; tone: string };
@@ -65,7 +68,12 @@ async function generateEmailsForContact(
   const ctxLine =
     context && String(context).trim() ? `\nAdditional context from the rep:\n${String(context).trim()}` : "";
 
-  const prompt = `You are an expert B2B sales copywriter. Write a follow-up email sequence for ONE contact.
+  const dayList = cadence.map((s) => s.day).join(", ");
+  const jsonExampleLines = cadence
+    .map((s) => `    { "day": ${s.day}, "subject": "...", "body": "..." }`)
+    .join(",\n");
+
+  const prompt = `You are an expert B2B sales copywriter. Write a complete follow-up email sequence for ONE contact in a single response. Generate ALL ${cadence.length} emails now — one email per cadence step — in one JSON object.
 
 Contact:
 - Name: ${contact.name ?? "Unknown"}
@@ -85,14 +93,15 @@ ${stepsBlock}
 
 Rules:
 - Personalize using name, company, title, and enrichment.
-- Each email must match its step's day number and tone.
+- Each email must use the exact "day" number from its step (${dayList}) and that step's tone.
+- Output exactly ${cadence.length} emails in the same order as the cadence steps.
 - Subjects: compelling, not spammy, under 80 characters when possible.
 - Bodies: plain text, suitable for email, no markdown, sign off professionally.
 
-Return ONLY valid JSON (no markdown fences):
+Return ONLY valid JSON (no markdown fences). Use exactly this structure with your real subject/body text and these day numbers (${dayList}):
 {
   "emails": [
-    { "day": <number matching cadence day>, "subject": "<string>", "body": "<string>" }
+${jsonExampleLines}
   ]
 }`;
 
@@ -113,49 +122,23 @@ Return ONLY valid JSON (no markdown fences):
   }));
 }
 
-/** Legacy single-contact body: spreads contact fields + tone + extra_instructions */
+/** Legacy: flat contact fields + tone + extra_instructions (no contact key) */
 function isLegacyBody(body: Record<string, unknown>): boolean {
-  return !Array.isArray(body.contacts) && typeof body.id === "string";
+  return !Array.isArray(body.contacts) && typeof body.id === "string" && !body.contact;
 }
+
+type SingleRequestBody = {
+  contact?: ContactPayload;
+  contacts?: ContactPayload[];
+  cadence?: CadenceStep[];
+  context?: string;
+  tone?: string;
+  extra_instructions?: string;
+};
 
 export async function POST(req: Request) {
   try {
-    const body = (await req.json()) as Record<string, unknown> & {
-      contacts?: ContactPayload[];
-      cadence?: CadenceStep[];
-      context?: string;
-      tone?: string;
-      extra_instructions?: string;
-    };
-
-    if (Array.isArray(body.contacts) && body.cadence && Array.isArray(body.cadence)) {
-      const contacts = body.contacts as ContactPayload[];
-      const cadence = body.cadence as CadenceStep[];
-      const context = body.context != null ? String(body.context) : "";
-
-      if (contacts.length === 0) {
-        return Response.json({ error: "No contacts provided", results: [] }, { status: 400 });
-      }
-
-      if (cadence.length === 0) {
-        return Response.json({ error: "Cadence must have at least one step", results: [] }, { status: 400 });
-      }
-
-      const results: { contactId: string; emails: { day: number; subject: string; body: string }[] }[] = [];
-
-      for (const c of contacts) {
-        if (!c.id) continue;
-        try {
-          const emails = await generateEmailsForContact(c, cadence, context || undefined);
-          results.push({ contactId: c.id, emails });
-        } catch (e) {
-          console.error("Sequence generation for contact", c.id, e);
-          results.push({ contactId: c.id, emails: [] });
-        }
-      }
-
-      return Response.json({ results });
-    }
+    const body = (await req.json()) as Record<string, unknown> & SingleRequestBody;
 
     if (isLegacyBody(body)) {
       const tone = (body.tone as string) || "professional";
@@ -168,17 +151,40 @@ export async function POST(req: Request) {
       ];
       const emails = await generateEmailsForContact(contact, cadence, extra);
       const legacyEmails = emails.map((e, i) => ({
-        day:
-          i === 0 ? "Day 1-2" : i === 1 ? "Day 5-7" : "Day 12-14",
+        day: i === 0 ? "Day 1-2" : i === 1 ? "Day 5-7" : "Day 12-14",
         subject: e.subject,
         body: e.body,
       }));
       return Response.json({ emails: legacyEmails });
     }
 
-    return Response.json({ error: "Invalid request: expected contacts[] and cadence[]" }, { status: 400 });
+    const cadence = body.cadence;
+    if (!cadence || !Array.isArray(cadence) || cadence.length === 0) {
+      return Response.json({ error: "cadence array required" }, { status: 400 });
+    }
+
+    let contact: ContactPayload | undefined = body.contact;
+    if (!contact && Array.isArray(body.contacts) && body.contacts.length === 1) {
+      contact = body.contacts[0];
+    }
+
+    if (!contact?.id) {
+      return Response.json({ error: "contact object with id required" }, { status: 400 });
+    }
+
+    const context = body.context != null ? String(body.context) : "";
+
+    const emails = await generateEmailsForContact(contact, cadence as CadenceStep[], context || undefined);
+    return Response.json({
+      contactId: contact.id,
+      emails,
+      results: [{ contactId: contact.id, emails }],
+    });
   } catch (e) {
     console.error("/api/sequence error", e);
-    return Response.json({ error: "Sequence generation failed", results: [] }, { status: 500 });
+    return Response.json(
+      { error: "Sequence generation failed", contactId: "", emails: [] as { day: number; subject: string; body: string }[] },
+      { status: 500 }
+    );
   }
 }

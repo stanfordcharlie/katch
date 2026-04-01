@@ -107,6 +107,8 @@ export default function EventsPage() {
   const enrichAbortRef = useRef<AbortController | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [openEventMenuId, setOpenEventMenuId] = useState<string | null>(null);
+  const eventMenuWrapperRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const [eventFormSelectedDate, setEventFormSelectedDate] = useState<Date | null>(null);
   const [eventFormCalendarOpen, setEventFormCalendarOpen] = useState(false);
@@ -132,6 +134,18 @@ export default function EventsPage() {
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
   }, [eventFormCalendarOpen]);
+
+  useEffect(() => {
+    if (openEventMenuId === null) return;
+    const onMouseDown = (e: MouseEvent) => {
+      const el = eventMenuWrapperRefs.current[openEventMenuId];
+      if (el && !el.contains(e.target as Node)) {
+        setOpenEventMenuId(null);
+      }
+    };
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  }, [openEventMenuId]);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -517,6 +531,223 @@ export default function EventsPage() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
+
+  const eventCardMenuPanelStyle: CSSProperties = {
+    position: "absolute",
+    right: 0,
+    top: "100%",
+    zIndex: 50,
+    minWidth: 180,
+    padding: 6,
+    background: "#fff",
+    borderRadius: 10,
+    border: "1px solid #ebebeb",
+    boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
+  };
+
+  const eventCardMenuItemBase: CSSProperties = {
+    width: "100%",
+    height: 36,
+    padding: "0 14px",
+    fontSize: 13,
+    cursor: "pointer",
+    borderRadius: 6,
+    border: "none",
+    background: "transparent",
+    textAlign: "left",
+    display: "flex",
+    alignItems: "center",
+    boxSizing: "border-box",
+  };
+
+  const renderEventOverflowMenu = (ev: any) => (
+    <div
+      ref={(el) => {
+        eventMenuWrapperRefs.current[ev.id] = el;
+      }}
+      style={{ position: "relative", flexShrink: 0 }}
+    >
+      <button
+        type="button"
+        aria-label="More actions"
+        aria-expanded={openEventMenuId === ev.id}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpenEventMenuId((id) => (id === ev.id ? null : ev.id));
+        }}
+        style={{
+          width: 36,
+          height: 36,
+          background: "#f5f5f5",
+          border: "1px solid #e8e8e8",
+          color: "#111",
+          borderRadius: 8,
+          cursor: "pointer",
+          fontSize: 16,
+          lineHeight: 1,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 0,
+        }}
+      >
+        •••
+      </button>
+      {openEventMenuId === ev.id && (
+        <div role="menu" style={eventCardMenuPanelStyle} onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpenEventMenuId(null);
+              router.push("/contacts?event=" + ev.id);
+            }}
+            style={{ ...eventCardMenuItemBase, color: "#111" }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#f5f5f5";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+            }}
+          >
+            View Contacts
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpenEventMenuId(null);
+              router.push("/sequences?event=" + ev.id);
+            }}
+            style={{ ...eventCardMenuItemBase, color: "#111" }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#f5f5f5";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+            }}
+          >
+            Generate Sequences
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpenEventMenuId(null);
+              setEvForm({
+                name: ev.name,
+                date: ev.date || "",
+                type: ev.type || "Conference",
+                location: ev.location || "",
+                notes: ev.notes || "",
+                attendees: ev.attendees || [],
+              });
+              setEditingEvent(ev.id);
+              setShowEventForm(true);
+            }}
+            style={{ ...eventCardMenuItemBase, color: "#111" }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#f5f5f5";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+            }}
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpenEventMenuId(null);
+              exportEventCsv(ev.name);
+            }}
+            style={{ ...eventCardMenuItemBase, color: "#111" }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#f5f5f5";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+            }}
+          >
+            Export CSV
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            disabled={isSyncingEvent === ev.id}
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpenEventMenuId(null);
+              void syncEventToHubSpot(ev.id);
+            }}
+            style={{
+              ...eventCardMenuItemBase,
+              color: "#ff7a59",
+              opacity: isSyncingEvent === ev.id ? 0.85 : 1,
+              cursor: isSyncingEvent === ev.id ? "default" : "pointer",
+              gap: 6,
+            }}
+            onMouseEnter={(e) => {
+              if (isSyncingEvent !== ev.id) e.currentTarget.style.background = "#f5f5f5";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+            }}
+          >
+            {isSyncingEvent === ev.id ? (
+              <>
+                <span
+                  style={{
+                    width: 12,
+                    height: 12,
+                    border: "2px solid #ffd4c2",
+                    borderTopColor: "#ff7a59",
+                    borderRadius: "50%",
+                    animation: "eventsHubSpotSpin 0.8s linear infinite",
+                    flexShrink: 0,
+                  }}
+                />
+                Syncing...
+              </>
+            ) : (
+              "Sync to HubSpot"
+            )}
+          </button>
+          <div style={{ height: 1, background: "#f0f0f0", margin: "4px 0" }} />
+          <button
+            type="button"
+            role="menuitem"
+            onClick={async (e) => {
+              e.stopPropagation();
+              setOpenEventMenuId(null);
+              const { error } = await supabase.from("events").delete().eq("id", ev.id);
+              if (error) {
+                console.error("Delete event error:", error);
+                return;
+              }
+              setEvents((prev) => prev.filter((row) => row.id !== ev.id));
+              setSelectedIds((prev) => prev.filter((id) => id !== ev.id));
+              showToast("Event deleted", "success");
+            }}
+            style={{ ...eventCardMenuItemBase, color: "#e55a5a" }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#f5f5f5";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+            }}
+          >
+            Delete
+          </button>
+        </div>
+      )}
+    </div>
+  );
 
   if (!user) return <div className="min-h-screen bg-[#f7f7f5]" />;
 
@@ -983,16 +1214,6 @@ export default function EventsPage() {
               : null;
             const metaLine = [dateStr, ev.location || null].filter(Boolean).join(" · ") || "—";
             const contactCount = getContactCount(ev.id);
-            const secondaryBtn: CSSProperties = {
-              background: "#fff",
-              border: "1px solid #e8e8e8",
-              color: "#111",
-              fontSize: 12,
-              padding: "6px 14px",
-              borderRadius: 8,
-              fontWeight: 500,
-              cursor: "pointer",
-            };
 
             return (
               <div
@@ -1118,7 +1339,6 @@ export default function EventsPage() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "flex-end",
-                    flexWrap: "wrap",
                     gap: 8,
                     boxSizing: "border-box",
                   }}
@@ -1143,123 +1363,7 @@ export default function EventsPage() {
                   >
                     View Dashboard
                   </Link>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEvForm({
-                        name: ev.name,
-                        date: ev.date || "",
-                        type: ev.type || "Conference",
-                        location: ev.location || "",
-                        notes: ev.notes || "",
-                        attendees: ev.attendees || [],
-                      });
-                      setEditingEvent(ev.id);
-                      setShowEventForm(true);
-                    }}
-                    style={secondaryBtn}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      router.push("/sequences?event=" + ev.id);
-                    }}
-                    style={secondaryBtn}
-                  >
-                    Generate Sequences
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      router.push("/contacts?event=" + ev.id);
-                    }}
-                    style={secondaryBtn}
-                  >
-                    View Contacts
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      exportEventCsv(ev.name);
-                    }}
-                    style={secondaryBtn}
-                  >
-                    Export CSV
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isSyncingEvent === ev.id}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      void syncEventToHubSpot(ev.id);
-                    }}
-                    style={{
-                      background: "#fff3ee",
-                      border: "1px solid #ffd4c2",
-                      color: "#ff7a59",
-                      fontSize: 12,
-                      padding: "6px 14px",
-                      borderRadius: 8,
-                      fontWeight: 500,
-                      cursor: isSyncingEvent === ev.id ? "default" : "pointer",
-                      opacity: isSyncingEvent === ev.id ? 0.85 : 1,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 6,
-                    }}
-                  >
-                    {isSyncingEvent === ev.id ? (
-                      <>
-                        <span
-                          style={{
-                            width: 12,
-                            height: 12,
-                            border: "2px solid #ffd4c2",
-                            borderTopColor: "#ff7a59",
-                            borderRadius: "50%",
-                            animation: "eventsHubSpotSpin 0.8s linear infinite",
-                            flexShrink: 0,
-                          }}
-                        />
-                        Syncing...
-                      </>
-                    ) : (
-                      "Sync to HubSpot"
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      const { error } = await supabase.from("events").delete().eq("id", ev.id);
-                      if (error) {
-                        console.error("Delete event error:", error);
-                        return;
-                      }
-                      setEvents((prev) => prev.filter((e) => e.id !== ev.id));
-                      setSelectedIds((prev) => prev.filter((id) => id !== ev.id));
-                      showToast("Event deleted", "success");
-                    }}
-                    style={{
-                      background: "#fff",
-                      border: "1px solid #fde8e8",
-                      color: "#e55a5a",
-                      fontSize: 12,
-                      padding: "6px 14px",
-                      borderRadius: 8,
-                      fontWeight: 500,
-                      cursor: "pointer",
-                    }}
-                  >
-                    Delete
-                  </button>
+                  {renderEventOverflowMenu(ev, false)}
                 </div>
               </div>
             );
@@ -1394,186 +1498,38 @@ export default function EventsPage() {
                     </svg>
                   </span>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 8, marginTop: isMobile ? 4 : 0, flexWrap: isMobile ? "wrap" : "nowrap" }}>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEvForm({
-                        name: ev.name,
-                        date: ev.date || "",
-                        type: ev.type || "Conference",
-                        location: ev.location || "",
-                        notes: ev.notes || "",
-                        attendees: ev.attendees || [],
-                      });
-                      setEditingEvent(ev.id);
-                      setShowEventForm(true);
-                    }}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    marginTop: 4,
+                    flexWrap: "nowrap",
+                  }}
+                >
+                  <Link
+                    href={`/dashboard/${ev.id}`}
+                    onClick={(e) => e.stopPropagation()}
                     style={{
-                      background: "#f5f5f5",
-                      color: "#111",
-                      border: "none",
-                      borderRadius: 8,
-                      padding: isMobile ? "6px 10px" : "7px 14px",
-                      fontSize: isMobile ? 12 : 13,
-                      height: isMobile ? 34 : undefined,
-                      fontWeight: 500,
-                      cursor: "pointer",
-                    }}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      router.push("/sequences?event=" + ev.id);
-                    }}
-                    style={{
-                      background: "#fff",
-                      border: "1px solid #e8e8e8",
-                      color: "#111",
+                      background: "#1a3a2a",
+                      color: "#fff",
                       fontSize: 12,
-                      padding: isMobile ? "6px 10px" : "6px 14px",
+                      padding: "8px 14px",
                       borderRadius: 8,
-                      height: isMobile ? 34 : undefined,
-                      fontWeight: 500,
                       cursor: "pointer",
-                    }}
-                  >
-                    Generate Sequences
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      router.push("/contacts?event=" + ev.id);
-                    }}
-                    style={{
-                      background: "#fff",
-                      border: "1px solid #e8e8e8",
-                      color: "#111",
-                      fontSize: 12,
-                      padding: isMobile ? "6px 10px" : "6px 14px",
-                      borderRadius: 8,
-                      height: isMobile ? 34 : undefined,
+                      textDecoration: "none",
                       fontWeight: 500,
-                      cursor: "pointer",
-                    }}
-                  >
-                    View Contacts
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      exportEventCsv(ev.name);
-                    }}
-                    style={{
-                      background: "#f5f5f5",
-                      color: "#111",
-                      border: "none",
-                      borderRadius: 8,
-                      padding: isMobile ? "6px 10px" : "7px 14px",
-                      fontSize: isMobile ? 12 : 13,
-                      height: isMobile ? 34 : undefined,
-                      fontWeight: 500,
-                      cursor: "pointer",
-                    }}
-                  >
-                    Export CSV
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isSyncingEvent === ev.id}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      void syncEventToHubSpot(ev.id);
-                    }}
-                    style={{
-                      background: "#fff3ee",
-                      border: "1px solid #ffd4c2",
-                      color: "#ff7a59",
-                      borderRadius: 8,
-                      padding: isMobile ? "6px 10px" : "8px 14px",
-                      fontSize: isMobile ? 12 : 13,
-                      height: isMobile ? 34 : undefined,
-                      fontWeight: 500,
-                      cursor: isSyncingEvent === ev.id ? "default" : "pointer",
-                      opacity: isSyncingEvent === ev.id ? 0.85 : 1,
                       display: "inline-flex",
                       alignItems: "center",
-                      gap: 6,
+                      justifyContent: "center",
+                      border: "none",
+                      boxSizing: "border-box",
+                      flexShrink: 0,
                     }}
                   >
-                    {isSyncingEvent === ev.id ? (
-                      <>
-                        <span
-                          style={{
-                            width: 12,
-                            height: 12,
-                            border: "2px solid #ffd4c2",
-                            borderTopColor: "#ff7a59",
-                            borderRadius: "50%",
-                            animation: "eventsHubSpotSpin 0.8s linear infinite",
-                            flexShrink: 0,
-                          }}
-                        />
-                        Syncing...
-                      </>
-                    ) : (
-                      <>H  Sync to HubSpot</>
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isParsingListEvent === ev.id}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openImportLeadListPicker(ev.id);
-                    }}
-                    style={{
-                      background: "#fff",
-                      border: "1px solid #e8e8e8",
-                      color: "#111",
-                      borderRadius: 8,
-                      padding: isMobile ? "6px 10px" : "8px 14px",
-                      fontSize: isMobile ? 12 : 13,
-                      height: isMobile ? 34 : undefined,
-                      fontWeight: 500,
-                      cursor: isParsingListEvent === ev.id ? "default" : "pointer",
-                      opacity: isParsingListEvent === ev.id ? 0.85 : 1,
-                    }}
-                  >
-                    {isParsingListEvent === ev.id ? "Parsing list..." : "Import lead list"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      const { error } = await supabase.from("events").delete().eq("id", ev.id);
-                      if (error) {
-                        console.error("Delete event error:", error);
-                        return;
-                      }
-                      setEvents((prev) => prev.filter((e) => e.id !== ev.id));
-                      setSelectedIds((prev) => prev.filter((id) => id !== ev.id));
-                      showToast("Event deleted", "success");
-                    }}
-                    style={{
-                      background: "#ffffff",
-                      border: "1px solid #fde8e8",
-                      color: "#e55a5a",
-                      borderRadius: 8,
-                      padding: isMobile ? "6px 10px" : "6px 14px",
-                      fontSize: isMobile ? 12 : 13,
-                      height: isMobile ? 34 : undefined,
-                      cursor: "pointer",
-                    }}
-                  >
-                    Delete
-                  </button>
+                    View Dashboard
+                  </Link>
+                  {renderEventOverflowMenu(ev, true)}
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
