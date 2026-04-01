@@ -9,9 +9,9 @@ interface Contact {
   id: string;
   name: string | null;
   company: string | null;
+  /** Event row id (FK target), not a PostgREST embed relation name */
   event: string | null;
   lead_score: number | null;
-  events?: { name: string | null } | null;
 }
 
 interface EventRow {
@@ -25,6 +25,8 @@ export default function HomePage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [totalContactsCount, setTotalContactsCount] = useState(0);
+  const [hotLeadsCount, setHotLeadsCount] = useState(0);
   const [events, setEvents] = useState<EventRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -51,10 +53,15 @@ export default function HomePage() {
 
     const load = async () => {
       setLoading(true);
-      const [{ data: contactsData }, { data: eventsData }] = await Promise.all([
+      const [
+        { data: contactsData },
+        { data: eventsData },
+        { count: totalCount },
+        { count: hotCount },
+      ] = await Promise.all([
         supabase
           .from("contacts")
-          .select("*, events(name)")
+          .select("*")
           .eq("user_id", user.id)
           .gte("lead_score", 7)
           .order("lead_score", { ascending: false })
@@ -63,12 +70,22 @@ export default function HomePage() {
           .from("events")
           .select("id,name,date,location")
           .eq("user_id", user.id)
-          .order("date", { ascending: false })
-          .limit(5),
+          .order("date", { ascending: false }),
+        supabase
+          .from("contacts")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", user.id),
+        supabase
+          .from("contacts")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .gte("lead_score", 7),
       ]);
 
       setContacts((contactsData as Contact[]) || []);
       setEvents((eventsData as EventRow[]) || []);
+      setTotalContactsCount(totalCount ?? 0);
+      setHotLeadsCount(hotCount ?? 0);
       setLoading(false);
     };
 
@@ -99,22 +116,26 @@ export default function HomePage() {
     return "Good evening";
   })();
 
-  const totalContacts = contacts.length;
-  const hotLeads = contacts.filter((c) => (c.lead_score ?? 0) >= 8).length;
   const eventsAttended = events.length;
 
-  const recentEvents = events;
+  const recentEvents = events.slice(0, 5);
 
-  const contactsByEventName = new Map<string | null, Contact[]>();
+  const contactsByEventId = new Map<string | null, Contact[]>();
   contacts.forEach((c) => {
     const key = c.event ?? null;
-    if (!contactsByEventName.has(key)) contactsByEventName.set(key, []);
-    contactsByEventName.get(key)!.push(c);
+    if (!contactsByEventId.has(key)) contactsByEventId.set(key, []);
+    contactsByEventId.get(key)!.push(c);
   });
 
-  const hottestScoreForEvent = (eventName: string | null) => {
-    const group = contactsByEventName.get(eventName ?? null) || [];
+  const hottestScoreForEvent = (eventId: string | null) => {
+    const group = contactsByEventId.get(eventId ?? null) || [];
     return group.reduce((max, c) => Math.max(max, c.lead_score ?? 0), 0);
+  };
+
+  const followUpEventLabel = (eventId: string | null) => {
+    if (!eventId) return "—";
+    const name = events.find((e) => e.id === eventId)?.name;
+    return name && name.trim() ? name : "—";
   };
 
   const needsFollowUp = contacts;
@@ -238,8 +259,8 @@ export default function HomePage() {
           }}
         >
           {[
-            { label: "TOTAL SCANNED", value: totalContacts.toString() },
-            { label: "HOT LEADS", value: hotLeads.toString() },
+            { label: "TOTAL SCANNED", value: totalContactsCount.toString() },
+            { label: "HOT LEADS", value: hotLeadsCount.toString() },
             { label: "SEQUENCES SENT", value: "—" },
             { label: "EVENTS ATTENDED", value: eventsAttended.toString() },
           ].map((stat) => (
@@ -529,8 +550,8 @@ export default function HomePage() {
               }}
             >
               {recentEvents.map((ev) => {
-                const eventContacts = contactsByEventName.get(ev.name ?? null) || [];
-                const highest = hottestScoreForEvent(ev.name ?? null);
+                const eventContacts = contactsByEventId.get(ev.id) || [];
+                const highest = hottestScoreForEvent(ev.id);
                 const badge = scoreBadge(highest);
                 return (
                   <div
@@ -748,7 +769,7 @@ export default function HomePage() {
                           color: "#999",
                         }}
                       >
-                        {c.events?.name || "—"}
+                        {followUpEventLabel(c.event)}
                       </div>
                       </div>
                     </div>

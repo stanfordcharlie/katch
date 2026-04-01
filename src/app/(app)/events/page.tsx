@@ -780,7 +780,13 @@ export default function EventsPage() {
                             )}
                           </div>
                           <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: "14px", fontWeight: 600, color: "#111" }}>{ev.name}</div>
+                            <Link
+                              href={`/dashboard/${ev.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                              style={{ fontSize: "14px", fontWeight: 600, color: "#111", textDecoration: "none" }}
+                            >
+                              {ev.name}
+                            </Link>
                             {ev.notes ? (
                               <div
                                 style={{
@@ -1106,7 +1112,23 @@ export default function EventsPage() {
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 0 }}>
-                      <span style={{ flex: 1, minWidth: 0, fontSize: 15, fontWeight: 600, color: "#111", whiteSpace: "normal", overflow: "hidden", textOverflow: "ellipsis" }}>{ev.name}</span>
+                      <Link
+                        href={`/dashboard/${ev.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                          flex: 1,
+                          minWidth: 0,
+                          fontSize: 15,
+                          fontWeight: 600,
+                          color: "#111",
+                          whiteSpace: "normal",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          textDecoration: "none",
+                        }}
+                      >
+                        {ev.name}
+                      </Link>
                       {ev.type && (
                         <span
                           style={{
