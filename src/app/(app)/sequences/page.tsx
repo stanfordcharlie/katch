@@ -605,7 +605,7 @@ export default function SequencesPage() {
                                 padding: "12px 16px",
                               }}
                             >
-                              <Avatar name={c.name} size="sm" />
+                              <Avatar name={c.name ?? ''} size="sm" />
                               <div style={{ flex: 1, minWidth: 0 }}>
                                 <div style={{ fontWeight: 600, fontSize: 14, color: "#111" }}>{c.name}</div>
                                 <div style={{ fontSize: 12, color: "#999" }}>{c.company ?? "—"}</div>
