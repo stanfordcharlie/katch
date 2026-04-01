@@ -679,7 +679,7 @@ export default function SequencesPage() {
                           boxSizing: "border-box",
                         }}
                       >
-                        <Avatar name={c.name} size="sm" />
+                        <Avatar name={c.name ?? ''} size="sm" />
                         <div style={{ minWidth: 0, flex: 1 }}>
                           <div style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>{c.name || "Unknown"}</div>
                           <div style={{ fontSize: 12, color: "#999" }}>{c.company || "—"}</div>
