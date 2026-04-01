@@ -795,7 +795,7 @@ export default function LeadsPage() {
           border: "1px solid #ebebeb",
           borderRadius: 16,
           padding: 32,
-          marginBottom: 24,
+          marginBottom: 16,
           position: "relative",
         }}
       >

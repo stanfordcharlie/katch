@@ -452,7 +452,7 @@ export function DashboardView(props: DashboardViewProps) {
           >
             <button
               type="button"
-              onClick={() => router.push("/dashboard")}
+              onClick={() => router.push("/events")}
               style={{
                 display: "block",
                 margin: "0 auto 16px",
@@ -585,7 +585,7 @@ export function DashboardView(props: DashboardViewProps) {
             {props.mode === "event" && (
               <button
                 type="button"
-                onClick={() => router.push("/dashboard")}
+                onClick={() => router.push("/events")}
                 style={{
                   display: "block",
                   border: "none",

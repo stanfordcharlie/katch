@@ -14,6 +14,58 @@ function getEventThumbnailSrc(type: string | null | undefined): string {
   return "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=300&q=80";
 }
 
+const EVENT_FORM_FIELD_CLASS =
+  "w-full box-border border border-[#e8e8e8] rounded-[8px] bg-white px-[14px] py-[10px] text-[14px] text-[#111] outline-none focus:border-[#1a3a2a]";
+
+function toYmdLocal(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function parseYmdToLocalDate(raw: string): Date | null {
+  if (!raw) return null;
+  const ymd = raw.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return null;
+  const [y, m, d] = ymd.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  if (dt.getFullYear() !== y || dt.getMonth() !== m - 1 || dt.getDate() !== d) return null;
+  return dt;
+}
+
+function formatEventFormDisplayDate(d: Date): string {
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function isSameCalendarDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function isTodayDate(d: Date): boolean {
+  return isSameCalendarDay(d, new Date());
+}
+
+function getCalendarGridCells(viewYear: number, viewMonth: number) {
+  const firstDow = new Date(viewYear, viewMonth, 1).getDay();
+  const nDays = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const prevN = new Date(viewYear, viewMonth, 0).getDate();
+  const cells: { label: number; inCurrentMonth: boolean; date: Date }[] = [];
+  for (let i = 0; i < firstDow; i++) {
+    const day = prevN - firstDow + i + 1;
+    cells.push({ label: day, inCurrentMonth: false, date: new Date(viewYear, viewMonth - 1, day) });
+  }
+  for (let day = 1; day <= nDays; day++) {
+    cells.push({ label: day, inCurrentMonth: true, date: new Date(viewYear, viewMonth, day) });
+  }
+  let n = 1;
+  while (cells.length % 7 !== 0) {
+    cells.push({ label: n, inCurrentMonth: false, date: new Date(viewYear, viewMonth + 1, n) });
+    n++;
+  }
+  return cells;
+}
+
 export default function EventsPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -55,6 +107,31 @@ export default function EventsPage() {
   const enrichAbortRef = useRef<AbortController | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const [eventFormSelectedDate, setEventFormSelectedDate] = useState<Date | null>(null);
+  const [eventFormCalendarOpen, setEventFormCalendarOpen] = useState(false);
+  const [eventFormCalendarView, setEventFormCalendarView] = useState(() => {
+    const n = new Date();
+    return { year: n.getFullYear(), month: n.getMonth() };
+  });
+  const eventDatePickerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!showEventForm) return;
+    const d = evForm.date ? parseYmdToLocalDate(evForm.date) : null;
+    setEventFormSelectedDate(d);
+  }, [showEventForm, editingEvent, evForm.date]);
+
+  useEffect(() => {
+    if (!eventFormCalendarOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (eventDatePickerRef.current && !eventDatePickerRef.current.contains(e.target as Node)) {
+        setEventFormCalendarOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [eventFormCalendarOpen]);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -360,15 +437,21 @@ export default function EventsPage() {
 
   const resetEvForm = () => {
     setEvForm({ name: "", date: "", type: "Conference", location: "", notes: "", attendees: [] });
+    setEventFormSelectedDate(null);
+    setEventFormCalendarOpen(false);
+    const n = new Date();
+    setEventFormCalendarView({ year: n.getFullYear(), month: n.getMonth() });
   };
 
   const handleSaveEvent = async () => {
     if (!evForm.name.trim() || !user?.id) return;
 
+    const dateStr = eventFormSelectedDate ? toYmdLocal(eventFormSelectedDate) : "";
+
     if (editingEvent) {
       const { data, error } = await supabase
         .from("events")
-        .update({ ...evForm, attendees: [] })
+        .update({ ...evForm, date: dateStr, attendees: [] })
         .eq("user_id", user.id)
         .eq("id", editingEvent)
         .select()
@@ -383,7 +466,7 @@ export default function EventsPage() {
     } else {
       const { data, error } = await supabase
         .from("events")
-        .insert({ ...evForm, attendees: [], user_id: user.id })
+        .insert({ ...evForm, date: dateStr, attendees: [], user_id: user.id })
         .select()
         .single();
 
@@ -572,27 +655,206 @@ export default function EventsPage() {
                 value={evForm.name}
                 onChange={(e) => setEvForm((f) => ({ ...f, name: e.target.value }))}
                 placeholder="e.g. SaaStr Annual 2026"
-                className="w-full text-sm text-slate-900 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-slate-400 bg-slate-50"
-                style={{ fontFamily: "Georgia, serif", color: "black", height: isMobile ? 44 : undefined }}
+                className={EVENT_FORM_FIELD_CLASS}
+                style={{ fontFamily: "Inter, sans-serif", height: isMobile ? 44 : undefined }}
               />
             </div>
-            <div>
+            <div ref={eventDatePickerRef} style={{ position: "relative" }}>
               <label className="text-xs text-slate-500 mb-1 block" style={{ fontSize: 13 }}>Date</label>
-              <input
-                type="date"
-                value={evForm.date}
-                onChange={(e) => setEvForm((f) => ({ ...f, date: e.target.value }))}
-                className="w-full text-sm text-slate-900 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-slate-400 bg-slate-50"
-                style={{ fontFamily: "Georgia, serif", color: "black", height: isMobile ? 44 : undefined }}
-              />
+              <div style={{ position: "relative" }}>
+                <input
+                  type="text"
+                  readOnly
+                  value={eventFormSelectedDate ? formatEventFormDisplayDate(eventFormSelectedDate) : ""}
+                  placeholder="Select a date"
+                  onClick={() => {
+                    setEventFormCalendarOpen((prev) => {
+                      const next = !prev;
+                      if (next) {
+                        const base = eventFormSelectedDate ?? new Date();
+                        setEventFormCalendarView({ year: base.getFullYear(), month: base.getMonth() });
+                      }
+                      return next;
+                    });
+                  }}
+                  className={EVENT_FORM_FIELD_CLASS}
+                  style={{
+                    fontFamily: "Inter, sans-serif",
+                    height: isMobile ? 44 : undefined,
+                    paddingRight: 44,
+                    cursor: "pointer",
+                  }}
+                />
+                <button
+                  type="button"
+                  aria-label="Open calendar"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEventFormCalendarOpen((prev) => {
+                      const next = !prev;
+                      if (next) {
+                        const base = eventFormSelectedDate ?? new Date();
+                        setEventFormCalendarView({ year: base.getFullYear(), month: base.getMonth() });
+                      }
+                      return next;
+                    });
+                  }}
+                  style={{
+                    position: "absolute",
+                    right: 4,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    padding: "4px 8px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#999",
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                    <line x1="8" y1="2" x2="8" y2="6" />
+                    <line x1="16" y1="2" x2="16" y2="6" />
+                  </svg>
+                </button>
+              </div>
+              {eventFormCalendarOpen &&
+                (() => {
+                  const { year: vy, month: vm } = eventFormCalendarView;
+                  const headerLabel = new Date(vy, vm, 1).toLocaleDateString("en-US", {
+                    month: "long",
+                    year: "numeric",
+                  });
+                  const cells = getCalendarGridCells(vy, vm);
+                  return (
+                    <div
+                      style={{
+                        position: "absolute",
+                        left: 0,
+                        top: "100%",
+                        marginTop: 8,
+                        width: 280,
+                        zIndex: 100,
+                        background: "#fff",
+                        borderRadius: 12,
+                        border: "1px solid #ebebeb",
+                        boxShadow: "0 4px 24px rgba(0,0,0,0.10)",
+                        padding: 16,
+                      }}
+                    >
+                      <div style={{ display: "flex", flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
+                        <button
+                          type="button"
+                          aria-label="Previous month"
+                          onClick={() => {
+                            setEventFormCalendarView((v) => {
+                              let m = v.month - 1;
+                              let y = v.year;
+                              if (m < 0) {
+                                m = 11;
+                                y -= 1;
+                              }
+                              return { year: y, month: m };
+                            });
+                          }}
+                          style={{ color: "#999", cursor: "pointer", padding: "4px 8px", background: "none", border: "none" }}
+                        >
+                          &lt;
+                        </button>
+                        <div style={{ flex: 1, textAlign: "center", fontWeight: 600, fontSize: 14, color: "#111" }}>
+                          {headerLabel}
+                        </div>
+                        <button
+                          type="button"
+                          aria-label="Next month"
+                          onClick={() => {
+                            setEventFormCalendarView((v) => {
+                              let m = v.month + 1;
+                              let y = v.year;
+                              if (m > 11) {
+                                m = 0;
+                                y += 1;
+                              }
+                              return { year: y, month: m };
+                            });
+                          }}
+                          style={{ color: "#999", cursor: "pointer", padding: "4px 8px", background: "none", border: "none" }}
+                        >
+                          &gt;
+                        </button>
+                      </div>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(7, 1fr)",
+                          marginBottom: 8,
+                        }}
+                      >
+                        {["S", "M", "T", "W", "T", "F", "S"].map((l, i) => (
+                          <div key={`${l}-${i}`} style={{ fontSize: 11, color: "#999", textAlign: "center" }}>
+                            {l}
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
+                        {cells.map((cell, idx) => {
+                          const selected =
+                            eventFormSelectedDate != null && isSameCalendarDay(cell.date, eventFormSelectedDate);
+                          const today = !selected && isTodayDate(cell.date);
+                          return (
+                            <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const ymd = toYmdLocal(cell.date);
+                                  setEventFormSelectedDate(cell.date);
+                                  setEvForm((f) => ({ ...f, date: ymd }));
+                                  setEventFormCalendarOpen(false);
+                                }}
+                                style={{
+                                  width: 32,
+                                  height: 32,
+                                  borderRadius: 8,
+                                  fontSize: 13,
+                                  cursor: "pointer",
+                                  border: "none",
+                                  padding: 0,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  background: selected ? "#1a3a2a" : "transparent",
+                                  color: selected ? "#fff" : cell.inCurrentMonth ? "#111" : "#ccc",
+                                  fontWeight: today ? 700 : 400,
+                                  ...(today && !selected ? { color: "#2d6a1f" } : {}),
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (!selected) e.currentTarget.style.background = "#f5f5f5";
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (!selected) e.currentTarget.style.background = "transparent";
+                                }}
+                              >
+                                {cell.label}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
             </div>
             <div>
               <label className="text-xs text-slate-500 mb-1 block" style={{ fontSize: 13 }}>Type</label>
               <select
                 value={evForm.type}
                 onChange={(e) => setEvForm((f) => ({ ...f, type: e.target.value }))}
-                className="w-full text-sm text-slate-900 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-slate-400 bg-slate-50"
-                style={{ fontFamily: "Georgia, serif", color: "black", height: isMobile ? 44 : undefined }}
+                className={EVENT_FORM_FIELD_CLASS}
+                style={{ fontFamily: "Inter, sans-serif", height: isMobile ? 44 : undefined }}
               >
                 {EVENT_TYPES.map((t) => (
                   <option key={t}>{t}</option>
@@ -606,8 +868,8 @@ export default function EventsPage() {
                 value={evForm.location}
                 onChange={(e) => setEvForm((f) => ({ ...f, location: e.target.value }))}
                 placeholder="e.g. San Francisco, CA"
-                className="w-full text-sm text-slate-900 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-slate-400 bg-slate-50"
-                style={{ fontFamily: "Georgia, serif", color: "black", height: isMobile ? 44 : undefined }}
+                className={EVENT_FORM_FIELD_CLASS}
+                style={{ fontFamily: "Inter, sans-serif", height: isMobile ? 44 : undefined }}
               />
             </div>
           </div>
@@ -618,8 +880,8 @@ export default function EventsPage() {
               onChange={(e) => setEvForm((f) => ({ ...f, notes: e.target.value }))}
               placeholder="Goals, context, booth number..."
               rows={2}
-              className="w-full text-sm text-slate-900 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-slate-400 bg-slate-50 resize-none"
-              style={{ fontFamily: "Georgia, serif", color: "black", minHeight: isMobile ? 44 : undefined }}
+              className={`${EVENT_FORM_FIELD_CLASS} resize-none`}
+              style={{ fontFamily: "Inter, sans-serif", minHeight: isMobile ? 44 : undefined }}
             />
           </div>
           <div className="flex gap-2 pt-1" style={{ flexDirection: isMobile ? "column" : "row" }}>
