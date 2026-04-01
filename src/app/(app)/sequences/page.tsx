@@ -120,7 +120,7 @@ export default function SequencesPage() {
       ]);
       if (!ce && contactsData) setContacts(contactsData as any);
       else setContacts([]);
-      if (!ee && eventsData) setEvents((eventsData || []).map((e: any) => ({ id: String(e.id), name: String(e.name ?? "") })));
+      if (!ee && eventsData) setEvents((eventsData || []).map((e: any) => ({ id: String(e.id), name: String(e.name ?? '') })));
       else setEvents([]);
     } finally {
       setDataLoading(false);
