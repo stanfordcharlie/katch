@@ -151,8 +151,6 @@ export default function SettingsPage() {
   const [defaultTone, setDefaultTone] = useState<string>("professional");
   const [signalInput, setSignalInput] = useState("");
   const [fieldInput, setFieldInput] = useState("");
-  const [signalInputFocused, setSignalInputFocused] = useState(false);
-  const [fieldInputFocused, setFieldInputFocused] = useState(false);
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [activeSection, setActiveSection] = useState<SectionId>("conversation-signals");
@@ -448,8 +446,25 @@ export default function SettingsPage() {
       )}
       <style>{`
         .tabs-scroll::-webkit-scrollbar{display:none}
+        .settings-form-control {
+          font-family: Inter, -apple-system, sans-serif;
+          font-size: 14px;
+          color: #111;
+          border: 1px solid #e8e8e8;
+          border-radius: 8px;
+          padding: 10px 14px;
+          background: #fff;
+          outline: none;
+          width: 100%;
+          box-sizing: border-box;
+        }
+        .settings-form-control:focus {
+          border-color: #1a3a2a;
+        }
         @media (max-width: 767px) {
-          input, select, textarea { min-height: 44px; font-size: 15px; width: 100%; }
+          input.settings-form-control {
+            min-height: 44px;
+          }
         }
       `}</style>
       <div
@@ -463,6 +478,7 @@ export default function SettingsPage() {
           <div>
             <h1
               style={{
+                fontFamily: "Inter, sans-serif",
                 fontSize: isMobile ? 22 : 28,
                 fontWeight: 700,
                 color: "#111",
@@ -589,7 +605,7 @@ export default function SettingsPage() {
                   className="text-lg font-semibold mb-3"
                   style={{
                     color: "#1a2e1a",
-                    fontFamily: "'Playfair Display', serif",
+                    fontFamily: "Inter, sans-serif",
                   }}
                 >
                   Conversation Signals
@@ -626,6 +642,7 @@ export default function SettingsPage() {
                         />
                         <input
                           type="text"
+                          className="settings-form-control"
                           value={signal.name}
                           onChange={(e) => {
                             const value = e.target.value;
@@ -642,13 +659,8 @@ export default function SettingsPage() {
                           style={{
                             flex: 1,
                             minWidth: 0,
-                            border: "none",
-                            background: "transparent",
-                            outline: "none",
-                            fontSize: 14,
-                            color: "#111",
+                            width: "auto",
                             fontWeight: 400,
-                            fontFamily: "'Geist', sans-serif",
                           }}
                         />
                         <button
@@ -699,24 +711,14 @@ export default function SettingsPage() {
                   >
                     <input
                       type="text"
+                      className="settings-form-control"
                       value={signalInput}
                       onChange={(e) => setSignalInput(e.target.value)}
                       placeholder="Add custom signal"
-                      onFocus={() => setSignalInputFocused(true)}
-                      onBlur={() => setSignalInputFocused(false)}
                       style={{
                         flex: isMobile ? undefined : 1,
                         width: isMobile ? "100%" : undefined,
                         minWidth: 0,
-                        background: "#fff",
-                        border: signalInputFocused ? "1px solid #1a3a2a" : "1px solid #ebebeb",
-                        borderRadius: 10,
-                        padding: "12px 16px",
-                        fontSize: 14,
-                        color: "#111",
-                        outline: "none",
-                        boxSizing: "border-box",
-                        minHeight: isMobile ? 44 : undefined,
                       }}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") addSignal();
@@ -783,7 +785,7 @@ export default function SettingsPage() {
                   className="text-lg font-semibold mb-3"
                   style={{
                     color: "#1a2e1a",
-                    fontFamily: "'Playfair Display', serif",
+                    fontFamily: "Inter, sans-serif",
                   }}
                 >
                   Contact Fields
@@ -820,6 +822,7 @@ export default function SettingsPage() {
                         />
                         <input
                           type="text"
+                          className="settings-form-control"
                           value={field.name}
                           onChange={(e) => {
                             const value = e.target.value;
@@ -836,14 +839,8 @@ export default function SettingsPage() {
                           style={{
                             flex: 1,
                             minWidth: 0,
-                            border: "none",
-                            background: "transparent",
-                            outline: "none",
-                            fontSize: 14,
-                            color: "#111",
+                            width: "auto",
                             fontWeight: 400,
-                            fontFamily: "'Geist', sans-serif",
-                            minHeight: isMobile ? 44 : undefined,
                           }}
                         />
                         <button
@@ -896,25 +893,14 @@ export default function SettingsPage() {
                   >
                     <input
                       type="text"
+                      className="settings-form-control"
                       value={fieldInput}
                       onChange={(e) => setFieldInput(e.target.value)}
                       placeholder="Add custom field"
-                      onFocus={() => setFieldInputFocused(true)}
-                      onBlur={() => setFieldInputFocused(false)}
                       style={{
                         flex: isMobile ? undefined : 1,
                         width: isMobile ? "100%" : undefined,
                         minWidth: 0,
-                        background: "#fff",
-                        border: fieldInputFocused ? "1px solid #1a3a2a" : "1px solid #ebebeb",
-                        borderRadius: 10,
-                        padding: "12px 16px",
-                        fontSize: 14,
-                        color: "#111",
-                        outline: "none",
-                        boxSizing: "border-box",
-                        fontFamily: "'Geist', sans-serif",
-                        minHeight: isMobile ? 44 : undefined,
                       }}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") addField();
@@ -981,7 +967,7 @@ export default function SettingsPage() {
                   className="text-lg font-semibold mb-3"
                   style={{
                     color: "#1a2e1a",
-                    fontFamily: "'Playfair Display', serif",
+                    fontFamily: "Inter, sans-serif",
                   }}
                 >
                   Email Tone Defaults
@@ -1083,6 +1069,7 @@ export default function SettingsPage() {
               <section>
                 <h2
                   style={{
+                    fontFamily: "Inter, sans-serif",
                     fontSize: 20,
                     fontWeight: 600,
                     letterSpacing: "-0.02em",
@@ -1220,6 +1207,7 @@ export default function SettingsPage() {
               <section>
                 <h2
                   style={{
+                    fontFamily: "Inter, sans-serif",
                     fontSize: 20,
                     fontWeight: 600,
                     letterSpacing: "-0.02em",
@@ -1263,14 +1251,7 @@ export default function SettingsPage() {
                       }
                       placeholder="e.g. AI-powered sales automation software for B2B SaaS companies"
                       rows={3}
-                      className="w-full px-3 py-2 text-sm rounded border outline-none resize-y"
-                      style={{
-                        borderColor: "#dce8d0",
-                        backgroundColor: "#f0f0ec",
-                        color: "#1a2e1a",
-                        minHeight: isMobile ? 88 : undefined,
-                        fontSize: isMobile ? 15 : undefined,
-                      }}
+                      className="settings-form-control resize-y"
                     />
                   </div>
                   <div>
@@ -1287,14 +1268,7 @@ export default function SettingsPage() {
                       }
                       placeholder="e.g. VP of Sales and CROs at Series A-C SaaS companies with 50-500 employees"
                       rows={3}
-                      className="w-full px-3 py-2 text-sm rounded border outline-none resize-y"
-                      style={{
-                        borderColor: "#dce8d0",
-                        backgroundColor: "#f0f0ec",
-                        color: "#1a2e1a",
-                        minHeight: isMobile ? 88 : undefined,
-                        fontSize: isMobile ? 15 : undefined,
-                      }}
+                      className="settings-form-control resize-y"
                     />
                   </div>
                   <div>
@@ -1311,14 +1285,7 @@ export default function SettingsPage() {
                       }
                       placeholder="e.g. Sales reps waste time on manual data entry and miss follow-ups after events"
                       rows={3}
-                      className="w-full px-3 py-2 text-sm rounded border outline-none resize-y"
-                      style={{
-                        borderColor: "#dce8d0",
-                        backgroundColor: "#f0f0ec",
-                        color: "#1a2e1a",
-                        minHeight: isMobile ? 88 : undefined,
-                        fontSize: isMobile ? 15 : undefined,
-                      }}
+                      className="settings-form-control resize-y"
                     />
                   </div>
 
@@ -1344,19 +1311,12 @@ export default function SettingsPage() {
                     </label>
                     <input
                       type="text"
+                      className="settings-form-control"
                       value={icpProfile.ideal_titles}
                       onChange={(e) =>
                         setIcpProfile((p) => ({ ...p, ideal_titles: e.target.value }))
                       }
                       placeholder="e.g. VP Sales, CRO, Head of Revenue, Sales Director"
-                      className="w-full px-3 py-2 text-sm rounded border outline-none"
-                      style={{
-                        borderColor: "#dce8d0",
-                        backgroundColor: "#f0f0ec",
-                        color: "#1a2e1a",
-                        height: isMobile ? 44 : undefined,
-                        fontSize: isMobile ? 15 : undefined,
-                      }}
                     />
                   </div>
                   <div>
@@ -1368,19 +1328,12 @@ export default function SettingsPage() {
                     </label>
                     <input
                       type="text"
+                      className="settings-form-control"
                       value={icpProfile.ideal_industries}
                       onChange={(e) =>
                         setIcpProfile((p) => ({ ...p, ideal_industries: e.target.value }))
                       }
                       placeholder="e.g. SaaS, Fintech, MarTech, Enterprise Software"
-                      className="w-full px-3 py-2 text-sm rounded border outline-none"
-                      style={{
-                        borderColor: "#dce8d0",
-                        backgroundColor: "#f0f0ec",
-                        color: "#1a2e1a",
-                        height: isMobile ? 44 : undefined,
-                        fontSize: isMobile ? 15 : undefined,
-                      }}
                     />
                   </div>
                   <div>
@@ -1392,19 +1345,12 @@ export default function SettingsPage() {
                     </label>
                     <input
                       type="text"
+                      className="settings-form-control"
                       value={icpProfile.ideal_company_size}
                       onChange={(e) =>
                         setIcpProfile((p) => ({ ...p, ideal_company_size: e.target.value }))
                       }
                       placeholder="e.g. 50-500 employees, Series A to Series C"
-                      className="w-full px-3 py-2 text-sm rounded border outline-none"
-                      style={{
-                        borderColor: "#dce8d0",
-                        backgroundColor: "#f0f0ec",
-                        color: "#1a2e1a",
-                        height: isMobile ? 44 : undefined,
-                        fontSize: isMobile ? 15 : undefined,
-                      }}
                     />
                   </div>
                   <div>
@@ -1421,14 +1367,7 @@ export default function SettingsPage() {
                       }
                       placeholder="e.g. Freelancers, companies under 10 employees, non-tech industries"
                       rows={3}
-                      className="w-full px-3 py-2 text-sm rounded border outline-none resize-y"
-                      style={{
-                        borderColor: "#dce8d0",
-                        backgroundColor: "#f0f0ec",
-                        color: "#1a2e1a",
-                        minHeight: isMobile ? 88 : undefined,
-                        fontSize: isMobile ? 15 : undefined,
-                      }}
+                      className="settings-form-control resize-y"
                     />
                   </div>
 
@@ -1461,14 +1400,7 @@ export default function SettingsPage() {
                         "e.g. Save 3 hours per event on manual data entry\nSync leads to HubSpot instantly\nAI-scored leads so you follow up with the right people first"
                       }
                       rows={4}
-                      className="w-full px-3 py-2 text-sm rounded border outline-none resize-y"
-                      style={{
-                        borderColor: "#dce8d0",
-                        backgroundColor: "#f0f0ec",
-                        color: "#1a2e1a",
-                        minHeight: isMobile ? 120 : undefined,
-                        fontSize: isMobile ? 15 : undefined,
-                      }}
+                      className="settings-form-control resize-y"
                     />
                   </div>
                 </div>

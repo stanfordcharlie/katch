@@ -1442,39 +1442,36 @@ export default function ContactsPage() {
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
-                    ...(h === 'NAME'
+                    ...(i === 0
                       ? {
                           display: 'flex',
                           alignItems: 'center',
+                          justifyContent: 'center',
                         }
                       : {}),
                   }}
                 >
-                  {h === 'NAME' ? (
-                    <>
-                      <input
-                        type='checkbox'
-                        checked={
-                          selectedIds.length === contacts.length &&
-                          contacts.length > 0
-                        }
-                        onChange={(e) =>
-                          e.target.checked
-                            ? setSelectedIds(contacts.map((c) => c.id))
-                            : setSelectedIds([])
-                        }
-                        onClick={(e) => e.stopPropagation()}
-                        style={{
-                          width: 14,
-                          height: 14,
-                          cursor: 'pointer',
-                          accentColor: '#1a3a2a',
-                          marginRight: 8,
-                          flexShrink: 0,
-                        }}
-                      />
-                      {h}
-                    </>
+                  {i === 0 ? (
+                    <input
+                      type='checkbox'
+                      checked={
+                        selectedIds.length === contacts.length &&
+                        contacts.length > 0
+                      }
+                      onChange={(e) =>
+                        e.target.checked
+                          ? setSelectedIds(contacts.map((c) => c.id))
+                          : setSelectedIds([])
+                      }
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        width: 14,
+                        height: 14,
+                        cursor: 'pointer',
+                        accentColor: '#1a3a2a',
+                        flexShrink: 0,
+                      }}
+                    />
                   ) : (
                     h
                   )}
