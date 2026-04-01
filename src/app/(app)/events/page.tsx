@@ -538,17 +538,16 @@ export default function EventsPage() {
     top: "100%",
     zIndex: 50,
     minWidth: 180,
-    padding: 6,
+    padding: 4,
     background: "#fff",
     borderRadius: 10,
-    border: "1px solid #ebebeb",
-    boxShadow: "0 4px 16px rgba(0,0,0,0.10)",
+    border: "1px solid rgba(0,0,0,0.08)",
+    boxShadow: "0 8px 30px rgba(0,0,0,0.12)",
   };
 
   const eventCardMenuItemBase: CSSProperties = {
     width: "100%",
-    height: 36,
-    padding: "0 14px",
+    padding: "7px 12px",
     fontSize: 13,
     cursor: "pointer",
     borderRadius: 6,
@@ -557,10 +556,12 @@ export default function EventsPage() {
     textAlign: "left",
     display: "flex",
     alignItems: "center",
+    gap: 8,
     boxSizing: "border-box",
+    color: "#111",
   };
 
-  const renderEventOverflowMenu = (ev: any) => (
+  const renderEventOverflowMenu = (ev: any, showImportLeadList = false) => (
     <div
       ref={(el) => {
         eventMenuWrapperRefs.current[ev.id] = el;
@@ -576,22 +577,27 @@ export default function EventsPage() {
           setOpenEventMenuId((id) => (id === ev.id ? null : ev.id));
         }}
         style={{
-          width: 36,
-          height: 36,
-          background: "#f5f5f5",
-          border: "1px solid #e8e8e8",
-          color: "#111",
-          borderRadius: 8,
+          background: openEventMenuId === ev.id ? "#e8e8e8" : "transparent",
+          border: "none",
+          borderRadius: 6,
+          padding: "6px 8px",
           cursor: "pointer",
-          fontSize: 16,
-          lineHeight: 1,
-          display: "inline-flex",
+          display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          padding: 0,
+        }}
+        onMouseEnter={(e) => {
+          if (openEventMenuId !== ev.id) e.currentTarget.style.background = "#f0f0f0";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = openEventMenuId === ev.id ? "#e8e8e8" : "transparent";
         }}
       >
-        •••
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <circle cx="3" cy="8" r="1.5" fill="#666" />
+          <circle cx="8" cy="8" r="1.5" fill="#666" />
+          <circle cx="13" cy="8" r="1.5" fill="#666" />
+        </svg>
       </button>
       {openEventMenuId === ev.id && (
         <div role="menu" style={eventCardMenuPanelStyle} onClick={(e) => e.stopPropagation()}>
@@ -603,7 +609,7 @@ export default function EventsPage() {
               setOpenEventMenuId(null);
               router.push("/contacts?event=" + ev.id);
             }}
-            style={{ ...eventCardMenuItemBase, color: "#111" }}
+            style={eventCardMenuItemBase}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "#f5f5f5";
             }}
@@ -621,7 +627,7 @@ export default function EventsPage() {
               setOpenEventMenuId(null);
               router.push("/sequences?event=" + ev.id);
             }}
-            style={{ ...eventCardMenuItemBase, color: "#111" }}
+            style={eventCardMenuItemBase}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "#f5f5f5";
             }}
@@ -648,7 +654,7 @@ export default function EventsPage() {
               setEditingEvent(ev.id);
               setShowEventForm(true);
             }}
-            style={{ ...eventCardMenuItemBase, color: "#111" }}
+            style={eventCardMenuItemBase}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "#f5f5f5";
             }}
@@ -666,7 +672,7 @@ export default function EventsPage() {
               setOpenEventMenuId(null);
               exportEventCsv(ev.name);
             }}
-            style={{ ...eventCardMenuItemBase, color: "#111" }}
+            style={eventCardMenuItemBase}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = "#f5f5f5";
             }}
@@ -676,6 +682,31 @@ export default function EventsPage() {
           >
             Export CSV
           </button>
+          {showImportLeadList ? (
+            <button
+              type="button"
+              role="menuitem"
+              disabled={isParsingListEvent === ev.id}
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpenEventMenuId(null);
+                openImportLeadListPicker(ev.id);
+              }}
+              style={{
+                ...eventCardMenuItemBase,
+                opacity: isParsingListEvent === ev.id ? 0.85 : 1,
+                cursor: isParsingListEvent === ev.id ? "default" : "pointer",
+              }}
+              onMouseEnter={(e) => {
+                if (isParsingListEvent !== ev.id) e.currentTarget.style.background = "#f5f5f5";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+              }}
+            >
+              {isParsingListEvent === ev.id ? "Parsing list..." : "Import lead list"}
+            </button>
+          ) : null}
           <button
             type="button"
             role="menuitem"
@@ -690,7 +721,6 @@ export default function EventsPage() {
               color: "#ff7a59",
               opacity: isSyncingEvent === ev.id ? 0.85 : 1,
               cursor: isSyncingEvent === ev.id ? "default" : "pointer",
-              gap: 6,
             }}
             onMouseEnter={(e) => {
               if (isSyncingEvent !== ev.id) e.currentTarget.style.background = "#f5f5f5";
@@ -718,7 +748,7 @@ export default function EventsPage() {
               "Sync to HubSpot"
             )}
           </button>
-          <div style={{ height: 1, background: "#f0f0f0", margin: "4px 0" }} />
+          <div style={{ margin: "4px 0", borderTop: "1px solid #f0f0f0" }} />
           <button
             type="button"
             role="menuitem"
@@ -1223,7 +1253,7 @@ export default function EventsPage() {
                   borderRadius: 12,
                   border: "1px solid #ebebeb",
                   boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-                  overflow: "hidden",
+                  overflow: "visible",
                   display: "flex",
                   flexDirection: "row",
                   height: 120,
@@ -1363,7 +1393,7 @@ export default function EventsPage() {
                   >
                     View Dashboard
                   </Link>
-                  {renderEventOverflowMenu(ev, false)}
+                  {renderEventOverflowMenu(ev)}
                 </div>
               </div>
             );
