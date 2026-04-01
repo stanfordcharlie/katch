@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import type { User } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -60,19 +60,19 @@ const scoreAccent = (score: number | null | undefined): 'high' | 'mid' | 'low' =
   return 'low';
 };
 
-const CONTACTS_TABLE_GRID_DESKTOP = [
-  '44px',
-  '180px',
-  '160px',
-  '160px',
-  '180px',
-  '100px',
-  '70px',
-  '90px',
-  '110px',
-  '60px',
-].join(' ');
-
+/** Desktop contacts table: shared flex/minWidth per column (header + body). */
+const CONTACTS_DESKTOP_COL_STYLE: CSSProperties[] = [
+  { minWidth: 40, width: 40, flexGrow: 0, flexShrink: 0, flexBasis: 40, boxSizing: 'border-box' },
+  { minWidth: 160, flexGrow: 2, flexShrink: 1, flexBasis: 0, boxSizing: 'border-box' },
+  { minWidth: 130, flexGrow: 1.5, flexShrink: 1, flexBasis: 0, boxSizing: 'border-box' },
+  { minWidth: 130, flexGrow: 1.5, flexShrink: 1, flexBasis: 0, boxSizing: 'border-box' },
+  { minWidth: 160, flexGrow: 2, flexShrink: 1, flexBasis: 0, boxSizing: 'border-box' },
+  { minWidth: 90, flexGrow: 1, flexShrink: 1, flexBasis: 0, boxSizing: 'border-box' },
+  { minWidth: 60, flexGrow: 0, flexShrink: 0, flexBasis: 60, boxSizing: 'border-box' },
+  { minWidth: 90, flexGrow: 0, flexShrink: 0, flexBasis: 90, boxSizing: 'border-box' },
+  { minWidth: 100, flexGrow: 0, flexShrink: 0, flexBasis: 100, boxSizing: 'border-box' },
+  { minWidth: 50, flexGrow: 0, flexShrink: 0, flexBasis: 50, boxSizing: 'border-box' },
+];
 
 const normalizeText = (v: string | null | undefined) => (v ?? '').toLowerCase().trim();
 
@@ -1394,6 +1394,7 @@ export default function ContactsPage() {
             marginTop: 0,
             paddingTop: 0,
             width: '100%',
+            overflowX: 'auto',
           }}
         >
         {!isMobile && (
@@ -1407,11 +1408,9 @@ export default function ContactsPage() {
           >
             <div
               style={{
-                display: 'grid',
-                tableLayout: 'fixed',
+                display: 'flex',
                 width: '100%',
                 boxSizing: 'border-box',
-                gridTemplateColumns: CONTACTS_TABLE_GRID_DESKTOP,
               }}
             >
               {[
@@ -1429,6 +1428,7 @@ export default function ContactsPage() {
                 <div
                   key={h + i}
                   style={{
+                    ...CONTACTS_DESKTOP_COL_STYLE[i],
                     fontSize: 11,
                     fontWeight: 600,
                     letterSpacing: '0.06em',
@@ -1439,15 +1439,45 @@ export default function ContactsPage() {
                     paddingLeft: i === 0 ? 0 : 12,
                     paddingRight: i === 0 ? 0 : 12,
                     textAlign: i === 0 ? 'center' : i >= 6 ? 'center' : 'left',
-                    width: i === 0 ? 44 : '100%',
-                    boxSizing: 'border-box',
-                    minWidth: 0,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
+                    ...(h === 'NAME'
+                      ? {
+                          display: 'flex',
+                          alignItems: 'center',
+                        }
+                      : {}),
                   }}
                 >
-                  {h}
+                  {h === 'NAME' ? (
+                    <>
+                      <input
+                        type='checkbox'
+                        checked={
+                          selectedIds.length === contacts.length &&
+                          contacts.length > 0
+                        }
+                        onChange={(e) =>
+                          e.target.checked
+                            ? setSelectedIds(contacts.map((c) => c.id))
+                            : setSelectedIds([])
+                        }
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                          width: 14,
+                          height: 14,
+                          cursor: 'pointer',
+                          accentColor: '#1a3a2a',
+                          marginRight: 8,
+                          flexShrink: 0,
+                        }}
+                      />
+                      {h}
+                    </>
+                  ) : (
+                    h
+                  )}
                 </div>
               ))}
             </div>
@@ -1498,7 +1528,6 @@ export default function ContactsPage() {
               ? null
               : Number(rawScore);
 
-          const isSelected = selectedIds.includes(contact.id);
           const initials = (contact.name || '?')
             .toString()
             .trim()
@@ -1553,52 +1582,63 @@ export default function ContactsPage() {
                         boxSizing: 'border-box',
                       }
                     : {
-                        display: 'grid',
-                        tableLayout: 'fixed',
+                        display: 'flex',
                         width: '100%',
                         boxSizing: 'border-box',
-                        paddingRight: contacts.length > 0 ? 200 : 0,
-                        gridTemplateColumns: CONTACTS_TABLE_GRID_DESKTOP,
                         alignItems: 'center',
                       }
                 }
               >
-                <div
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedIds((prev) =>
-                      prev.includes(contact.id)
-                        ? prev.filter((id) => id !== contact.id)
-                        : [...prev, contact.id]
-                    );
-                  }}
-                  style={{
-                    width: isMobile ? 22 : 20,
-                    height: isMobile ? 22 : 20,
-                    borderRadius: 4,
-                    border: '1.5px solid #dddddd',
-                    background: isSelected ? '#7dde3c' : '#ffffff',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                    justifySelf: isMobile ? undefined : 'center',
-                  }}
-                >
-                  {isSelected && (
-                    <svg
-                      width='12'
-                      height='12'
-                      fill='none'
-                      viewBox='0 0 24 24'
-                      stroke='white'
-                      strokeWidth='3'
-                    >
-                      <polyline points='20 6 9 17 4 12' />
-                    </svg>
-                  )}
-                </div>
+                {isMobile ? (
+                  <input
+                    type='checkbox'
+                    checked={selectedIds.includes(contact.id)}
+                    onChange={(e) =>
+                      e.target.checked
+                        ? setSelectedIds((prev) => [...prev, contact.id])
+                        : setSelectedIds((prev) =>
+                            prev.filter((id) => id !== contact.id)
+                          )
+                    }
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      width: 14,
+                      height: 14,
+                      cursor: 'pointer',
+                      accentColor: '#1a3a2a',
+                      flexShrink: 0,
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      ...CONTACTS_DESKTOP_COL_STYLE[0],
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <input
+                      type='checkbox'
+                      checked={selectedIds.includes(contact.id)}
+                      onChange={(e) =>
+                        e.target.checked
+                          ? setSelectedIds((prev) => [...prev, contact.id])
+                          : setSelectedIds((prev) =>
+                              prev.filter((id) => id !== contact.id)
+                            )
+                      }
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        width: 14,
+                        height: 14,
+                        cursor: 'pointer',
+                        accentColor: '#1a3a2a',
+                        flexShrink: 0,
+                      }}
+                    />
+                  </div>
+                )}
                 {isMobile && contact.image ? (
                   <img
                     src={contact.image as string}
@@ -1636,14 +1676,22 @@ export default function ContactsPage() {
                   </div>
                 ) : null}
                 <div
-                  style={{
-                    minWidth: 0,
-                    width: isMobile ? undefined : '100%',
-                    flex: isMobile ? 1 : undefined,
-                    padding: isMobile ? 0 : '12px 12px',
-                    overflow: isMobile ? 'hidden' : undefined,
-                    boxSizing: 'border-box',
-                  }}
+                  style={
+                    isMobile
+                      ? {
+                          minWidth: 0,
+                          flex: 1,
+                          padding: 0,
+                          overflow: 'hidden',
+                          boxSizing: 'border-box',
+                        }
+                      : {
+                          ...CONTACTS_DESKTOP_COL_STYLE[1],
+                          padding: '12px 12px',
+                          overflow: 'hidden',
+                          boxSizing: 'border-box',
+                        }
+                  }
                 >
                   {!isMobile ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -1723,11 +1771,10 @@ export default function ContactsPage() {
                     <div
                       title={contact.company ?? undefined}
                       style={{
+                        ...CONTACTS_DESKTOP_COL_STYLE[2],
                         padding: '12px 12px',
                         fontSize: 14,
                         color: '#555',
-                        width: '100%',
-                        minWidth: 0,
                         boxSizing: 'border-box',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -1739,11 +1786,10 @@ export default function ContactsPage() {
                     <div
                       title={contact.title ?? undefined}
                       style={{
+                        ...CONTACTS_DESKTOP_COL_STYLE[3],
                         padding: '12px 12px',
                         fontSize: 14,
                         color: '#555',
-                        width: '100%',
-                        minWidth: 0,
                         boxSizing: 'border-box',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -1755,12 +1801,11 @@ export default function ContactsPage() {
                     <div
                       title={contact.email ?? undefined}
                       style={{
+                        ...CONTACTS_DESKTOP_COL_STYLE[4],
                         padding: '12px 12px',
                         fontSize: 13,
                         color: '#999',
                         fontFamily: 'monospace',
-                        width: '100%',
-                        minWidth: 0,
                         boxSizing: 'border-box',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -1772,9 +1817,8 @@ export default function ContactsPage() {
                     <div
                       title={eventLabel ?? undefined}
                       style={{
+                        ...CONTACTS_DESKTOP_COL_STYLE[5],
                         padding: '12px 12px',
-                        width: '100%',
-                        minWidth: 0,
                         boxSizing: 'border-box',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -1801,17 +1845,29 @@ export default function ContactsPage() {
                   </>
                 )}
                 <div
-                  style={{
-                    textAlign: 'center',
-                    padding: isMobile ? 0 : '12px 12px',
-                    width: isMobile ? 36 : '100%',
-                    minWidth: 0,
-                    boxSizing: 'border-box',
-                    flexShrink: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: isMobile ? 'flex-end' : 'center',
-                  }}
+                  style={
+                    isMobile
+                      ? {
+                          textAlign: 'center',
+                          padding: 0,
+                          width: 36,
+                          minWidth: 0,
+                          boxSizing: 'border-box',
+                          flexShrink: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'flex-end',
+                        }
+                      : {
+                          ...CONTACTS_DESKTOP_COL_STYLE[6],
+                          textAlign: 'center',
+                          padding: '12px 12px',
+                          boxSizing: 'border-box',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }
+                  }
                 >
                   <span
                     style={{
@@ -1834,9 +1890,8 @@ export default function ContactsPage() {
                 {!isMobile && (
                   <div
                     style={{
+                      ...CONTACTS_DESKTOP_COL_STYLE[7],
                       padding: '12px 12px',
-                      width: '100%',
-                      minWidth: 0,
                       boxSizing: 'border-box',
                       overflow: 'hidden',
                     }}
@@ -1864,12 +1919,11 @@ export default function ContactsPage() {
                 {!isMobile && (
                   <div
                     style={{
+                      ...CONTACTS_DESKTOP_COL_STYLE[8],
                       display: 'flex',
                       justifyContent: 'center',
                       alignItems: 'center',
                       padding: '12px 12px',
-                      width: '100%',
-                      minWidth: 0,
                       boxSizing: 'border-box',
                     }}
                   >
@@ -1879,12 +1933,11 @@ export default function ContactsPage() {
                 {!isMobile && (
                   <div
                     style={{
+                      ...CONTACTS_DESKTOP_COL_STYLE[9],
                       display: 'flex',
                       justifyContent: 'center',
                       alignItems: 'center',
                       padding: '12px 12px',
-                      width: '100%',
-                      minWidth: 0,
                       boxSizing: 'border-box',
                     }}
                   >

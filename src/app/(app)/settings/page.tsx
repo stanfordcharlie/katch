@@ -30,7 +30,6 @@ type SectionId =
   | "conversation-signals"
   | "contact-fields"
   | "email-tone"
-  | "sequence-templates"
   | "integrations"
   | "icp-profile";
 
@@ -411,7 +410,6 @@ export default function SettingsPage() {
     { id: "conversation-signals", label: "Conversation Signals" },
     { id: "contact-fields", label: "Contact Fields" },
     { id: "email-tone", label: "Email Tone" },
-    { id: "sequence-templates", label: "Sequence Templates" },
     { id: "integrations", label: "Integrations" },
     { id: "icp-profile", label: "ICP Profile" },
   ];
@@ -1077,38 +1075,6 @@ export default function SettingsPage() {
                       </button>
                     );
                   })}
-                </div>
-              </section>
-            )}
-
-            {activeSection === "sequence-templates" && (
-              <section>
-                <h2
-                  className="text-lg font-semibold mb-3"
-                  style={{
-                    color: "#1a2e1a",
-                    fontFamily: "'Playfair Display', 'Instrument Serif', Georgia, 'Times New Roman', serif",
-                  }}
-                >
-                  Sequence Templates
-                </h2>
-                <p className="text-xs mb-4" style={{ color: "#6b6157" }}>
-                  Manage reusable templates for multi-step sequences.
-                </p>
-                <div
-                  className="rounded-2xl p-5"
-                  style={{
-                    border: "1px dashed #dce8d0",
-                    backgroundColor: "#f4f1eb",
-                    color: "#6b6157",
-                    width: "100%",
-                  }}
-                >
-                  <p className="text-sm font-medium mb-1" style={{ fontSize: isMobile ? 14 : undefined }}>Custom templates coming soon</p>
-                  <p className="text-xs">
-                    You&apos;ll be able to define your own multi-touch follow-up templates and reuse them
-                    across events.
-                  </p>
                 </div>
               </section>
             )}
