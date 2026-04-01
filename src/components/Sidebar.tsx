@@ -196,7 +196,19 @@ export function Sidebar({ user, isMobile }: { user: User; isMobile: boolean }) {
           const isActive = pathname === href;
           return (
             <Link key={label} href={href} data-tour={getTourId(label)} onMouseEnter={() => collapsed && setHoveredItem(label)} onMouseLeave={() => setHoveredItem(null)} style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 12, padding: collapsed ? "10px 0" : "10px 14px", borderRadius: 8, cursor: "pointer", marginBottom: 2, textDecoration: "none", backgroundColor: isActive ? "#f0f7eb" : "transparent", color: isActive ? "#2d6a1f" : "#666666" }}>
-              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, color: isActive ? "#2d6a1f" : "#666666" }}>{icon}</span>
+              <span
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  ...(collapsed
+                    ? { width: "100%", paddingLeft: 0, paddingRight: 0 }
+                    : { width: 18, height: 18 }),
+                  color: isActive ? "#2d6a1f" : "#666666",
+                }}
+              >
+                {icon}
+              </span>
               <span style={{ transition: "opacity 0.15s ease", opacity: collapsed ? 0 : 1, overflow: "hidden", whiteSpace: "nowrap", width: collapsed ? 0 : "auto", fontSize: "13px", fontWeight: 500, letterSpacing: "0", lineHeight: 1 }}>{label}</span>
               {collapsed && hoveredItem === label && (
                 <div style={{ position: "absolute", left: 72, top: "50%", transform: "translateY(-50%)", background: "#1a2332", color: "#fff", fontSize: "12px", fontWeight: 500, padding: "5px 10px", borderRadius: 6, whiteSpace: "nowrap", zIndex: 50, pointerEvents: "none" }}>
@@ -213,7 +225,19 @@ export function Sidebar({ user, isMobile }: { user: User; isMobile: boolean }) {
           const isActive = pathname === href;
           return (
             <Link key={label} href={href} data-tour={getTourId(label)} onMouseEnter={() => collapsed && setHoveredItem(label)} onMouseLeave={() => setHoveredItem(null)} style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 12, padding: collapsed ? "10px 0" : "10px 14px", borderRadius: 8, cursor: "pointer", marginBottom: 2, textDecoration: "none", backgroundColor: isActive ? "#f0f7eb" : "transparent", color: isActive ? "#2d6a1f" : "#666666" }}>
-              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, color: isActive ? "#2d6a1f" : "#666666" }}>{icon}</span>
+              <span
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  ...(collapsed
+                    ? { width: "100%", paddingLeft: 0, paddingRight: 0 }
+                    : { width: 18, height: 18 }),
+                  color: isActive ? "#2d6a1f" : "#666666",
+                }}
+              >
+                {icon}
+              </span>
               <span style={{ transition: "opacity 0.15s ease", opacity: collapsed ? 0 : 1, overflow: "hidden", whiteSpace: "nowrap", width: collapsed ? 0 : "auto", fontSize: "13px", fontWeight: 500, letterSpacing: "0", lineHeight: 1 }}>{label}</span>
               {collapsed && hoveredItem === label && (
                 <div style={{ position: "absolute", left: 72, top: "50%", transform: "translateY(-50%)", background: "#1a2332", color: "#fff", fontSize: "12px", fontWeight: 500, padding: "5px 10px", borderRadius: 6, whiteSpace: "nowrap", zIndex: 50, pointerEvents: "none" }}>
@@ -231,7 +255,19 @@ export function Sidebar({ user, isMobile }: { user: User; isMobile: boolean }) {
           const isActive = pathname.startsWith("/settings");
           return (
             <Link key={label} href={href} data-tour={getTourId(label)} onMouseEnter={() => collapsed && setHoveredItem(label)} onMouseLeave={() => setHoveredItem(null)} style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 12, padding: collapsed ? "10px 0" : "10px 14px", borderRadius: 8, cursor: "pointer", marginBottom: 2, textDecoration: "none", backgroundColor: isActive ? "#f0f7eb" : "transparent", color: isActive ? "#2d6a1f" : "#666666", minHeight: 42 }}>
-              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, color: isActive ? "#2d6a1f" : "#666666" }}>{icon}</span>
+              <span
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  ...(collapsed
+                    ? { width: "100%", paddingLeft: 0, paddingRight: 0 }
+                    : { width: 18, height: 18 }),
+                  color: isActive ? "#2d6a1f" : "#666666",
+                }}
+              >
+                {icon}
+              </span>
               <span style={{ transition: "opacity 0.15s ease", opacity: collapsed ? 0 : 1, overflow: "visible", whiteSpace: "nowrap", width: collapsed ? 0 : "auto", fontSize: "13px", fontWeight: 500, letterSpacing: "0", lineHeight: 1 }}>{label}</span>
               {collapsed && hoveredItem === label && (
                 <div style={{ position: "absolute", left: 72, top: "50%", transform: "translateY(-50%)", background: "#1a2332", color: "#fff", fontSize: "12px", fontWeight: 500, padding: "5px 10px", borderRadius: 6, whiteSpace: "nowrap", zIndex: 50, pointerEvents: "none" }}>
@@ -246,7 +282,19 @@ export function Sidebar({ user, isMobile }: { user: User; isMobile: boolean }) {
           const isActive = pathname === href || pathname.startsWith(`${href}/`);
           return (
             <Link key={label} href={href} data-tour={getTourId(label)} onMouseEnter={() => collapsed && setHoveredItem(label)} onMouseLeave={() => setHoveredItem(null)} style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 12, padding: collapsed ? "10px 0" : "10px 14px", borderRadius: 8, cursor: "pointer", marginBottom: 2, textDecoration: "none", backgroundColor: isActive ? "#f0f7eb" : "transparent", color: isActive ? "#2d6a1f" : "#666666", minHeight: 42 }}>
-              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, color: isActive ? "#2d6a1f" : "#666666" }}>{icon}</span>
+              <span
+                style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  ...(collapsed
+                    ? { width: "100%", paddingLeft: 0, paddingRight: 0 }
+                    : { width: 18, height: 18 }),
+                  color: isActive ? "#2d6a1f" : "#666666",
+                }}
+              >
+                {icon}
+              </span>
               <span style={{ transition: "opacity 0.15s ease", opacity: collapsed ? 0 : 1, overflow: "visible", whiteSpace: "nowrap", width: collapsed ? 0 : "auto", fontSize: "13px", fontWeight: 500, letterSpacing: "0", lineHeight: 1 }}>{label}</span>
               {collapsed && hoveredItem === label && (
                 <div style={{ position: "absolute", left: 72, top: "50%", transform: "translateY(-50%)", background: "#1a2332", color: "#fff", fontSize: "12px", fontWeight: 500, padding: "5px 10px", borderRadius: 6, whiteSpace: "nowrap", zIndex: 50, pointerEvents: "none" }}>

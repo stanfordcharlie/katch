@@ -63,15 +63,43 @@ const scoreAccent = (score: number | null | undefined): 'high' | 'mid' | 'low' =
 /** Desktop contacts table: shared flex/minWidth per column (header + body). */
 const CONTACTS_DESKTOP_COL_STYLE: CSSProperties[] = [
   { minWidth: 40, width: 40, flexGrow: 0, flexShrink: 0, flexBasis: 40, boxSizing: 'border-box' },
-  { minWidth: 160, flexGrow: 2, flexShrink: 1, flexBasis: 0, boxSizing: 'border-box' },
-  { minWidth: 130, flexGrow: 1.5, flexShrink: 1, flexBasis: 0, boxSizing: 'border-box' },
-  { minWidth: 130, flexGrow: 1.5, flexShrink: 1, flexBasis: 0, boxSizing: 'border-box' },
-  { minWidth: 160, flexGrow: 2, flexShrink: 1, flexBasis: 0, boxSizing: 'border-box' },
-  { minWidth: 90, flexGrow: 1, flexShrink: 1, flexBasis: 0, boxSizing: 'border-box' },
-  { minWidth: 60, flexGrow: 0, flexShrink: 0, flexBasis: 60, boxSizing: 'border-box' },
-  { minWidth: 90, flexGrow: 0, flexShrink: 0, flexBasis: 90, boxSizing: 'border-box' },
-  { minWidth: 100, flexGrow: 0, flexShrink: 0, flexBasis: 100, boxSizing: 'border-box' },
-  { minWidth: 50, flexGrow: 0, flexShrink: 0, flexBasis: 50, boxSizing: 'border-box' },
+  { minWidth: 220, flexGrow: 1, flexShrink: 1, flexBasis: 0, boxSizing: 'border-box' },
+  {
+    width: 200,
+    minWidth: 200,
+    maxWidth: 200,
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 200,
+    boxSizing: 'border-box',
+  },
+  {
+    width: 160,
+    minWidth: 160,
+    maxWidth: 160,
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 160,
+    boxSizing: 'border-box',
+  },
+  {
+    width: 80,
+    minWidth: 80,
+    maxWidth: 80,
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 80,
+    boxSizing: 'border-box',
+  },
+  {
+    width: 120,
+    minWidth: 120,
+    maxWidth: 120,
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 120,
+    boxSizing: 'border-box',
+  },
 ];
 
 const normalizeText = (v: string | null | undefined) => (v ?? '').toLowerCase().trim();
@@ -1415,13 +1443,9 @@ export default function ContactsPage() {
                 '',
                 'NAME',
                 'COMPANY',
-                'TITLE',
-                'EMAIL',
                 'EVENT',
                 'SCORE',
-                'SIGNALS',
                 'SOURCE',
-                'SYNC',
               ].map((h, i) => (
                 <div
                   key={h + i}
@@ -1436,7 +1460,7 @@ export default function ContactsPage() {
                     paddingBottom: 10,
                     paddingLeft: i === 0 ? 0 : 12,
                     paddingRight: i === 0 ? 0 : 12,
-                    textAlign: i === 0 ? 'center' : i >= 6 ? 'center' : 'left',
+                    textAlign: i === 0 || i >= 4 ? 'center' : 'left',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
@@ -1786,40 +1810,9 @@ export default function ContactsPage() {
                       {contact.company || '—'}
                     </div>
                     <div
-                      title={contact.title ?? undefined}
-                      style={{
-                        ...CONTACTS_DESKTOP_COL_STYLE[3],
-                        padding: '12px 12px',
-                        fontSize: 14,
-                        color: '#555',
-                        boxSizing: 'border-box',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {contact.title || '—'}
-                    </div>
-                    <div
-                      title={contact.email ?? undefined}
-                      style={{
-                        ...CONTACTS_DESKTOP_COL_STYLE[4],
-                        padding: '12px 12px',
-                        fontSize: 13,
-                        color: '#999',
-                        fontFamily: 'monospace',
-                        boxSizing: 'border-box',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {contact.email || '—'}
-                    </div>
-                    <div
                       title={eventLabel ?? undefined}
                       style={{
-                        ...CONTACTS_DESKTOP_COL_STYLE[5],
+                        ...CONTACTS_DESKTOP_COL_STYLE[3],
                         padding: '12px 12px',
                         boxSizing: 'border-box',
                         overflow: 'hidden',
@@ -1861,7 +1854,7 @@ export default function ContactsPage() {
                           justifyContent: 'flex-end',
                         }
                       : {
-                          ...CONTACTS_DESKTOP_COL_STYLE[6],
+                          ...CONTACTS_DESKTOP_COL_STYLE[4],
                           textAlign: 'center',
                           padding: '12px 12px',
                           boxSizing: 'border-box',
@@ -1892,36 +1885,7 @@ export default function ContactsPage() {
                 {!isMobile && (
                   <div
                     style={{
-                      ...CONTACTS_DESKTOP_COL_STYLE[7],
-                      padding: '12px 12px',
-                      boxSizing: 'border-box',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {contact.checks && contact.checks.length > 0 ? (
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          background: '#f0f7eb',
-                          color: '#2d6a1f',
-                          border: '1px solid #c8e6c0',
-                          fontSize: 11,
-                          fontWeight: 500,
-                          padding: '2px 8px',
-                          borderRadius: 4,
-                        }}
-                      >
-                        {contact.checks.length} signals
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: 14, color: '#999' }}>—</span>
-                    )}
-                  </div>
-                )}
-                {!isMobile && (
-                  <div
-                    style={{
-                      ...CONTACTS_DESKTOP_COL_STYLE[8],
+                      ...CONTACTS_DESKTOP_COL_STYLE[5],
                       display: 'flex',
                       justifyContent: 'center',
                       alignItems: 'center',
@@ -1930,39 +1894,6 @@ export default function ContactsPage() {
                     }}
                   >
                     <ContactSourceCell contact={contact} />
-                  </div>
-                )}
-                {!isMobile && (
-                  <div
-                    style={{
-                      ...CONTACTS_DESKTOP_COL_STYLE[9],
-                      display: 'flex',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      padding: '12px 12px',
-                      boxSizing: 'border-box',
-                    }}
-                  >
-                    {contact.synced_to_hubspot === true ? (
-                      <span
-                        style={{
-                          width: 20,
-                          height: 20,
-                          borderRadius: '50%',
-                          background: '#ff7a59',
-                          color: '#fff',
-                          fontSize: 11,
-                          fontWeight: 700,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        H
-                      </span>
-                    ) : (
-                      <span style={{ color: '#ccc', fontSize: 12 }}>—</span>
-                    )}
                   </div>
                 )}
               </div>
@@ -2316,17 +2247,6 @@ export default function ContactsPage() {
                             >
                               {contact.name || '—'}
                             </h3>
-                            {contact.title ? (
-                              <p
-                                style={{
-                                  fontSize: 14,
-                                  color: '#555',
-                                  margin: '6px 0 0 0',
-                                }}
-                              >
-                                {contact.title}
-                              </p>
-                            ) : null}
                             {contact.company ? (
                               <p
                                 style={{
@@ -2379,33 +2299,31 @@ export default function ContactsPage() {
                           gap: 12,
                         }}
                       >
-                        {contact.email && (
-                          <div>
-                            <p
-                              style={{
-                                fontSize: '11px',
-                                fontWeight: 600,
-                                letterSpacing: '0.04em',
-                                textTransform: 'uppercase',
-                                color: '#999',
-                                marginBottom: 4,
-                                marginTop: 0,
-                              }}
-                            >
-                              Email
-                            </p>
-                            <p
-                              style={{
-                                fontSize: '13px',
-                                fontWeight: 400,
-                                color: '#111',
-                                margin: 0,
-                              }}
-                            >
-                              {contact.email}
-                            </p>
-                          </div>
-                        )}
+                        <div>
+                          <p
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              letterSpacing: '0.04em',
+                              textTransform: 'uppercase',
+                              color: '#999',
+                              marginBottom: 4,
+                              marginTop: 0,
+                            }}
+                          >
+                            Email
+                          </p>
+                          <p
+                            style={{
+                              fontSize: '13px',
+                              fontWeight: 400,
+                              color: '#111',
+                              margin: 0,
+                            }}
+                          >
+                            {contact.email || '—'}
+                          </p>
+                        </div>
                         {contact.phone && (
                           <div>
                             <p
@@ -2489,33 +2407,31 @@ export default function ContactsPage() {
                             </p>
                           </div>
                         )}
-                        {contact.title && (
-                          <div>
-                            <p
-                              style={{
-                                fontSize: '11px',
-                                fontWeight: 600,
-                                letterSpacing: '0.04em',
-                                textTransform: 'uppercase',
-                                color: '#999',
-                                marginBottom: 4,
-                                marginTop: 0,
-                              }}
-                            >
-                              Title
-                            </p>
-                            <p
-                              style={{
-                                fontSize: '13px',
-                                fontWeight: 400,
-                                color: '#111',
-                                margin: 0,
-                              }}
-                            >
-                              {contact.title}
-                            </p>
-                          </div>
-                        )}
+                        <div>
+                          <p
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              letterSpacing: '0.04em',
+                              textTransform: 'uppercase',
+                              color: '#999',
+                              marginBottom: 4,
+                              marginTop: 0,
+                            }}
+                          >
+                            Title
+                          </p>
+                          <p
+                            style={{
+                              fontSize: '13px',
+                              fontWeight: 400,
+                              color: '#111',
+                              margin: 0,
+                            }}
+                          >
+                            {contact.title || '—'}
+                          </p>
+                        </div>
                         <div>
                           <p
                             style={{
@@ -2565,6 +2481,61 @@ export default function ContactsPage() {
                           >
                             {rawScore ?? '—'}
                           </p>
+                        </div>
+                        <div>
+                          <p
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              letterSpacing: '0.04em',
+                              textTransform: 'uppercase',
+                              color: '#999',
+                              marginBottom: 4,
+                              marginTop: 0,
+                            }}
+                          >
+                            Signals
+                          </p>
+                          <div style={{ margin: 0 }}>
+                            {contact.checks && contact.checks.length > 0 ? (
+                              <span
+                                style={{
+                                  display: 'inline-block',
+                                  background: '#f0f7eb',
+                                  color: '#2d6a1f',
+                                  border: '1px solid #c8e6c0',
+                                  fontSize: 11,
+                                  fontWeight: 500,
+                                  padding: '2px 8px',
+                                  borderRadius: 4,
+                                }}
+                              >
+                                {contact.checks.length} signals
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: 14, color: '#999' }}>
+                                —
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <p
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              letterSpacing: '0.04em',
+                              textTransform: 'uppercase',
+                              color: '#999',
+                              marginBottom: 4,
+                              marginTop: 0,
+                            }}
+                          >
+                            Source
+                          </p>
+                          <div style={{ margin: 0 }}>
+                            <ContactSourceCell contact={contact} />
+                          </div>
                         </div>
                       </div>
                       {contact.checks && contact.checks.length > 0 && (
