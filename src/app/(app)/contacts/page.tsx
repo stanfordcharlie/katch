@@ -57,14 +57,14 @@ const scoreAccent = (score: number | null | undefined): 'high' | 'mid' | 'low' =
 const CONTACTS_TABLE_GRID_DESKTOP = [
   '44px',
   '180px',
-  '90px',
   '160px',
   '160px',
   '180px',
   '100px',
   '70px',
-  '60px',
+  '90px',
   '110px',
+  '60px',
 ].join(' ');
 
 
@@ -1166,7 +1166,18 @@ export default function ContactsPage() {
         </div>
       )}
 
-      <div style={{ marginBottom: 8, width: '100%', maxWidth: '100%', overflow: 'hidden' }}>
+      <div
+        style={{
+          marginBottom: 8,
+          width: '100%',
+          maxWidth: '100%',
+          overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}
+      >
         <div
           className={isMobile ? 'pills-scroll-mobile' : undefined}
           style={{
@@ -1177,7 +1188,8 @@ export default function ContactsPage() {
             paddingBottom: isMobile ? 4 : 0,
             WebkitOverflowScrolling: isMobile ? 'touch' : undefined,
             scrollbarWidth: isMobile ? 'none' : undefined,
-            width: '100%',
+            flex: 1,
+            minWidth: 0,
             maxWidth: '100%',
           }}
         >
@@ -1227,6 +1239,43 @@ export default function ContactsPage() {
             </button>
           ))}
         </div>
+        {contacts.length > 0 && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              flexShrink: 0,
+            }}
+          >
+            <span style={{ fontSize: 12, color: '#999' }}>Sort by</span>
+            <select
+              value={sortBy}
+              onChange={(e) =>
+                setSortBy(e.target.value as typeof sortBy)
+              }
+              style={{
+                background: '#fff',
+                border: '1px solid #e8e8e8',
+                borderRadius: 8,
+                padding: '4px 10px',
+                fontSize: 12,
+                color: '#111',
+                cursor: 'pointer',
+                outline: 'none',
+                width: 'auto',
+                maxWidth: '100%',
+              }}
+            >
+              <option value='newest'>newest</option>
+              <option value='oldest'>oldest</option>
+              <option value='az'>A → Z</option>
+              <option value='za'>Z → A</option>
+              <option value='highest'>Highest score</option>
+              <option value='lowest'>Lowest score</option>
+            </select>
+          </div>
+        )}
       </div>
 
       {loading && (
@@ -1327,12 +1376,10 @@ export default function ContactsPage() {
         {!isMobile && (
           <div
             style={{
-              position: 'relative',
               width: '100%',
               background: '#fafafa',
               borderBottom: '1px solid #ebebeb',
               boxSizing: 'border-box',
-              paddingRight: contacts.length > 0 ? 200 : 0,
             }}
           >
             <div
@@ -1347,14 +1394,14 @@ export default function ContactsPage() {
               {[
                 '',
                 'NAME',
-                'SIGNALS',
                 'COMPANY',
                 'TITLE',
                 'EMAIL',
                 'EVENT',
                 'SCORE',
-                'SYNC',
+                'SIGNALS',
                 'SOURCE',
+                'SYNC',
               ].map((h, i) => (
                 <div
                   key={h + i}
@@ -1368,7 +1415,7 @@ export default function ContactsPage() {
                     paddingBottom: 10,
                     paddingLeft: i === 0 ? 0 : 12,
                     paddingRight: i === 0 ? 0 : 12,
-                    textAlign: i === 0 ? 'center' : i >= 7 ? 'center' : 'left',
+                    textAlign: i === 0 ? 'center' : i >= 6 ? 'center' : 'left',
                     width: i === 0 ? 44 : '100%',
                     boxSizing: 'border-box',
                     minWidth: 0,
@@ -1381,87 +1428,6 @@ export default function ContactsPage() {
                 </div>
               ))}
             </div>
-            {contacts.length > 0 && (
-              <div
-                style={{
-                  position: 'absolute',
-                  right: 16,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  pointerEvents: 'auto',
-                  zIndex: 2,
-                }}
-              >
-                <span style={{ fontSize: 12, color: '#999' }}>Sort by</span>
-                <select
-                  value={sortBy}
-                  onChange={(e) =>
-                    setSortBy(e.target.value as typeof sortBy)
-                  }
-                  style={{
-                    background: '#fff',
-                    border: '1px solid #e8e8e8',
-                    borderRadius: 8,
-                    padding: '4px 10px',
-                    fontSize: 12,
-                    color: '#111',
-                    cursor: 'pointer',
-                    outline: 'none',
-                  }}
-                >
-                  <option value='newest'>newest</option>
-                  <option value='oldest'>oldest</option>
-                  <option value='az'>A → Z</option>
-                  <option value='za'>Z → A</option>
-                  <option value='highest'>Highest score</option>
-                  <option value='lowest'>Lowest score</option>
-                </select>
-              </div>
-            )}
-          </div>
-        )}
-        {isMobile && contacts.length > 0 && (
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              alignItems: 'center',
-              gap: 8,
-              padding: '10px 16px',
-              background: '#fafafa',
-              borderBottom: '1px solid #ebebeb',
-              width: '100%',
-              boxSizing: 'border-box',
-            }}
-          >
-            <select
-              value={sortBy}
-              onChange={(e) =>
-                setSortBy(e.target.value as typeof sortBy)
-              }
-              style={{
-                background: '#fff',
-                border: '1px solid #e8e8e8',
-                borderRadius: 8,
-                padding: '4px 10px',
-                fontSize: 12,
-                color: '#111',
-                cursor: 'pointer',
-                outline: 'none',
-                width: 'auto',
-                maxWidth: '100%',
-              }}
-            >
-              <option value='newest'>newest</option>
-              <option value='oldest'>oldest</option>
-              <option value='az'>A → Z</option>
-              <option value='za'>Z → A</option>
-              <option value='highest'>Highest score</option>
-              <option value='lowest'>Lowest score</option>
-            </select>
           </div>
         )}
         {sortedContacts.length === 0 && contacts.length > 0 ? (
@@ -1730,36 +1696,6 @@ export default function ContactsPage() {
                   )}
                 </div>
                 {!isMobile && (
-                  <div
-                    style={{
-                      padding: '12px 12px',
-                      width: '100%',
-                      minWidth: 0,
-                      boxSizing: 'border-box',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {contact.checks && contact.checks.length > 0 ? (
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          background: '#f0f7eb',
-                          color: '#2d6a1f',
-                          border: '1px solid #c8e6c0',
-                          fontSize: 11,
-                          fontWeight: 500,
-                          padding: '2px 8px',
-                          borderRadius: 4,
-                        }}
-                      >
-                        {contact.checks.length} signals
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: 14, color: '#999' }}>—</span>
-                    )}
-                  </div>
-                )}
-                {!isMobile && (
                   <>
                     <div
                       title={contact.company ?? undefined}
@@ -1875,6 +1811,51 @@ export default function ContactsPage() {
                 {!isMobile && (
                   <div
                     style={{
+                      padding: '12px 12px',
+                      width: '100%',
+                      minWidth: 0,
+                      boxSizing: 'border-box',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {contact.checks && contact.checks.length > 0 ? (
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          background: '#f0f7eb',
+                          color: '#2d6a1f',
+                          border: '1px solid #c8e6c0',
+                          fontSize: 11,
+                          fontWeight: 500,
+                          padding: '2px 8px',
+                          borderRadius: 4,
+                        }}
+                      >
+                        {contact.checks.length} signals
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: 14, color: '#999' }}>—</span>
+                    )}
+                  </div>
+                )}
+                {!isMobile && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      padding: '12px 12px',
+                      width: '100%',
+                      minWidth: 0,
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <ContactSourceCell contact={contact} />
+                  </div>
+                )}
+                {!isMobile && (
+                  <div
+                    style={{
                       display: 'flex',
                       justifyContent: 'center',
                       alignItems: 'center',
@@ -1904,21 +1885,6 @@ export default function ContactsPage() {
                     ) : (
                       <span style={{ color: '#ccc', fontSize: 12 }}>—</span>
                     )}
-                  </div>
-                )}
-                {!isMobile && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      padding: '12px 12px',
-                      width: '100%',
-                      minWidth: 0,
-                      boxSizing: 'border-box',
-                    }}
-                  >
-                    <ContactSourceCell contact={contact} />
                   </div>
                 )}
               </div>
