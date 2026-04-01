@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
+import { Users } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 function getDisplayName(user: User): string {
@@ -42,6 +43,7 @@ const DESKTOP_NAV = [
   { label: "Dashboard", href: "/dashboard", icon: <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> },
   { label: "Sequences", href: "/sequences", icon: <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> },
   { label: "Settings", href: "/settings", icon: <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M2 12h2M20 12h2M17.66 17.66l-1.41-1.41M6.34 17.66l1.41-1.41"/></svg> },
+  { label: "Team", href: "/team", icon: <Users size={18} strokeWidth={1.8} /> },
 ];
 
 const MOBILE_NAV = [
@@ -62,6 +64,7 @@ function getTourId(label: string): string | undefined {
     Dashboard: "dashboard",
     Sequences: "sequences",
     Settings: "settings",
+    Team: "team",
   };
   return map[label];
 }
@@ -226,6 +229,21 @@ export function Sidebar({ user, isMobile }: { user: User; isMobile: boolean }) {
         {(() => {
           const { label, href, icon } = DESKTOP_NAV[7];
           const isActive = pathname.startsWith("/settings");
+          return (
+            <Link key={label} href={href} data-tour={getTourId(label)} onMouseEnter={() => collapsed && setHoveredItem(label)} onMouseLeave={() => setHoveredItem(null)} style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 12, padding: collapsed ? "10px 0" : "10px 14px", borderRadius: 8, cursor: "pointer", marginBottom: 2, textDecoration: "none", backgroundColor: isActive ? "#f0f7eb" : "transparent", color: isActive ? "#2d6a1f" : "#666666", minHeight: 42 }}>
+              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, color: isActive ? "#2d6a1f" : "#666666" }}>{icon}</span>
+              <span style={{ transition: "opacity 0.15s ease", opacity: collapsed ? 0 : 1, overflow: "visible", whiteSpace: "nowrap", width: collapsed ? 0 : "auto", fontSize: "13px", fontWeight: 500, letterSpacing: "0", lineHeight: 1 }}>{label}</span>
+              {collapsed && hoveredItem === label && (
+                <div style={{ position: "absolute", left: 72, top: "50%", transform: "translateY(-50%)", background: "#1a2332", color: "#fff", fontSize: "12px", fontWeight: 500, padding: "5px 10px", borderRadius: 6, whiteSpace: "nowrap", zIndex: 50, pointerEvents: "none" }}>
+                  {label}
+                </div>
+              )}
+            </Link>
+          );
+        })()}
+        {(() => {
+          const { label, href, icon } = DESKTOP_NAV[8];
+          const isActive = pathname === href || pathname.startsWith(`${href}/`);
           return (
             <Link key={label} href={href} data-tour={getTourId(label)} onMouseEnter={() => collapsed && setHoveredItem(label)} onMouseLeave={() => setHoveredItem(null)} style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: collapsed ? "center" : "flex-start", gap: 12, padding: collapsed ? "10px 0" : "10px 14px", borderRadius: 8, cursor: "pointer", marginBottom: 2, textDecoration: "none", backgroundColor: isActive ? "#f0f7eb" : "transparent", color: isActive ? "#2d6a1f" : "#666666", minHeight: 42 }}>
               <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, color: isActive ? "#2d6a1f" : "#666666" }}>{icon}</span>
