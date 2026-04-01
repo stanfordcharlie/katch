@@ -118,9 +118,9 @@ export default function SequencesPage() {
           .order("created_at", { ascending: false }),
         supabase.from("events").select("id, name").eq("user_id", userId).order("created_at", { ascending: false }),
       ]);
-      if (!ce && contactsData) setContacts(contactsData as ContactRow[]);
+      if (!ce && contactsData) setContacts(contactsData as any);
       else setContacts([]);
-      if (!ee && eventsData) setEvents(eventsData as { id: string; name: string }[]);
+      if (!ee && eventsData) setEvents((eventsData || []).map((e: any) => ({ id: String(e.id), name: String(e.name ?? "") })));
       else setEvents([]);
     } finally {
       setDataLoading(false);
