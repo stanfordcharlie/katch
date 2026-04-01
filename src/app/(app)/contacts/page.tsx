@@ -56,14 +56,15 @@ const scoreAccent = (score: number | null | undefined): 'high' | 'mid' | 'low' =
 
 const CONTACTS_TABLE_GRID_DESKTOP = [
   '44px',
-  'minmax(0, 18%)',
-  'minmax(0, 14%)',
-  'minmax(0, 14%)',
-  'minmax(0, 16%)',
-  'minmax(0, 10%)',
-  'minmax(0, 6%)',
-  'minmax(0, 6%)',
+  '180px',
   '90px',
+  '160px',
+  '160px',
+  '180px',
+  '100px',
+  '70px',
+  '60px',
+  '110px',
 ].join(' ');
 
 
@@ -1343,7 +1344,18 @@ export default function ContactsPage() {
                 gridTemplateColumns: CONTACTS_TABLE_GRID_DESKTOP,
               }}
             >
-              {['', 'NAME', 'COMPANY', 'TITLE', 'EMAIL', 'EVENT', 'SCORE', 'SYNCED', 'SOURCE'].map((h, i) => (
+              {[
+                '',
+                'NAME',
+                'SIGNALS',
+                'COMPANY',
+                'TITLE',
+                'EMAIL',
+                'EVENT',
+                'SCORE',
+                'SYNC',
+                'SOURCE',
+              ].map((h, i) => (
                 <div
                   key={h + i}
                   style={{
@@ -1356,7 +1368,7 @@ export default function ContactsPage() {
                     paddingBottom: 10,
                     paddingLeft: i === 0 ? 0 : 12,
                     paddingRight: i === 0 ? 0 : 12,
-                    textAlign: i === 0 ? 'center' : i >= 6 ? 'center' : 'left',
+                    textAlign: i === 0 ? 'center' : i >= 7 ? 'center' : 'left',
                     width: i === 0 ? 44 : '100%',
                     boxSizing: 'border-box',
                     minWidth: 0,
@@ -1686,14 +1698,6 @@ export default function ContactsPage() {
                       >
                         {contact.name}
                       </div>
-                      {contact.checks && contact.checks.length > 0 && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 8 }}>
-                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#7dde3c' }} />
-                          <span style={{ fontSize: 11, color: '#999' }}>
-                            {contact.checks.length} signals
-                          </span>
-                        </span>
-                      )}
                     </div>
                   ) : (
                     <>
@@ -1709,50 +1713,52 @@ export default function ContactsPage() {
                       >
                         {contact.name}
                       </div>
-                      {(contact.checks?.length || contact.enriched) ? (
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            flexWrap: 'wrap',
-                            gap: 6,
-                            marginTop: 2,
-                          }}
-                        >
-                          {contact.checks && contact.checks.length > 0 ? (
-                            <>
-                              <span
-                                style={{
-                                  width: 6,
-                                  height: 6,
-                                  borderRadius: '50%',
-                                  background: '#7dde3c',
-                                  flexShrink: 0,
-                                }}
-                              />
-                              <span style={{ fontSize: 11, color: '#999' }}>
-                                {contact.checks.length} signals
-                              </span>
-                            </>
-                          ) : null}
-                          {contact.enriched ? (
-                            <span
-                              style={{
-                                fontSize: 11,
-                                color: '#7ab648',
-                                fontWeight: 400,
-                              }}
-                            >
-                              {contact.checks && contact.checks.length > 0
-                                ? '· Enriched'
-                                : 'Enriched'}
-                            </span>
-                          ) : null}
+                      {contact.enriched ? (
+                        <div style={{ marginTop: 2 }}>
+                          <span
+                            style={{
+                              fontSize: 11,
+                              color: '#7ab648',
+                              fontWeight: 400,
+                            }}
+                          >
+                            Enriched
+                          </span>
                         </div>
                       ) : null}
                     </>
                   )}
                 </div>
+                {!isMobile && (
+                  <div
+                    style={{
+                      padding: '12px 12px',
+                      width: '100%',
+                      minWidth: 0,
+                      boxSizing: 'border-box',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {contact.checks && contact.checks.length > 0 ? (
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          background: '#f0f7eb',
+                          color: '#2d6a1f',
+                          border: '1px solid #c8e6c0',
+                          fontSize: 11,
+                          fontWeight: 500,
+                          padding: '2px 8px',
+                          borderRadius: 4,
+                        }}
+                      >
+                        {contact.checks.length} signals
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: 14, color: '#999' }}>—</span>
+                    )}
+                  </div>
+                )}
                 {!isMobile && (
                   <>
                     <div
