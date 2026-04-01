@@ -563,78 +563,76 @@ export function DashboardView(props: DashboardViewProps) {
     >
       <main style={{ maxWidth: 1120 }}>
         <div
+          className="w-full rounded-2xl p-8"
           style={{
-            background: "linear-gradient(135deg, #1a3a2a 0%, #2d5a3d 30%, #1e4d6b 70%, #0f2a3d 100%)",
-            borderRadius: 20,
-            padding: isMobile ? "22px 20px" : "32px 40px",
+            background:
+              "linear-gradient(135deg, #1a3a2a 0%, #2d5a3d 30%, #1e4d6b 70%, #0f2a3d 100%)",
             marginBottom: 24,
-            position: "relative",
-            overflow: "hidden",
+            fontFamily: "Inter, sans-serif",
           }}
         >
           <div
             style={{
-              position: "absolute",
-              inset: 0,
-              borderRadius: 20,
-              pointerEvents: "none",
-              background: "radial-gradient(ellipse at 30% 50%, rgba(125,222,60,0.15) 0%, transparent 60%)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 16,
+              flexWrap: "wrap",
             }}
-          />
-          <div style={{ position: "relative", zIndex: 1 }}>
-            {props.mode === "event" && (
-              <button
-                type="button"
-                onClick={() => router.push("/events")}
+          >
+            <div>
+              {props.mode === "event" && (
+                <button
+                  type="button"
+                  onClick={() => router.push("/events")}
+                  style={{
+                    display: "block",
+                    border: "none",
+                    background: "transparent",
+                    color: "rgba(255,255,255,0.75)",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    padding: 0,
+                    marginBottom: 10,
+                  }}
+                >
+                  ← All events
+                </button>
+              )}
+              <h1
                 style={{
-                  display: "block",
-                  border: "none",
-                  background: "transparent",
-                  color: "rgba(255,255,255,0.75)",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  padding: 0,
-                  marginBottom: 10,
+                  fontSize: 28,
+                  fontWeight: 700,
+                  letterSpacing: "-0.03em",
+                  lineHeight: 1.1,
+                  color: "#fff",
+                  margin: 0,
+                  fontFamily: "Inter, sans-serif",
                 }}
               >
-                ← All events
-              </button>
-            )}
-            <h1
-              style={{
-                fontSize: isMobile ? "28px" : "32px",
-                fontWeight: 700,
-                letterSpacing: "-0.03em",
-                lineHeight: 1.1,
-                color: "#ffffff",
-                margin: 0,
-              }}
-            >
-              {props.mode === "overview" ? "All events" : currentEvent?.name || "Event"}
-            </h1>
-            <p
-              style={{
-                fontSize: "14px",
-                fontWeight: 400,
-                color: "rgba(255,255,255,0.55)",
-                marginTop: 6,
-                marginBottom: 0,
-              }}
-            >
-              Your lead pipeline at a glance.
-            </p>
+                {props.mode === "overview" ? "All events" : currentEvent?.name || "Event"}
+              </h1>
+              <p
+                style={{
+                  fontSize: 14,
+                  fontWeight: 400,
+                  color: "rgba(255,255,255,0.6)",
+                  marginTop: 4,
+                  marginBottom: 0,
+                  fontFamily: "Inter, sans-serif",
+                }}
+              >
+                Your lead pipeline at a glance.
+              </p>
+            </div>
             <div
               style={{
-                marginTop: isMobile ? 14 : 0,
-                position: isMobile ? "static" : "absolute",
-                top: 0,
-                right: 0,
                 display: "flex",
                 alignItems: "center",
                 gap: 10,
                 flexWrap: "wrap",
-                justifyContent: isMobile ? "flex-start" : "flex-end",
+                justifyContent: "flex-end",
               }}
             >
               {isOverview && events.length > 0 && (

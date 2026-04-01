@@ -2560,40 +2560,36 @@ export default function ScanPage() {
       />
       <div style={{ maxWidth: isMobile ? "100%" : "1100px", margin: "0 auto", padding: isMobile ? "20px 16px 0" : "36px 36px 0" }}>
         <div
+          className="w-full rounded-2xl p-8"
           style={{
-            background: "linear-gradient(135deg, #1a3a2a 0%, #2d5a3d 30%, #1e4d6b 70%, #0f2a3d 100%)",
-            borderRadius: "20px",
-            padding: isMobile ? "22px 20px" : "28px 36px",
-            marginBottom: "24px",
-            position: "relative",
-            overflow: "hidden",
+            background:
+              "linear-gradient(135deg, #1a3a2a 0%, #2d5a3d 30%, #1e4d6b 70%, #0f2a3d 100%)",
+            marginBottom: 24,
+            fontFamily: "Inter, sans-serif",
           }}
         >
-          <div
+          <h1
             style={{
-              position: "absolute",
-              inset: 0,
-              borderRadius: "20px",
-              pointerEvents: "none",
-              background: "radial-gradient(ellipse at 20% 50%, rgba(125,222,60,0.15) 0%, transparent 60%)",
+              fontSize: 28,
+              fontWeight: 700,
+              color: "#fff",
+              margin: 0,
+              fontFamily: "Inter, sans-serif",
             }}
-          />
-          <div style={{ position: "relative" }}>
-            <div
-              style={{
-                fontSize: isMobile ? "24px" : "28px",
-                fontWeight: 700,
-                letterSpacing: "-0.03em",
-                color: "#ffffff",
-                lineHeight: 1.1,
-              }}
-            >
-              Scan a badge
-            </div>
-            <div style={{ fontSize: "14px", color: "rgba(255,255,255,0.55)", marginTop: "4px" }}>
-              Drop a photo, scan with camera, or bulk upload from an event.
-            </div>
-          </div>
+          >
+            Scan a badge
+          </h1>
+          <p
+            style={{
+              fontSize: 14,
+              color: "rgba(255,255,255,0.6)",
+              marginTop: 4,
+              marginBottom: 0,
+              fontFamily: "Inter, sans-serif",
+            }}
+          >
+            Drop a photo, scan with camera, or bulk upload from an event.
+          </p>
         </div>
         {restoredDraft && (
           <div

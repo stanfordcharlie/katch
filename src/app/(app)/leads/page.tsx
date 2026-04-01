@@ -776,15 +776,35 @@ export default function LeadsPage() {
       )}
 
       <div
+        className="w-full rounded-2xl p-8"
         style={{
-          background: "linear-gradient(135deg, #1a3a2a 0%, #2d5a3d 30%, #1e4d6b 70%, #0f2a3d 100%)",
-          borderRadius: 16,
-          padding: "28px 32px",
+          background:
+            "linear-gradient(135deg, #1a3a2a 0%, #2d5a3d 30%, #1e4d6b 70%, #0f2a3d 100%)",
           marginBottom: 24,
+          fontFamily: "Inter, sans-serif",
         }}
       >
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: "#fff", margin: 0 }}>Lead Lists</h1>
-        <p style={{ fontSize: 14, color: "rgba(255,255,255,0.7)", margin: "8px 0 0", maxWidth: 520 }}>
+        <h1
+          style={{
+            fontSize: 28,
+            fontWeight: 700,
+            color: "#fff",
+            margin: 0,
+            fontFamily: "Inter, sans-serif",
+          }}
+        >
+          Lead Lists
+        </h1>
+        <p
+          style={{
+            fontSize: 14,
+            color: "rgba(255,255,255,0.6)",
+            marginTop: 4,
+            marginBottom: 0,
+            maxWidth: 520,
+            fontFamily: "Inter, sans-serif",
+          }}
+        >
           Upload an attendee list and Katch will score every contact against your ICP.
         </p>
       </div>
