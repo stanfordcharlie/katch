@@ -822,10 +822,9 @@ export default function EventsPage() {
         <div>
           <h1
             style={{
-              fontSize: isMobile ? 22 : 28,
+              fontSize: 24,
               fontWeight: 700,
               color: "#111",
-              letterSpacing: "-0.5px",
             }}
           >
             Events

@@ -967,11 +967,9 @@ export default function ContactsPage() {
         <div>
           <h1
             style={{
-              fontSize: '24px',
-              fontWeight: 600,
-              letterSpacing: '-0.02em',
-              lineHeight: 1.2,
-              color: '#111111',
+              fontSize: 24,
+              fontWeight: 700,
+              color: '#111',
               margin: 0,
             }}
           >
@@ -1455,14 +1453,21 @@ export default function ContactsPage() {
                     <input
                       type='checkbox'
                       checked={
-                        selectedIds.length === contacts.length &&
-                        contacts.length > 0
+                        sortedContacts.length > 0 &&
+                        sortedContacts.every((c) =>
+                          selectedIds.includes(c.id)
+                        )
                       }
-                      onChange={(e) =>
-                        e.target.checked
-                          ? setSelectedIds(contacts.map((c) => c.id))
-                          : setSelectedIds([])
-                      }
+                      onChange={(e) => {
+                        const visibleIds = sortedContacts.map((c) => c.id);
+                        if (e.target.checked) {
+                          setSelectedIds(visibleIds);
+                        } else {
+                          setSelectedIds((prev) =>
+                            prev.filter((id) => !visibleIds.includes(id))
+                          );
+                        }
+                      }}
                       onClick={(e) => e.stopPropagation()}
                       style={{
                         width: 14,

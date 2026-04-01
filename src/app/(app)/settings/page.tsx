@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
@@ -139,6 +139,70 @@ const SettingsCheckbox = ({
     ) : null}
   </div>
 );
+
+function SettingRowCard({
+  title,
+  description,
+  children,
+  controlFullWidth,
+}: {
+  title: string;
+  description: string;
+  children: ReactNode;
+  controlFullWidth?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        background: "#fff",
+        border: "1px solid #ebebeb",
+        borderRadius: 12,
+        padding: "20px 24px",
+        marginBottom: 12,
+        boxSizing: "border-box",
+        display: "flex",
+        flexDirection: controlFullWidth ? "column" : "row",
+        justifyContent: "space-between",
+        alignItems: controlFullWidth ? "stretch" : "center",
+        gap: 16,
+      }}
+    >
+      <div style={{ minWidth: 0, flex: controlFullWidth ? undefined : "0 1 280px" }}>
+        <div
+          style={{
+            fontSize: 14,
+            fontWeight: 600,
+            color: "#111",
+            fontFamily: "Inter, sans-serif",
+          }}
+        >
+          {title}
+        </div>
+        <div
+          style={{
+            fontSize: 12,
+            color: "#999",
+            marginTop: 4,
+            fontFamily: "Inter, sans-serif",
+          }}
+        >
+          {description}
+        </div>
+      </div>
+      <div
+        style={{
+          flex: controlFullWidth ? undefined : 1,
+          minWidth: controlFullWidth ? undefined : 180,
+          alignSelf: controlFullWidth ? "stretch" : "center",
+          display: "flex",
+          justifyContent: controlFullWidth ? "stretch" : "flex-end",
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -412,14 +476,20 @@ export default function SettingsPage() {
     { id: "icp-profile", label: "ICP Profile" },
   ];
 
+  const activeNavLabel =
+    tabs.find((t) => t.id === activeSection)?.label ?? "Settings";
+
   return (
     <div
       style={{
         minHeight: "100vh",
-        backgroundColor: "#f7f7f5",
-        overflowX: "hidden",
-        maxWidth: "100vw",
+        display: "flex",
+        flexDirection: isMobile ? "column" : "row",
         fontFamily: "Inter, -apple-system, sans-serif",
+        backgroundColor: "#f7f7f5",
+        overflow: "hidden",
+        width: "100%",
+        boxSizing: "border-box",
       }}
     >
       {toast && (
@@ -445,7 +515,6 @@ export default function SettingsPage() {
         </div>
       )}
       <style>{`
-        .tabs-scroll::-webkit-scrollbar{display:none}
         .settings-form-control {
           font-family: Inter, -apple-system, sans-serif;
           font-size: 14px;
@@ -467,105 +536,30 @@ export default function SettingsPage() {
           }
         }
       `}</style>
-      <div
-        className="max-w-3xl mx-auto"
+
+      <aside
         style={{
-          padding: isMobile ? "20px 16px 100px" : "32px 36px 80px 36px",
+          width: isMobile ? "100%" : 220,
+          flexShrink: 0,
+          paddingTop: 24,
+          paddingLeft: 16,
+          paddingRight: 16,
+          paddingBottom: 16,
+          borderRight: isMobile ? "none" : "1px solid #ebebeb",
+          borderBottom: isMobile ? "1px solid #ebebeb" : "none",
+          position: isMobile ? "relative" : "sticky",
+          top: 0,
+          alignSelf: isMobile ? "stretch" : "flex-start",
+          minHeight: isMobile ? undefined : "100vh",
+          maxHeight: isMobile ? "none" : "100vh",
+          overflowY: isMobile ? "visible" : "auto",
+          display: "flex",
+          flexDirection: "column",
+          backgroundColor: "#ffffff",
+          boxSizing: "border-box",
         }}
       >
-        {/* Page header */}
-        <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
-          <div>
-            <h1
-              style={{
-                fontFamily: "Inter, sans-serif",
-                fontSize: isMobile ? 22 : 28,
-                fontWeight: 700,
-                color: "#111",
-                letterSpacing: "-0.5px",
-                margin: 0,
-              }}
-            >
-              Settings
-            </h1>
-            <p
-              style={{
-                fontSize: 13,
-                color: "#999",
-                marginTop: 4,
-                marginBottom: 0,
-              }}
-            >
-              Fine-tune how Katch works for you.
-            </p>
-          </div>
-        </div>
-
-        {/* Profile row */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            marginBottom: 20,
-            padding: isMobile ? "4px 0" : undefined,
-          }}
-        >
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: "999px",
-              backgroundColor: "#1a3a2a",
-              color: "#f7f7f5",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 14,
-              fontWeight: 600,
-            }}
-          >
-            {avatarInitials}
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <p
-              style={{
-                fontSize: 14,
-                fontWeight: 600,
-                color: "#111",
-                margin: 0,
-              }}
-            >
-              {displayName || "Your account"}
-            </p>
-            {userEmail && (
-              <p
-                style={{
-                  fontSize: 12,
-                  color: "#999",
-                  margin: 0,
-                }}
-              >
-                {userEmail}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            overflowX: isMobile ? "auto" : "visible",
-            WebkitOverflowScrolling: "touch",
-            borderBottom: "1px solid #ebebeb",
-            marginBottom: 24,
-            gap: 0,
-            scrollbarWidth: "none",
-          }}
-          className="tabs-scroll"
-        >
+        <nav style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           {tabs.map((tab) => {
             const active = activeSection === tab.id;
             return (
@@ -574,16 +568,16 @@ export default function SettingsPage() {
                 type="button"
                 onClick={() => setActiveSection(tab.id)}
                 style={{
-                  background: "transparent",
-                  border: "none",
-                  borderBottom: active ? "2px solid #1a3a2a" : "2px solid transparent",
-                  padding: isMobile ? "10px 14px" : "8px 16px",
-                  fontSize: isMobile ? 13 : 14,
+                  fontSize: 13,
+                  color: active ? "#1a3a2a" : "#666",
+                  padding: "10px 16px",
+                  borderRadius: 8,
                   cursor: "pointer",
-                  color: active ? "#111" : "#888",
+                  border: "none",
+                  background: active ? "#f0f7eb" : "transparent",
                   fontWeight: active ? 500 : 400,
-                  flexShrink: 0,
-                  minHeight: isMobile ? 44 : undefined,
+                  textAlign: "left",
+                  fontFamily: "Inter, sans-serif",
                   outline: "none",
                 }}
               >
@@ -591,9 +585,125 @@ export default function SettingsPage() {
               </button>
             );
           })}
+        </nav>
+        <div
+          style={{
+            marginTop: "auto",
+            paddingTop: 20,
+            borderTop: "1px solid #ebebeb",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            minWidth: 0,
+          }}
+        >
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: "999px",
+              backgroundColor: "#1a3a2a",
+              color: "#f7f7f5",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 12,
+              fontWeight: 600,
+              flexShrink: 0,
+              fontFamily: "Inter, sans-serif",
+            }}
+          >
+            {avatarInitials}
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <p
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: "#111",
+                margin: 0,
+                fontFamily: "Inter, sans-serif",
+              }}
+            >
+              {displayName || "Your account"}
+            </p>
+            {userEmail ? (
+              <p
+                style={{
+                  fontSize: 11,
+                  color: "#999",
+                  margin: 0,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  fontFamily: "Inter, sans-serif",
+                }}
+              >
+                {userEmail}
+              </p>
+            ) : null}
+          </div>
         </div>
+      </aside>
 
-        {loadingSettings ? (
+      <div
+        style={{
+          flex: 1,
+          minWidth: 0,
+          minHeight: 0,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            padding: isMobile ? "20px 16px 100px" : "32px 40px",
+            boxSizing: "border-box",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 24,
+              gap: 12,
+              flexWrap: "wrap",
+            }}
+          >
+            <span
+              style={{
+                fontSize: 12,
+                color: "#999",
+                fontFamily: "Inter, sans-serif",
+              }}
+            >
+              Settings {" > "}
+              {activeNavLabel}
+            </span>
+            <button
+              type="button"
+              onClick={handleSave}
+              style={{
+                background: "#1a3a2a",
+                color: "#fff",
+                fontSize: 13,
+                fontWeight: 500,
+                padding: "8px 20px",
+                borderRadius: 8,
+                border: "none",
+                cursor: "pointer",
+                fontFamily: "Inter, sans-serif",
+              }}
+            >
+              {saveStatus === "saving" ? "Saving..." : "Save"}
+            </button>
+          </div>
+
+          {loadingSettings ? (
           <p className="text-xs" style={{ color: "#999" }}>
             Loading settings…
           </p>
@@ -601,22 +711,38 @@ export default function SettingsPage() {
           <>
             {activeSection === "conversation-signals" && (
               <section>
-                <h2
-                  className="text-lg font-semibold mb-3"
+                <div
                   style={{
-                    color: "#1a2e1a",
-                    fontFamily: "Inter, sans-serif",
+                    background: "#fff",
+                    border: "1px solid #ebebeb",
+                    borderRadius: 12,
+                    padding: "20px 24px",
+                    marginBottom: 12,
+                    boxSizing: "border-box",
                   }}
                 >
-                  Conversation Signals
-                </h2>
-                <p
-                  className="mb-4"
-                  style={{ fontSize: 12, color: "rgba(26,35,50,0.6)", fontFamily: "'Geist', sans-serif" }}
-                >
-                  Configure the signals you mark after each conversation.
-                </p>
-                <div>
+                  <div style={{ marginBottom: 16 }}>
+                    <div
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: "#111",
+                        fontFamily: "Inter, sans-serif",
+                      }}
+                    >
+                      Conversation Signals
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: "#999",
+                        marginTop: 4,
+                        fontFamily: "Inter, sans-serif",
+                      }}
+                    >
+                      Configure the signals you mark after each conversation.
+                    </div>
+                  </div>
                   <div>
                     {signals.map((signal) => (
                       <div
@@ -626,8 +752,8 @@ export default function SettingsPage() {
                           alignItems: "center",
                           gap: 12,
                           padding: "14px 16px",
-                          background: signal.enabled ? "#f8fdf4" : "#ffffff",
-                          border: signal.enabled ? "1px solid #d4edbc" : "1px solid #ebebeb",
+                          background: "#ffffff",
+                          border: "1px solid #ebebeb",
                           borderRadius: 10,
                           marginBottom: 8,
                         }}
@@ -781,22 +907,38 @@ export default function SettingsPage() {
 
             {activeSection === "contact-fields" && (
               <section>
-                <h2
-                  className="text-lg font-semibold mb-3"
+                <div
                   style={{
-                    color: "#1a2e1a",
-                    fontFamily: "Inter, sans-serif",
+                    background: "#fff",
+                    border: "1px solid #ebebeb",
+                    borderRadius: 12,
+                    padding: "20px 24px",
+                    marginBottom: 12,
+                    boxSizing: "border-box",
                   }}
                 >
-                  Contact Fields
-                </h2>
-                <p
-                  className="mb-4"
-                  style={{ fontSize: 12, color: "rgba(26,35,50,0.6)", fontFamily: "'Geist', sans-serif" }}
-                >
-                  Decide which fields you track for each contact.
-                </p>
-                <div>
+                  <div style={{ marginBottom: 16 }}>
+                    <div
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: "#111",
+                        fontFamily: "Inter, sans-serif",
+                      }}
+                    >
+                      Contact Fields
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: "#999",
+                        marginTop: 4,
+                        fontFamily: "Inter, sans-serif",
+                      }}
+                    >
+                      Decide which fields you track for each contact.
+                    </div>
+                  </div>
                   <div>
                     {fields.map((field) => (
                       <div
@@ -963,28 +1105,19 @@ export default function SettingsPage() {
 
             {activeSection === "email-tone" && (
               <section>
-                <h2
-                  className="text-lg font-semibold mb-3"
-                  style={{
-                    color: "#1a2e1a",
-                    fontFamily: "Inter, sans-serif",
-                  }}
+                <SettingRowCard
+                  title="Email Tone Defaults"
+                  description="Default email tone for new sequences."
+                  controlFullWidth
                 >
-                  Email Tone Defaults
-                </h2>
-                <p
-                  style={{ fontSize: 12, color: "rgba(26,35,50,0.6)", fontFamily: "'Geist', sans-serif", margin: 0 }}
-                >
-                  Default email tone for new sequences.
-                </p>
-                <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: 12,
-                    marginTop: 16,
-                  }}
-                >
+                  <div
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: 12,
+                      justifyContent: "flex-start",
+                    }}
+                  >
                   {TONE_OPTIONS.map((tone) => {
                     const active = defaultTone === tone;
                     return (
@@ -1015,7 +1148,7 @@ export default function SettingsPage() {
                           minWidth: 120,
                           transition: "all 0.15s ease",
                           textAlign: "left",
-                          fontFamily: "'Geist', sans-serif",
+                          fontFamily: "Inter, sans-serif",
                           width: isMobile ? "100%" : undefined,
                           outline: "none",
                           boxSizing: "border-box",
@@ -1061,79 +1194,38 @@ export default function SettingsPage() {
                       </button>
                     );
                   })}
-                </div>
+                  </div>
+                </SettingRowCard>
               </section>
             )}
 
             {activeSection === "integrations" && (
               <section>
-                <h2
-                  style={{
-                    fontFamily: "Inter, sans-serif",
-                    fontSize: 20,
-                    fontWeight: 600,
-                    letterSpacing: "-0.02em",
-                    marginBottom: 4,
-                    color: "#111",
-                    marginTop: 0,
-                  }}
+                <SettingRowCard
+                  title="HubSpot CRM"
+                  description="Sync contacts directly to your HubSpot account."
                 >
-                  Integrations
-                </h2>
-                <p style={{ fontSize: 14, color: "#999", marginBottom: 24, marginTop: 0 }}>
-                  Connect Katch to your other tools.
-                </p>
-                <div
-                  style={{
-                    background: "#fff",
-                    border: "1px solid #ebebeb",
-                    borderRadius: 14,
-                    padding: "20px 24px",
-                    display: "flex",
-                    flexDirection: isMobile ? "column" : "row",
-                    alignItems: isMobile ? "stretch" : "center",
-                    justifyContent: "space-between",
-                    gap: isMobile ? 16 : 0,
-                  }}
-                >
-                  <div style={{ display: "flex", flexDirection: "row", gap: 14, alignItems: "center", minWidth: 0 }}>
-                    <div
-                      style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: 10,
-                        background: "#ff7a59",
-                        color: "#fff",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 20,
-                        fontWeight: 700,
-                        flexShrink: 0,
-                      }}
-                    >
-                      H
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 15, fontWeight: 600, color: "#111" }}>HubSpot CRM</div>
-                      <div style={{ fontSize: 13, color: "#999", marginTop: 2 }}>
-                        Sync contacts directly to your HubSpot account.
-                      </div>
-                      {hubspotConnected && hubId != null && hubId !== "" && (
-                        <div style={{ fontSize: 11, color: "#bbb", marginTop: 2 }}>{hubId}</div>
-                      )}
-                    </div>
-                  </div>
                   <div
                     style={{
                       display: "flex",
-                      flexDirection: isMobile ? "column" : "row",
-                      alignItems: isMobile ? "stretch" : "center",
-                      justifyContent: "flex-end",
+                      flexDirection: "column",
+                      alignItems: "flex-end",
                       gap: 10,
                       flexShrink: 0,
                     }}
                   >
+                    {hubspotConnected && hubId != null && hubId !== "" && (
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: "#bbb",
+                          textAlign: "right",
+                          fontFamily: "Inter, sans-serif",
+                        }}
+                      >
+                        {hubId}
+                      </div>
+                    )}
                     {hubspotConnected ? (
                       <>
                         <span
@@ -1199,239 +1291,141 @@ export default function SettingsPage() {
                       </button>
                     )}
                   </div>
-                </div>
+                </SettingRowCard>
               </section>
             )}
 
             {activeSection === "icp-profile" && (
               <section>
-                <h2
-                  style={{
-                    fontFamily: "Inter, sans-serif",
-                    fontSize: 20,
-                    fontWeight: 600,
-                    letterSpacing: "-0.02em",
-                    marginBottom: 4,
-                    color: "#111",
-                    marginTop: 0,
-                  }}
+                <SettingRowCard
+                  title="What does your company sell?"
+                  description="Helps Katch understand your product or service positioning."
+                  controlFullWidth
                 >
-                  ICP Profile
-                </h2>
-                <p style={{ fontSize: 14, color: "#999", marginBottom: 24, marginTop: 0 }}>
-                  Tell Katch about your company and ideal customers to sharpen scoring and sequences.
-                </p>
-                <div
-                  className="rounded-2xl p-4 space-y-4"
-                  style={{ border: "1px solid #dce8d0", backgroundColor: "#ffffff" }}
+                  <textarea
+                    value={icpProfile.what_we_sell}
+                    onChange={(e) =>
+                      setIcpProfile((p) => ({ ...p, what_we_sell: e.target.value }))
+                    }
+                    placeholder="e.g. AI-powered sales automation software for B2B SaaS companies"
+                    rows={3}
+                    className="settings-form-control resize-y"
+                  />
+                </SettingRowCard>
+                <SettingRowCard
+                  title="Who is your target customer?"
+                  description="Describe your ideal buyer or account profile."
+                  controlFullWidth
                 >
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      letterSpacing: "0.04em",
-                      textTransform: "uppercase",
-                      color: "#999",
-                      marginBottom: 4,
-                    }}
-                  >
-                    Your Company
-                  </div>
-                  <div>
-                    <label
-                      className="block text-xs mb-1"
-                      style={{ color: "#6b6157", fontSize: isMobile ? 13 : undefined }}
-                    >
-                      What does your company sell?
-                    </label>
-                    <textarea
-                      value={icpProfile.what_we_sell}
-                      onChange={(e) =>
-                        setIcpProfile((p) => ({ ...p, what_we_sell: e.target.value }))
-                      }
-                      placeholder="e.g. AI-powered sales automation software for B2B SaaS companies"
-                      rows={3}
-                      className="settings-form-control resize-y"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      className="block text-xs mb-1"
-                      style={{ color: "#6b6157", fontSize: isMobile ? 13 : undefined }}
-                    >
-                      Who is your target customer?
-                    </label>
-                    <textarea
-                      value={icpProfile.target_customer}
-                      onChange={(e) =>
-                        setIcpProfile((p) => ({ ...p, target_customer: e.target.value }))
-                      }
-                      placeholder="e.g. VP of Sales and CROs at Series A-C SaaS companies with 50-500 employees"
-                      rows={3}
-                      className="settings-form-control resize-y"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      className="block text-xs mb-1"
-                      style={{ color: "#6b6157", fontSize: isMobile ? 13 : undefined }}
-                    >
-                      What problems do you solve?
-                    </label>
-                    <textarea
-                      value={icpProfile.problems_solved}
-                      onChange={(e) =>
-                        setIcpProfile((p) => ({ ...p, problems_solved: e.target.value }))
-                      }
-                      placeholder="e.g. Sales reps waste time on manual data entry and miss follow-ups after events"
-                      rows={3}
-                      className="settings-form-control resize-y"
-                    />
-                  </div>
-
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      letterSpacing: "0.04em",
-                      textTransform: "uppercase",
-                      color: "#999",
-                      marginTop: 8,
-                      marginBottom: 4,
-                    }}
-                  >
-                    Ideal customer profile
-                  </div>
-                  <div>
-                    <label
-                      className="block text-xs mb-1"
-                      style={{ color: "#6b6157", fontSize: isMobile ? 13 : undefined }}
-                    >
-                      Ideal job titles
-                    </label>
-                    <input
-                      type="text"
-                      className="settings-form-control"
-                      value={icpProfile.ideal_titles}
-                      onChange={(e) =>
-                        setIcpProfile((p) => ({ ...p, ideal_titles: e.target.value }))
-                      }
-                      placeholder="e.g. VP Sales, CRO, Head of Revenue, Sales Director"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      className="block text-xs mb-1"
-                      style={{ color: "#6b6157", fontSize: isMobile ? 13 : undefined }}
-                    >
-                      Ideal industries
-                    </label>
-                    <input
-                      type="text"
-                      className="settings-form-control"
-                      value={icpProfile.ideal_industries}
-                      onChange={(e) =>
-                        setIcpProfile((p) => ({ ...p, ideal_industries: e.target.value }))
-                      }
-                      placeholder="e.g. SaaS, Fintech, MarTech, Enterprise Software"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      className="block text-xs mb-1"
-                      style={{ color: "#6b6157", fontSize: isMobile ? 13 : undefined }}
-                    >
-                      Ideal company size
-                    </label>
-                    <input
-                      type="text"
-                      className="settings-form-control"
-                      value={icpProfile.ideal_company_size}
-                      onChange={(e) =>
-                        setIcpProfile((p) => ({ ...p, ideal_company_size: e.target.value }))
-                      }
-                      placeholder="e.g. 50-500 employees, Series A to Series C"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      className="block text-xs mb-1"
-                      style={{ color: "#6b6157", fontSize: isMobile ? 13 : undefined }}
-                    >
-                      Deal disqualifiers (who is NOT a good fit)
-                    </label>
-                    <textarea
-                      value={icpProfile.disqualifiers}
-                      onChange={(e) =>
-                        setIcpProfile((p) => ({ ...p, disqualifiers: e.target.value }))
-                      }
-                      placeholder="e.g. Freelancers, companies under 10 employees, non-tech industries"
-                      rows={3}
-                      className="settings-form-control resize-y"
-                    />
-                  </div>
-
-                  <div
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      letterSpacing: "0.04em",
-                      textTransform: "uppercase",
-                      color: "#999",
-                      marginTop: 8,
-                      marginBottom: 4,
-                    }}
-                  >
-                    Talking Points
-                  </div>
-                  <div>
-                    <label
-                      className="block text-xs mb-1"
-                      style={{ color: "#6b6157", fontSize: isMobile ? 13 : undefined }}
-                    >
-                      Key value propositions (one per line)
-                    </label>
-                    <textarea
-                      value={icpProfile.value_props}
-                      onChange={(e) =>
-                        setIcpProfile((p) => ({ ...p, value_props: e.target.value }))
-                      }
-                      placeholder={
-                        "e.g. Save 3 hours per event on manual data entry\nSync leads to HubSpot instantly\nAI-scored leads so you follow up with the right people first"
-                      }
-                      rows={4}
-                      className="settings-form-control resize-y"
-                    />
-                  </div>
-                </div>
+                  <textarea
+                    value={icpProfile.target_customer}
+                    onChange={(e) =>
+                      setIcpProfile((p) => ({ ...p, target_customer: e.target.value }))
+                    }
+                    placeholder="e.g. VP of Sales and CROs at Series A-C SaaS companies with 50-500 employees"
+                    rows={3}
+                    className="settings-form-control resize-y"
+                  />
+                </SettingRowCard>
+                <SettingRowCard
+                  title="What problems do you solve?"
+                  description="Pain points your solution addresses for prospects."
+                  controlFullWidth
+                >
+                  <textarea
+                    value={icpProfile.problems_solved}
+                    onChange={(e) =>
+                      setIcpProfile((p) => ({ ...p, problems_solved: e.target.value }))
+                    }
+                    placeholder="e.g. Sales reps waste time on manual data entry and miss follow-ups after events"
+                    rows={3}
+                    className="settings-form-control resize-y"
+                  />
+                </SettingRowCard>
+                <SettingRowCard
+                  title="Ideal job titles"
+                  description="Roles you typically sell to."
+                  controlFullWidth
+                >
+                  <input
+                    type="text"
+                    className="settings-form-control"
+                    value={icpProfile.ideal_titles}
+                    onChange={(e) =>
+                      setIcpProfile((p) => ({ ...p, ideal_titles: e.target.value }))
+                    }
+                    placeholder="e.g. VP Sales, CRO, Head of Revenue, Sales Director"
+                  />
+                </SettingRowCard>
+                <SettingRowCard
+                  title="Ideal industries"
+                  description="Sectors or verticals you focus on."
+                  controlFullWidth
+                >
+                  <input
+                    type="text"
+                    className="settings-form-control"
+                    value={icpProfile.ideal_industries}
+                    onChange={(e) =>
+                      setIcpProfile((p) => ({ ...p, ideal_industries: e.target.value }))
+                    }
+                    placeholder="e.g. SaaS, Fintech, MarTech, Enterprise Software"
+                  />
+                </SettingRowCard>
+                <SettingRowCard
+                  title="Ideal company size"
+                  description="Employee range, funding stage, or similar signals."
+                  controlFullWidth
+                >
+                  <input
+                    type="text"
+                    className="settings-form-control"
+                    value={icpProfile.ideal_company_size}
+                    onChange={(e) =>
+                      setIcpProfile((p) => ({ ...p, ideal_company_size: e.target.value }))
+                    }
+                    placeholder="e.g. 50-500 employees, Series A to Series C"
+                  />
+                </SettingRowCard>
+                <SettingRowCard
+                  title="Deal disqualifiers"
+                  description="Who is not a good fit for your product or outreach."
+                  controlFullWidth
+                >
+                  <textarea
+                    value={icpProfile.disqualifiers}
+                    onChange={(e) =>
+                      setIcpProfile((p) => ({ ...p, disqualifiers: e.target.value }))
+                    }
+                    placeholder="e.g. Freelancers, companies under 10 employees, non-tech industries"
+                    rows={3}
+                    className="settings-form-control resize-y"
+                  />
+                </SettingRowCard>
+                <SettingRowCard
+                  title="Key value propositions"
+                  description="One value prop per line — used in scoring and sequences."
+                  controlFullWidth
+                >
+                  <textarea
+                    value={icpProfile.value_props}
+                    onChange={(e) =>
+                      setIcpProfile((p) => ({ ...p, value_props: e.target.value }))
+                    }
+                    placeholder={
+                      "e.g. Save 3 hours per event on manual data entry\nSync leads to HubSpot instantly\nAI-scored leads so you follow up with the right people first"
+                    }
+                    rows={4}
+                    className="settings-form-control resize-y"
+                  />
+                </SettingRowCard>
               </section>
             )}
 
           </>
         )}
+        </div>
       </div>
-
-      <button
-        type="button"
-        onClick={handleSave}
-        style={{
-          position: "fixed",
-          bottom: 24,
-          right: 32,
-          zIndex: 100,
-          background: "#1a3a2a",
-          color: "#ffffff",
-          border: "none",
-          borderRadius: 10,
-          padding: "10px 28px",
-          fontSize: 14,
-          fontWeight: 600,
-          cursor: "pointer",
-          boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
-        }}
-      >
-        {saveStatus === "saving" ? "Saving..." : "Save"}
-      </button>
     </div>
   );
 }
