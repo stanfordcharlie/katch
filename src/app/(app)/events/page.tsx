@@ -1166,6 +1166,16 @@ export default function EventsPage() {
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
+                      router.push("/sequences?event=" + ev.id);
+                    }}
+                    style={secondaryBtn}
+                  >
+                    Generate Sequences
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
                       router.push("/contacts?event=" + ev.id);
                     }}
                     style={secondaryBtn}
@@ -1413,6 +1423,26 @@ export default function EventsPage() {
                     }}
                   >
                     Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push("/sequences?event=" + ev.id);
+                    }}
+                    style={{
+                      background: "#fff",
+                      border: "1px solid #e8e8e8",
+                      color: "#111",
+                      fontSize: 12,
+                      padding: isMobile ? "6px 10px" : "6px 14px",
+                      borderRadius: 8,
+                      height: isMobile ? 34 : undefined,
+                      fontWeight: 500,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Generate Sequences
                   </button>
                   <button
                     type="button"

@@ -32,6 +32,12 @@ type Contact = {
   enriched_at?: string | null;
   source?: string | null;
   status?: string | null;
+  sequences?: {
+    generatedAt?: string;
+    cadence?: { day: number; tone: string }[];
+    emails: { day: number; subject: string; body: string }[];
+    context?: string;
+  } | null;
 };
 
 type EditForm = {
@@ -254,6 +260,23 @@ export default function ContactsPage() {
   const [duplicateGroupIndex, setDuplicateGroupIndex] = useState(0);
   const [reEnrichingId, setReEnrichingId] = useState<string | null>(null);
   const [reEnrichErrorForId, setReEnrichErrorForId] = useState<string | null>(null);
+
+  type SeqTone = 'professional' | 'friendly' | 'direct';
+  type SeqCadenceStep = { day: number; tone: SeqTone };
+  const [sequenceDrawerContact, setSequenceDrawerContact] = useState<Contact | null>(null);
+  const [sequenceCadence, setSequenceCadence] = useState<SeqCadenceStep[]>([
+    { day: 1, tone: 'professional' },
+    { day: 4, tone: 'professional' },
+    { day: 14, tone: 'professional' },
+  ]);
+  const [sequenceContext, setSequenceContext] = useState('');
+  const [sequenceLoading, setSequenceLoading] = useState(false);
+  const [sequenceEmails, setSequenceEmails] = useState<{ day: number; subject: string; body: string }[] | null>(
+    null
+  );
+  const [sequenceSaving, setSequenceSaving] = useState(false);
+  const [sequenceDrawerExpanded, setSequenceDrawerExpanded] = useState<Record<number, boolean>>({});
+  const [sequenceDrawerEditIdx, setSequenceDrawerEditIdx] = useState<number | null>(null);
 
   const fetchContacts = useCallback(async () => {
     if (!user?.id) return;
@@ -2847,8 +2870,21 @@ export default function ContactsPage() {
                           width: isMobile ? '100%' : 'auto',
                         }}
                       >
-                        <Link
-                          href={`/sequences?contactId=${contact.id}`}
+                        <button
+                          type='button'
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSequenceDrawerContact(contact);
+                            setSequenceEmails(null);
+                            setSequenceContext('');
+                            setSequenceCadence([
+                              { day: 1, tone: 'professional' },
+                              { day: 4, tone: 'professional' },
+                              { day: 14, tone: 'professional' },
+                            ]);
+                            setSequenceDrawerExpanded({});
+                            setSequenceDrawerEditIdx(null);
+                          }}
                           style={{
                             background: '#7dde3c',
                             color: '#0a1a0a',
@@ -2863,13 +2899,12 @@ export default function ContactsPage() {
                             alignItems: 'center',
                             justifyContent: 'center',
                             gap: 6,
-                            textDecoration: 'none',
                             width: isMobile ? '100%' : 'auto',
                             minHeight: isMobile ? 44 : undefined,
                           }}
                         >
                           Generate Sequence
-                        </Link>
+                        </button>
                         <button
                           type='button'
                           onClick={(e) => {
@@ -3584,6 +3619,406 @@ export default function ContactsPage() {
           >
             Delete
           </button>
+        </div>
+      )}
+
+      {sequenceDrawerContact && (
+        <div
+          role='presentation'
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.35)',
+            zIndex: 2400,
+          }}
+          onClick={() => setSequenceDrawerContact(null)}
+        />
+      )}
+      {sequenceDrawerContact && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            right: 0,
+            bottom: 0,
+            width: 'min(480px, 100vw)',
+            background: '#fff',
+            zIndex: 2401,
+            boxShadow: '-8px 0 32px rgba(0,0,0,0.12)',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              padding: '16px 20px',
+              borderBottom: '1px solid #ebebeb',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexShrink: 0,
+            }}
+          >
+            <h2
+              style={{
+                fontSize: 17,
+                fontWeight: 700,
+                color: '#111',
+                margin: 0,
+                paddingRight: 12,
+              }}
+            >
+              Generate Sequence for {sequenceDrawerContact.name ?? 'Contact'}
+            </h2>
+            <button
+              type='button'
+              onClick={() => setSequenceDrawerContact(null)}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: 22,
+                color: '#999',
+                cursor: 'pointer',
+                lineHeight: 1,
+                padding: 4,
+              }}
+              aria-label='Close'
+            >
+              ×
+            </button>
+          </div>
+          <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
+            <p style={{ fontSize: 12, fontWeight: 600, color: '#999', textTransform: 'uppercase', margin: '0 0 8px' }}>
+              Cadence
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+              {sequenceCadence.map((step, index) => (
+                <div key={index} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                  <input
+                    type='number'
+                    min={0}
+                    value={step.day}
+                    onChange={(e) =>
+                      setSequenceCadence((prev) =>
+                        prev.map((s, i) => (i === index ? { ...s, day: parseInt(e.target.value, 10) || 0 } : s))
+                      )
+                    }
+                    style={{
+                      width: 72,
+                      border: '1px solid #e8e8e8',
+                      borderRadius: 8,
+                      padding: '8px 10px',
+                      fontSize: 14,
+                    }}
+                  />
+                  <select
+                    value={step.tone}
+                    onChange={(e) =>
+                      setSequenceCadence((prev) =>
+                        prev.map((s, i) => (i === index ? { ...s, tone: e.target.value as SeqTone } : s))
+                      )
+                    }
+                    style={{
+                      flex: 1,
+                      minWidth: 140,
+                      border: '1px solid #e8e8e8',
+                      borderRadius: 8,
+                      padding: '8px 10px',
+                      fontSize: 14,
+                    }}
+                  >
+                    <option value='professional'>Professional</option>
+                    <option value='friendly'>Friendly</option>
+                    <option value='direct'>Direct</option>
+                  </select>
+                  {sequenceCadence.length > 1 && (
+                    <button
+                      type='button'
+                      onClick={() =>
+                        setSequenceCadence((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)))
+                      }
+                      style={{ background: 'none', border: 'none', color: '#e55a5a', cursor: 'pointer', fontSize: 13 }}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <button
+              type='button'
+              onClick={() =>
+                setSequenceCadence((prev) => [
+                  ...prev,
+                  { day: (prev[prev.length - 1]?.day ?? 1) + 3, tone: 'professional' },
+                ])
+              }
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#2d6a1f',
+                fontWeight: 600,
+                fontSize: 14,
+                cursor: 'pointer',
+                marginBottom: 16,
+                padding: 0,
+              }}
+            >
+              + Add another email
+            </button>
+            <label style={{ fontSize: 13, color: '#666', display: 'block', marginBottom: 6 }}>Context</label>
+            <textarea
+              value={sequenceContext}
+              onChange={(e) => setSequenceContext(e.target.value)}
+              placeholder='Notes about your conversation…'
+              style={{
+                width: '100%',
+                minHeight: 88,
+                border: '1px solid #e8e8e8',
+                borderRadius: 8,
+                padding: '10px 12px',
+                fontSize: 14,
+                marginBottom: 16,
+                resize: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+            <button
+              type='button'
+              disabled={sequenceLoading}
+              onClick={async () => {
+                if (!sequenceDrawerContact || !user?.id) return;
+                setSequenceLoading(true);
+                setSequenceEmails(null);
+                try {
+                  const res = await fetch('/api/sequence', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      contacts: [sequenceDrawerContact],
+                      cadence: sequenceCadence.map((c) => ({ day: c.day, tone: c.tone })),
+                      context: sequenceContext.trim() || undefined,
+                    }),
+                  });
+                  const data = await res.json();
+                  const row = (data.results as { contactId: string; emails: { day: number; subject: string; body: string }[] }[])?.find(
+                    (r) => r.contactId === sequenceDrawerContact.id
+                  );
+                  setSequenceEmails(row?.emails ?? []);
+                } catch (err) {
+                  console.error(err);
+                  showToast('Generation failed', 'error');
+                } finally {
+                  setSequenceLoading(false);
+                }
+              }}
+              style={{
+                width: '100%',
+                background: sequenceLoading ? '#ccc' : '#1a3a2a',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 10,
+                padding: '12px 16px',
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: sequenceLoading ? 'not-allowed' : 'pointer',
+                marginBottom: 20,
+              }}
+            >
+              {sequenceLoading ? 'Generating…' : 'Generate'}
+            </button>
+
+            {sequenceEmails && sequenceEmails.length > 0 && (
+              <>
+                <p style={{ fontSize: 12, fontWeight: 600, color: '#999', textTransform: 'uppercase', margin: '0 0 10px' }}>
+                  Generated emails
+                </p>
+                {sequenceEmails.map((em, i) => {
+                  const exp = sequenceDrawerExpanded[i] ?? false;
+                  const preview = em.body.length > 140 ? `${em.body.slice(0, 140)}…` : em.body;
+                  const editing = sequenceDrawerEditIdx === i;
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        border: '1px solid #ebebeb',
+                        borderRadius: 10,
+                        padding: 12,
+                        marginBottom: 10,
+                      }}
+                    >
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#2d6a1f' }}>Day {em.day}</div>
+                      {!editing ? (
+                        <>
+                          <div style={{ fontSize: 14, fontWeight: 600, margin: '6px 0' }}>{em.subject}</div>
+                          <pre
+                            style={{
+                              fontSize: 13,
+                              color: '#444',
+                              whiteSpace: 'pre-wrap',
+                              fontFamily: 'inherit',
+                              margin: 0,
+                            }}
+                          >
+                            {exp ? em.body : preview}
+                          </pre>
+                          {em.body.length > 140 && (
+                            <button
+                              type='button'
+                              onClick={() => setSequenceDrawerExpanded((p) => ({ ...p, [i]: !exp }))}
+                              style={{
+                                marginTop: 6,
+                                background: 'none',
+                                border: 'none',
+                                color: '#2d6a1f',
+                                cursor: 'pointer',
+                                fontSize: 12,
+                              }}
+                            >
+                              {exp ? 'Show less' : 'Show full body'}
+                            </button>
+                          )}
+                          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                            <button
+                              type='button'
+                              onClick={() =>
+                                void navigator.clipboard.writeText(`Subject: ${em.subject}\n\n${em.body}`)
+                              }
+                              style={{
+                                border: '1px solid #e8e8e8',
+                                borderRadius: 8,
+                                padding: '6px 12px',
+                                fontSize: 12,
+                                background: '#fff',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Copy
+                            </button>
+                            <button
+                              type='button'
+                              onClick={() => setSequenceDrawerEditIdx(i)}
+                              style={{
+                                border: '1px solid #e8e8e8',
+                                borderRadius: 8,
+                                padding: '6px 12px',
+                                fontSize: 12,
+                                background: '#fff',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Edit
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <div style={{ marginTop: 8 }}>
+                          <input
+                            value={em.subject}
+                            onChange={(e) =>
+                              setSequenceEmails((prev) =>
+                                prev
+                                  ? prev.map((x, j) => (j === i ? { ...x, subject: e.target.value } : x))
+                                  : prev
+                              )
+                            }
+                            style={{
+                              width: '100%',
+                              marginBottom: 8,
+                              border: '1px solid #e8e8e8',
+                              borderRadius: 8,
+                              padding: '8px 10px',
+                              fontSize: 14,
+                              boxSizing: 'border-box',
+                            }}
+                          />
+                          <textarea
+                            value={em.body}
+                            onChange={(e) =>
+                              setSequenceEmails((prev) =>
+                                prev ? prev.map((x, j) => (j === i ? { ...x, body: e.target.value } : x)) : prev
+                              )
+                            }
+                            style={{
+                              width: '100%',
+                              minHeight: 120,
+                              border: '1px solid #e8e8e8',
+                              borderRadius: 8,
+                              padding: '8px 10px',
+                              fontSize: 14,
+                              boxSizing: 'border-box',
+                            }}
+                          />
+                          <button
+                            type='button'
+                            onClick={() => setSequenceDrawerEditIdx(null)}
+                            style={{
+                              marginTop: 8,
+                              background: '#1a3a2a',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: 8,
+                              padding: '8px 14px',
+                              fontSize: 12,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Done
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                <button
+                  type='button'
+                  disabled={sequenceSaving}
+                  onClick={async () => {
+                    if (!sequenceDrawerContact || !user?.id || !sequenceEmails?.length) return;
+                    setSequenceSaving(true);
+                    try {
+                      const payload = {
+                        generatedAt: new Date().toISOString(),
+                        cadence: sequenceCadence.map((c) => ({ day: c.day, tone: c.tone })),
+                        emails: sequenceEmails,
+                        context: sequenceContext.trim() || undefined,
+                      };
+                      const { error } = await supabase
+                        .from('contacts')
+                        .update({ sequences: payload })
+                        .eq('id', sequenceDrawerContact.id)
+                        .eq('user_id', user.id);
+                      if (error) {
+                        console.error(error);
+                        showToast('Could not save sequence', 'error');
+                        return;
+                      }
+                      showToast('Sequence saved to contact', 'success');
+                      await fetchContacts();
+                      setSequenceDrawerContact(null);
+                    } finally {
+                      setSequenceSaving(false);
+                    }
+                  }}
+                  style={{
+                    width: '100%',
+                    background: sequenceSaving ? '#ccc' : '#7dde3c',
+                    color: '#0a1a0a',
+                    border: 'none',
+                    borderRadius: 10,
+                    padding: '12px 16px',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: sequenceSaving ? 'not-allowed' : 'pointer',
+                    marginTop: 8,
+                  }}
+                >
+                  {sequenceSaving ? 'Saving…' : 'Save to contact'}
+                </button>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>
