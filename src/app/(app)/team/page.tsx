@@ -6,7 +6,7 @@ export default function TeamPage() {
       style={{
         minHeight: "100vh",
         background: "#f0f2f0",
-        padding: "20px 24px 40px",
+        padding: "24px 24px 40px",
         maxWidth: 960,
         margin: "0 auto",
       }}

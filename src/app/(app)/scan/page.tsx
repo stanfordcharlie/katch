@@ -1179,7 +1179,7 @@ export default function ScanPage() {
             {toast}
           </div>
         )}
-        <div style={{ maxWidth: isMobile ? "100%" : "1100px", margin: "0 auto", padding: isMobile ? "20px 16px 0" : "36px 36px 0" }}>
+        <div style={{ maxWidth: isMobile ? "100%" : "1100px", margin: "0 auto", padding: isMobile ? "20px 24px 0" : "36px 24px 0" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
             <button
               type="button"
@@ -2558,7 +2558,7 @@ export default function ScanPage() {
         id="staged-add-input"
         onChange={handleStagedAddMore}
       />
-      <div style={{ maxWidth: isMobile ? "100%" : "1100px", margin: "0 auto", padding: isMobile ? "20px 16px 0" : "36px 36px 0" }}>
+      <div style={{ maxWidth: isMobile ? "100%" : "1100px", margin: "0 auto", padding: isMobile ? "20px 24px 0" : "36px 24px 0" }}>
         <div
           className="w-full rounded-2xl p-8"
           style={{
@@ -2614,7 +2614,7 @@ export default function ScanPage() {
         style={{
           maxWidth: isMobile ? "100%" : "1100px",
           margin: "0 auto",
-          padding: isMobile ? "0 16px 36px" : "0 36px 36px",
+          padding: isMobile ? "0 24px 36px" : "0 24px 36px",
         }}
       >
         {scanMode === "idle" ? (
@@ -3161,7 +3161,7 @@ export default function ScanPage() {
                 background: "#fff",
                 borderRadius: 16,
                 border: "1px solid #ebebeb",
-                padding: isMobile ? "20px 16px" : 28,
+                padding: isMobile ? "20px 24px" : "28px 24px",
               }}
             >
               <div

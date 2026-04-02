@@ -928,7 +928,7 @@ export default function ContactsPage() {
         maxWidth: '100vw',
         width: '100%',
         boxSizing: 'border-box',
-        padding: isMobile ? '20px 16px 100px' : '32px 36px',
+        padding: isMobile ? '24px 24px 100px' : '24px 24px',
         backgroundColor: '#f0f2f0',
         minHeight: '100vh',
       }}
@@ -1322,56 +1322,199 @@ export default function ContactsPage() {
       </div>
 
       {loading && (
-        <div
-          style={{
-            marginTop: 16,
-            background: 'transparent',
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          {Array.from({ length: 5 }).map((_, i) => (
+        <div style={{ marginTop: 16, width: '100%' }}>
+          {!isMobile ? (
             <div
-              key={i}
               style={{
-                background: 'linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%)',
-                backgroundSize: '200% 100%',
-                animation: 'shimmer 1.2s infinite',
-                borderRadius: 12,
-                height: 72,
-                marginBottom: 8,
+                borderTop: '1px solid #e8e8e8',
+                background: '#fff',
+                overflow: 'hidden',
               }}
-            />
-          ))}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  borderBottom: '1px solid #ebebeb',
+                  background: '#fafafa',
+                  padding: '12px 0',
+                }}
+              >
+                {CONTACTS_DESKTOP_COL_STYLE.map((col, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      ...col,
+                      paddingLeft: i === 0 ? 0 : 12,
+                      paddingRight: i === 0 ? 0 : 12,
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <div
+                      style={{
+                        height: 10,
+                        borderRadius: 4,
+                        background:
+                          'linear-gradient(90deg, #ececec 25%, #e0e0e0 50%, #ececec 75%)',
+                        backgroundSize: '200% 100%',
+                        animation: 'shimmer 1.2s infinite',
+                        width: i === 0 ? 14 : '85%',
+                        margin: i === 0 ? '0 auto' : undefined,
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+              {Array.from({ length: 7 }).map((_, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: 'flex',
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    alignItems: 'center',
+                    borderBottom: '1px solid #f5f5f5',
+                    padding: '14px 0',
+                  }}
+                >
+                  {CONTACTS_DESKTOP_COL_STYLE.map((col, j) => (
+                    <div
+                      key={j}
+                      style={{
+                        ...col,
+                        paddingLeft: j === 0 ? 0 : 12,
+                        paddingRight: j === 0 ? 0 : 12,
+                        boxSizing: 'border-box',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: j === 0 || j >= 4 ? 'center' : 'flex-start',
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: j === 1 ? 12 : 10,
+                          borderRadius: 999,
+                          background:
+                            'linear-gradient(90deg, #f0f0f0 25%, #e6e6e6 50%, #f0f0f0 75%)',
+                          backgroundSize: '200% 100%',
+                          animation: 'shimmer 1.2s infinite',
+                          width: j === 0 ? 14 : j === 1 ? '72%' : j === 2 ? '55%' : j === 3 ? '50%' : 28,
+                          minWidth: j >= 4 ? 28 : undefined,
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+              }}
+            >
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  style={{
+                    background: '#fff',
+                    border: '1px solid #ebebeb',
+                    borderRadius: 12,
+                    padding: 14,
+                    display: 'flex',
+                    gap: 12,
+                    alignItems: 'center',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 10,
+                      flexShrink: 0,
+                      background:
+                        'linear-gradient(90deg, #f0f0f0 25%, #e6e6e6 50%, #f0f0f0 75%)',
+                      backgroundSize: '200% 100%',
+                      animation: 'shimmer 1.2s infinite',
+                    }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div
+                      style={{
+                        height: 12,
+                        borderRadius: 4,
+                        width: '55%',
+                        background:
+                          'linear-gradient(90deg, #f0f0f0 25%, #e6e6e6 50%, #f0f0f0 75%)',
+                        backgroundSize: '200% 100%',
+                        animation: 'shimmer 1.2s infinite',
+                      }}
+                    />
+                    <div
+                      style={{
+                        height: 10,
+                        borderRadius: 4,
+                        width: '40%',
+                        background:
+                          'linear-gradient(90deg, #f0f0f0 25%, #e6e6e6 50%, #f0f0f0 75%)',
+                        backgroundSize: '200% 100%',
+                        animation: 'shimmer 1.2s infinite',
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {!loading && contacts.length === 0 && (
-        <div className='text-center py-20 border-2 border-dashed border-slate-200 rounded-2xl'>
-          <div className='w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3'>
-            <svg
-              width='20'
-              height='20'
-              fill='none'
-              viewBox='0 0 24 24'
-              stroke='#94a3b8'
-              strokeWidth='1.5'
-            >
-              <path d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2' />
-              <circle cx='9' cy='7' r='4' />
-              <path d='M23 21v-2a4 4 0 0 0-3-3.87' />
-              <path d='M16 3.13a4 4 0 0 1 0 7.75' />
+        <div
+          className='text-center py-20 border-2 border-dashed rounded-2xl'
+          style={{ borderColor: '#e5e7eb', background: '#fafafa' }}
+        >
+          <div
+            style={{
+              width: 88,
+              height: 88,
+              margin: '0 auto 20px',
+              borderRadius: '50%',
+              background: 'linear-gradient(145deg, #eef5ee 0%, #e8efe8 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+            }}
+          >
+            <svg width='40' height='40' fill='none' viewBox='0 0 24 24' aria-hidden>
+              <path
+                d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'
+                stroke='#6b8f6b'
+                strokeWidth='1.5'
+                strokeLinecap='round'
+              />
+              <circle cx='9' cy='7' r='4' stroke='#6b8f6b' strokeWidth='1.5' />
+              <path
+                d='M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75'
+                stroke='#6b8f6b'
+                strokeWidth='1.5'
+                strokeLinecap='round'
+              />
             </svg>
           </div>
           <p
             className='mb-1'
-            style={{ fontSize: '13px', fontWeight: 400, color: '#999' }}
+            style={{ fontSize: 15, fontWeight: 600, color: '#111', letterSpacing: '-0.02em' }}
           >
             No contacts yet
           </p>
           <p
             className='mb-4'
-            style={{ fontSize: '13px', fontWeight: 400, color: '#999' }}
+            style={{ fontSize: 13, fontWeight: 400, color: '#888', maxWidth: 280, margin: '0 auto 16px' }}
           >
             Scan your first badge or card to get started
           </p>
@@ -1398,15 +1541,18 @@ export default function ContactsPage() {
       {!loading && (
       <div
         style={{
-          marginTop: 8,
+          marginTop: 16,
+          paddingTop: 0,
           background: isMobile ? 'transparent' : '#ffffff',
           display: 'flex',
           flexDirection: 'column',
           gap: isMobile ? 8 : 0,
-          border: isMobile ? 'none' : '1px solid #ebebeb',
-          borderRadius: isMobile ? 0 : 16,
-          overflow: 'hidden',
+          border: isMobile ? 'none' : 'none',
+          borderTop: isMobile ? 'none' : '1px solid #e8e8e8',
+          borderRadius: 0,
+          overflow: 'visible',
           width: '100%',
+          boxSizing: 'border-box',
         }}
       >
         <div
@@ -1415,6 +1561,7 @@ export default function ContactsPage() {
             paddingTop: 0,
             width: '100%',
             overflowX: 'auto',
+            overflowY: 'visible',
           }}
         >
         {!isMobile && (
@@ -1424,6 +1571,10 @@ export default function ContactsPage() {
               background: '#fafafa',
               borderBottom: '1px solid #ebebeb',
               boxSizing: 'border-box',
+              position: 'sticky',
+              top: 0,
+              zIndex: 20,
+              boxShadow: '0 1px 0 rgba(0,0,0,0.04)',
             }}
           >
             <div
@@ -1506,13 +1657,38 @@ export default function ContactsPage() {
         {sortedContacts.length === 0 && contacts.length > 0 ? (
           <div
             style={{
-              padding: '40px 24px',
+              padding: '48px 24px',
               textAlign: 'center',
-              fontSize: 13,
-              color: '#999',
+              background: '#fafafa',
+              borderBottom: '1px solid #f0f0f0',
             }}
           >
-            No contacts match your filters.
+            <div
+              style={{
+                width: 72,
+                height: 72,
+                margin: '0 auto 16px',
+                borderRadius: '50%',
+                background: '#fff',
+                border: '1px solid #ebebeb',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+              }}
+            >
+              <svg width='32' height='32' fill='none' viewBox='0 0 24 24' aria-hidden>
+                <circle cx='11' cy='11' r='7' stroke='#bbb' strokeWidth='1.5' />
+                <path d='m20 20-3-3' stroke='#bbb' strokeWidth='1.5' strokeLinecap='round' />
+                <path d='M8 11h6' stroke='#bbb' strokeWidth='1.5' strokeLinecap='round' />
+              </svg>
+            </div>
+            <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 600, color: '#111', letterSpacing: '-0.02em' }}>
+              No matching contacts
+            </p>
+            <p style={{ margin: 0, fontSize: 13, color: '#888', maxWidth: 280, marginLeft: 'auto', marginRight: 'auto' }}>
+              Try another search or event filter.
+            </p>
           </div>
         ) : (
           sortedContacts.map((contact) => {
@@ -1582,7 +1758,7 @@ export default function ContactsPage() {
                 transition: 'background 0.1s ease',
               }}
               onMouseEnter={(e) => {
-                if (!isMobile) e.currentTarget.style.background = '#fafafa';
+                if (!isMobile) e.currentTarget.style.background = '#f4f6f4';
               }}
               onMouseLeave={(e) => {
                 if (!isMobile) e.currentTarget.style.background = '#fff';

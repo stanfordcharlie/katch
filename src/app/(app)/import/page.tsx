@@ -187,7 +187,7 @@ export default function ImportPage() {
   return (
     <div
       style={{
-        padding: "40px 48px",
+        padding: "40px 24px",
         backgroundColor: bg,
         minHeight: "100vh",
         boxSizing: "border-box",

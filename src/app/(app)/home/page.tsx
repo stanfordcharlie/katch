@@ -179,7 +179,7 @@ export default function HomePage() {
     <div
       style={{
         minHeight: "100vh",
-        padding: isMobile ? "20px 16px 100px" : "24px 32px 32px",
+        padding: isMobile ? "24px 24px 100px" : "24px 24px 32px",
         overflowX: "hidden",
         maxWidth: "100vw",
         color: "#111111",

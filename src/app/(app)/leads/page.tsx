@@ -754,7 +754,7 @@ export default function LeadsPage() {
   }
 
   return (
-    <div style={{ padding: "20px 24px 32px", maxWidth: 960, margin: "0 auto" }}>
+    <div style={{ padding: "24px 24px 32px", maxWidth: 960, margin: "0 auto" }}>
       {toast && (
         <div
           style={{

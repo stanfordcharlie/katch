@@ -108,6 +108,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <Sidebar user={user} isMobile={isMobile} />
       {!isMobile && <TopBar sidebarCollapsed={isCollapsed} isMobile={isMobile} user={user} />}
       <main
+        data-app-shell
         style={{
           boxSizing: "border-box",
           overflowY: "auto",

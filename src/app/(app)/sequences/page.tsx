@@ -498,7 +498,7 @@ export default function SequencesPage() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f7f7f5", padding: "20px 24px 40px", maxWidth: 960, margin: "0 auto" }}>
+    <div style={{ minHeight: "100vh", background: "#f7f7f5", padding: "24px 24px 40px", maxWidth: 960, margin: "0 auto" }}>
       {sequenceDeleteToast && (
         <div
           style={{

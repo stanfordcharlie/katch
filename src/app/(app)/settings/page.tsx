@@ -155,10 +155,11 @@ function SettingRowCard({
     <div
       style={{
         background: "#fff",
-        border: "1px solid #ebebeb",
-        borderRadius: 12,
-        padding: "20px 24px",
-        marginBottom: 12,
+        border: "none",
+        borderTop: "1px solid #e8e8e8",
+        borderRadius: 0,
+        padding: "20px 0",
+        marginBottom: 0,
         boxSizing: "border-box",
         display: "flex",
         flexDirection: controlFullWidth ? "column" : "row",
@@ -660,7 +661,7 @@ export default function SettingsPage() {
           style={{
             flex: 1,
             overflowY: "auto",
-            padding: isMobile ? "20px 16px 100px" : "32px 40px",
+            padding: isMobile ? "24px 24px 100px" : "24px 24px",
             boxSizing: "border-box",
           }}
         >
@@ -714,10 +715,11 @@ export default function SettingsPage() {
                 <div
                   style={{
                     background: "#fff",
-                    border: "1px solid #ebebeb",
-                    borderRadius: 12,
-                    padding: "20px 24px",
-                    marginBottom: 12,
+                    border: "none",
+                    borderTop: "1px solid #e8e8e8",
+                    borderRadius: 0,
+                    padding: "20px 0",
+                    marginBottom: 0,
                     boxSizing: "border-box",
                   }}
                 >
@@ -905,10 +907,11 @@ export default function SettingsPage() {
                 <div
                   style={{
                     background: "#fff",
-                    border: "1px solid #ebebeb",
-                    borderRadius: 12,
-                    padding: "20px 24px",
-                    marginBottom: 12,
+                    border: "none",
+                    borderTop: "1px solid #e8e8e8",
+                    borderRadius: 0,
+                    padding: "20px 0",
+                    marginBottom: 0,
                     boxSizing: "border-box",
                   }}
                 >

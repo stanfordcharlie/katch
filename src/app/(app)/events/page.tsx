@@ -34,6 +34,18 @@ function parseYmdToLocalDate(raw: string): Date | null {
   return dt;
 }
 
+/** Single card shadow level for event list cards (keep in sync with `--app-card-shadow` in globals.css). */
+const EVENT_CARD_SHADOW = "0 1px 3px rgba(0,0,0,0.08)";
+
+function getEventScheduleStatus(dateStr: string | null | undefined): "upcoming" | "past" | "none" {
+  const parsed = parseYmdToLocalDate((dateStr || "").slice(0, 10));
+  if (!parsed) return "none";
+  const now = new Date();
+  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const evDay = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+  return evDay.getTime() < startToday.getTime() ? "past" : "upcoming";
+}
+
 function formatEventFormDisplayDate(d: Date): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
@@ -786,7 +798,7 @@ export default function EventsPage() {
       className="max-w-2xl mx-auto min-h-screen"
       style={{
         background: "#f7f7f5",
-        padding: isMobile ? "20px 16px 100px" : "36px",
+        padding: isMobile ? "24px 24px 100px" : "24px 24px",
         overflowX: "hidden",
         maxWidth: "100vw",
         fontFamily: "Inter, -apple-system, sans-serif",
@@ -811,7 +823,7 @@ export default function EventsPage() {
             padding: "12px 16px",
             fontSize: 14,
             fontWeight: 500,
-            boxShadow: "0 4px 20px rgba(0,0,0,0.12)",
+            boxShadow: EVENT_CARD_SHADOW,
             maxWidth: "calc(100vw - 64px)",
           }}
         >
@@ -825,6 +837,7 @@ export default function EventsPage() {
               fontSize: 24,
               fontWeight: 700,
               color: "#111",
+              margin: 0,
             }}
           >
             Events
@@ -973,7 +986,7 @@ export default function EventsPage() {
                         background: "#fff",
                         borderRadius: 12,
                         border: "1px solid #ebebeb",
-                        boxShadow: "0 4px 24px rgba(0,0,0,0.10)",
+                        boxShadow: EVENT_CARD_SHADOW,
                         padding: 16,
                       }}
                     >
@@ -1206,6 +1219,7 @@ export default function EventsPage() {
           {events.map((ev) => {
             const isSelected = selectedIds.includes(ev.id);
             const dateValid = Boolean(ev.date && !isNaN(new Date(ev.date).getTime()));
+            const schedule = getEventScheduleStatus(ev.date);
             const contactCount = getContactCount(ev.id);
 
             return (
@@ -1215,7 +1229,7 @@ export default function EventsPage() {
                   background: "#fff",
                   borderRadius: 12,
                   border: "1px solid #ebebeb",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+                  boxShadow: EVENT_CARD_SHADOW,
                   overflow: "visible",
                   display: "flex",
                   flexDirection: "row",
@@ -1319,20 +1333,53 @@ export default function EventsPage() {
                       {ev.location ? ev.location : ""}
                       {!dateValid && !ev.location ? "—" : ""}
                     </div>
-                    <span
-                      style={{
-                        display: "inline-block",
-                        width: "fit-content",
-                        background: "#f0f7eb",
-                        color: "#2d6a1f",
-                        borderRadius: 99,
-                        fontSize: 11,
-                        padding: "2px 10px",
-                        fontWeight: 500,
-                      }}
-                    >
-                      {contactCount} contact{contactCount !== 1 ? "s" : ""}
-                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <span
+                        style={{
+                          display: "inline-block",
+                          width: "fit-content",
+                          background: "#f0f7eb",
+                          color: "#2d6a1f",
+                          borderRadius: 99,
+                          fontSize: 11,
+                          padding: "2px 10px",
+                          fontWeight: 500,
+                        }}
+                      >
+                        {contactCount} contact{contactCount !== 1 ? "s" : ""}
+                      </span>
+                      {schedule === "upcoming" ? (
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 600,
+                            letterSpacing: "0.06em",
+                            textTransform: "uppercase",
+                            padding: "3px 8px",
+                            borderRadius: 999,
+                            background: "#e8f4ec",
+                            color: "#1a5c38",
+                          }}
+                        >
+                          Upcoming
+                        </span>
+                      ) : schedule === "past" ? (
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 600,
+                            letterSpacing: "0.06em",
+                            textTransform: "uppercase",
+                            padding: "3px 8px",
+                            borderRadius: 999,
+                            background: "#f0f0f0",
+                            color: "#666",
+                          }}
+                        >
+                          Past
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
                 <div
@@ -1381,6 +1428,7 @@ export default function EventsPage() {
           const evContacts = contacts.filter((c) => c.event === ev.id);
           const hotCount = evContacts.filter((c) => c.leadScore >= 3).length;
           const isSelected = selectedIds.includes(ev.id);
+          const schedule = getEventScheduleStatus(ev.date);
           return (
             <div
               key={ev.id}
@@ -1390,6 +1438,7 @@ export default function EventsPage() {
                 borderRadius: isMobile ? 14 : 16,
                 padding: isMobile ? "16px" : "20px 24px",
                 marginBottom: 12,
+                boxShadow: EVENT_CARD_SHADOW,
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = "#d0e8c0";
@@ -1470,6 +1519,39 @@ export default function EventsPage() {
                           {ev.type}
                         </span>
                       )}
+                      {schedule === "upcoming" ? (
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 600,
+                            letterSpacing: "0.06em",
+                            textTransform: "uppercase",
+                            padding: "3px 8px",
+                            borderRadius: 999,
+                            background: "#e8f4ec",
+                            color: "#1a5c38",
+                            marginLeft: 8,
+                          }}
+                        >
+                          Upcoming
+                        </span>
+                      ) : schedule === "past" ? (
+                        <span
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 600,
+                            letterSpacing: "0.06em",
+                            textTransform: "uppercase",
+                            padding: "3px 8px",
+                            borderRadius: 999,
+                            background: "#f0f0f0",
+                            color: "#666",
+                            marginLeft: 8,
+                          }}
+                        >
+                          Past
+                        </span>
+                      ) : null}
                     </div>
                     <div style={{ fontSize: 12, color: "#999", marginTop: 4 }}>
                       {ev.date && !isNaN(new Date(ev.date).getTime()) && (
