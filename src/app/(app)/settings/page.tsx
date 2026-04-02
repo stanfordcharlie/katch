@@ -743,7 +743,7 @@ export default function SettingsPage() {
                       Configure the signals you mark after each conversation.
                     </div>
                   </div>
-                  <div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {signals.map((signal) => (
                       <div
                         key={signal.id}
@@ -751,11 +751,10 @@ export default function SettingsPage() {
                           display: "flex",
                           alignItems: "center",
                           gap: 12,
-                          padding: "14px 16px",
-                          background: "#ffffff",
-                          border: "1px solid #ebebeb",
-                          borderRadius: 10,
-                          marginBottom: 8,
+                          padding: "12px 16px",
+                          background: signal.enabled ? "#f0faf0" : "#fff",
+                          border: signal.enabled ? "1px solid #e0f5e0" : "1px solid #e8e8e8",
+                          borderRadius: 8,
                         }}
                       >
                         <SettingsCheckbox
@@ -787,26 +786,22 @@ export default function SettingsPage() {
                             minWidth: 0,
                             width: "auto",
                             fontWeight: 400,
+                            fontSize: 14,
+                            color: "#111",
                           }}
                         />
                         <button
                           type="button"
                           onClick={() => setSignals((prev) => prev.filter((s) => s.id !== signal.id))}
                           style={{
-                            background: "none",
+                            background: "transparent",
                             border: "none",
                             padding: 4,
                             cursor: "pointer",
-                            color: "#bbb",
+                            color: "#999",
                             fontSize: 16,
                             lineHeight: 1,
                             flexShrink: 0,
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.color = "#e55a5a";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.color = "#bbb";
                           }}
                         >
                           <svg
