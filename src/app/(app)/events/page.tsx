@@ -1205,14 +1205,7 @@ export default function EventsPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", marginTop: 24 }}>
           {events.map((ev) => {
             const isSelected = selectedIds.includes(ev.id);
-            const dateStr = ev.date
-              ? new Date(ev.date + "T00:00:00").toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })
-              : null;
-            const metaLine = [dateStr, ev.location || null].filter(Boolean).join(" · ") || "—";
+            const dateValid = Boolean(ev.date && !isNaN(new Date(ev.date).getTime()));
             const contactCount = getContactCount(ev.id);
 
             return (
@@ -1313,7 +1306,18 @@ export default function EventsPage() {
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {metaLine}
+                      {dateValid && (
+                        <span>
+                          {new Date(ev.date + "T00:00:00").toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </span>
+                      )}
+                      {dateValid && ev.location ? " · " : ""}
+                      {ev.location ? ev.location : ""}
+                      {!dateValid && !ev.location ? "—" : ""}
                     </div>
                     <span
                       style={{
@@ -1468,16 +1472,16 @@ export default function EventsPage() {
                       )}
                     </div>
                     <div style={{ fontSize: 12, color: "#999", marginTop: 4 }}>
-                      {ev.date && (
-                        <>
+                      {ev.date && !isNaN(new Date(ev.date).getTime()) && (
+                        <span>
                           {new Date(ev.date + "T00:00:00").toLocaleDateString("en-US", {
                             month: "short",
                             day: "numeric",
                             year: "numeric",
                           })}
-                        </>
+                        </span>
                       )}
-                      {ev.date && ev.location ? " · " : ""}
+                      {ev.date && !isNaN(new Date(ev.date).getTime()) && ev.location ? " · " : ""}
                       {ev.location && <>{ev.location}</>}
                     </div>
                   </div>

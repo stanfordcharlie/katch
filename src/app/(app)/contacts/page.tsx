@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { ChevronDown } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -101,6 +102,8 @@ const CONTACTS_DESKTOP_COL_STYLE: CSSProperties[] = [
     boxSizing: 'border-box',
   },
 ];
+
+type ContactsSortBy = 'newest' | 'oldest' | 'az' | 'za' | 'highest' | 'lowest';
 
 const normalizeText = (v: string | null | undefined) => (v ?? '').toLowerCase().trim();
 
@@ -259,9 +262,18 @@ export default function ContactsPage() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterEvent, setFilterEvent] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<
-    'newest' | 'oldest' | 'az' | 'za' | 'highest' | 'lowest'
-  >('newest');
+  const [sortBy, setSortBy] = useState<ContactsSortBy>('newest');
+  const [sortOpen, setSortOpen] = useState(false);
+  const sortMenuRef = useRef<HTMLDivElement>(null);
+
+  const sortOptions = [
+    { label: 'Newest', value: 'newest' },
+    { label: 'Oldest', value: 'oldest' },
+    { label: 'A → Z', value: 'az' },
+    { label: 'Z → A', value: 'za' },
+    { label: 'Highest score', value: 'highest' },
+    { label: 'Lowest score', value: 'lowest' },
+  ];
 
   const [selected, setSelected] = useState<Contact | null>(null);
   const [editingContactId, setEditingContactId] = useState<string | null>(null);
@@ -344,6 +356,17 @@ export default function ContactsPage() {
   useEffect(() => {
     if (eventFromUrl) setFilterEvent(eventFromUrl);
   }, [eventFromUrl]);
+
+  useEffect(() => {
+    if (!sortOpen) return;
+    const onMouseDown = (e: MouseEvent) => {
+      if (sortMenuRef.current && !sortMenuRef.current.contains(e.target as Node)) {
+        setSortOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onMouseDown);
+    return () => document.removeEventListener('mousedown', onMouseDown);
+  }, [sortOpen]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -1290,39 +1313,95 @@ export default function ContactsPage() {
         </div>
         {contacts.length > 0 && (
           <div
+            ref={sortMenuRef}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
+              position: 'relative',
               flexShrink: 0,
             }}
           >
-            <span style={{ fontSize: 12, color: '#999' }}>Sort by</span>
-            <select
-              value={sortBy}
-              onChange={(e) =>
-                setSortBy(e.target.value as typeof sortBy)
-              }
+            <button
+              type='button'
+              onClick={() => setSortOpen((o) => !o)}
               style={{
-                background: '#fff',
                 border: '1px solid #e8e8e8',
                 borderRadius: 8,
-                padding: '4px 10px',
-                fontSize: 12,
+                padding: '6px 12px',
+                background: '#fff',
+                fontSize: 13,
                 color: '#111',
                 cursor: 'pointer',
-                outline: 'none',
-                width: 'auto',
-                maxWidth: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
               }}
             >
-              <option value='newest'>newest</option>
-              <option value='oldest'>oldest</option>
-              <option value='az'>A → Z</option>
-              <option value='za'>Z → A</option>
-              <option value='highest'>Highest score</option>
-              <option value='lowest'>Lowest score</option>
-            </select>
+              <span>
+                Sort by{' '}
+                {sortOptions.find((o) => o.value === sortBy)?.label ?? sortBy}
+              </span>
+              <ChevronDown size={16} strokeWidth={2} aria-hidden />
+            </button>
+            {sortOpen ? (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: 4,
+                  background: '#fff',
+                  border: '1px solid #e8e8e8',
+                  borderRadius: 10,
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+                  zIndex: 50,
+                  minWidth: 160,
+                  overflow: 'hidden',
+                }}
+              >
+                {sortOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type='button'
+                    onClick={() => {
+                      setSortBy(option.value as ContactsSortBy);
+                      setSortOpen(false);
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#f5f5f5';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent';
+                    }}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      padding: '9px 16px',
+                      fontSize: 13,
+                      color: '#111',
+                      cursor: 'pointer',
+                      background: 'transparent',
+                      border: 'none',
+                      textAlign: 'left',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span
+                        style={{
+                          width: 14,
+                          flexShrink: 0,
+                          color: '#7dde3c',
+                          fontSize: 13,
+                          lineHeight: 1,
+                        }}
+                      >
+                        {sortBy === option.value ? '✓' : ''}
+                      </span>
+                      <span>{option.label}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
         )}
       </div>
