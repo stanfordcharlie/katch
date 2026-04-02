@@ -1,7 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import type { User } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -263,17 +262,6 @@ export default function ContactsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterEvent, setFilterEvent] = useState<string>('all');
   const [sortBy, setSortBy] = useState<ContactsSortBy>('newest');
-  const [sortOpen, setSortOpen] = useState(false);
-  const sortMenuRef = useRef<HTMLDivElement>(null);
-
-  const sortOptions = [
-    { label: 'Newest', value: 'newest' },
-    { label: 'Oldest', value: 'oldest' },
-    { label: 'A → Z', value: 'az' },
-    { label: 'Z → A', value: 'za' },
-    { label: 'Highest score', value: 'highest' },
-    { label: 'Lowest score', value: 'lowest' },
-  ];
 
   const [selected, setSelected] = useState<Contact | null>(null);
   const [editingContactId, setEditingContactId] = useState<string | null>(null);
@@ -356,17 +344,6 @@ export default function ContactsPage() {
   useEffect(() => {
     if (eventFromUrl) setFilterEvent(eventFromUrl);
   }, [eventFromUrl]);
-
-  useEffect(() => {
-    if (!sortOpen) return;
-    const onMouseDown = (e: MouseEvent) => {
-      if (sortMenuRef.current && !sortMenuRef.current.contains(e.target as Node)) {
-        setSortOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', onMouseDown);
-    return () => document.removeEventListener('mousedown', onMouseDown);
-  }, [sortOpen]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -1312,97 +1289,35 @@ export default function ContactsPage() {
           ))}
         </div>
         {contacts.length > 0 && (
-          <div
-            ref={sortMenuRef}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as ContactsSortBy)}
             style={{
-              position: 'relative',
-              flexShrink: 0,
+              border: '1px solid #e8e8e8',
+              borderRadius: 8,
+              padding: '6px 12px',
+              background: '#fff',
+              fontSize: 13,
+              color: '#111',
+              cursor: 'pointer',
+              fontFamily: 'Inter, sans-serif',
+              outline: 'none',
+              appearance: 'none',
+              WebkitAppearance: 'none',
+              backgroundImage:
+                'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23111\' stroke-width=\'2\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'%3E%3C/polyline%3E%3C/svg%3E")',
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'right 10px center',
+              paddingRight: 30,
             }}
           >
-            <button
-              type='button'
-              onClick={() => setSortOpen((o) => !o)}
-              style={{
-                border: '1px solid #e8e8e8',
-                borderRadius: 8,
-                padding: '6px 12px',
-                background: '#fff',
-                fontSize: 13,
-                color: '#111',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-              }}
-            >
-              <span>
-                Sort by{' '}
-                {sortOptions.find((o) => o.value === sortBy)?.label ?? sortBy}
-              </span>
-              <ChevronDown size={16} strokeWidth={2} aria-hidden />
-            </button>
-            {sortOpen ? (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: 0,
-                  marginTop: 4,
-                  background: '#fff',
-                  border: '1px solid #e8e8e8',
-                  borderRadius: 10,
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
-                  zIndex: 50,
-                  minWidth: 160,
-                  overflow: 'hidden',
-                }}
-              >
-                {sortOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    type='button'
-                    onClick={() => {
-                      setSortBy(option.value as ContactsSortBy);
-                      setSortOpen(false);
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = '#f5f5f5';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'transparent';
-                    }}
-                    style={{
-                      display: 'block',
-                      width: '100%',
-                      padding: '9px 16px',
-                      fontSize: 13,
-                      color: '#111',
-                      cursor: 'pointer',
-                      background: 'transparent',
-                      border: 'none',
-                      textAlign: 'left',
-                      boxSizing: 'border-box',
-                    }}
-                  >
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span
-                        style={{
-                          width: 14,
-                          flexShrink: 0,
-                          color: '#7dde3c',
-                          fontSize: 13,
-                          lineHeight: 1,
-                        }}
-                      >
-                        {sortBy === option.value ? '✓' : ''}
-                      </span>
-                      <span>{option.label}</span>
-                    </span>
-                  </button>
-                ))}
-              </div>
-            ) : null}
-          </div>
+            <option value='newest'>Sort by Newest</option>
+            <option value='oldest'>Sort by Oldest</option>
+            <option value='az'>Sort by A → Z</option>
+            <option value='za'>Sort by Z → A</option>
+            <option value='highest'>Sort by Highest score</option>
+            <option value='lowest'>Sort by Lowest score</option>
+          </select>
         )}
       </div>
 
