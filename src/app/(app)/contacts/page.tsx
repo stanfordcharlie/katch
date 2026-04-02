@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { Check } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -98,6 +99,15 @@ const CONTACTS_DESKTOP_COL_STYLE: CSSProperties[] = [
     flexGrow: 0,
     flexShrink: 0,
     flexBasis: 120,
+    boxSizing: 'border-box',
+  },
+  {
+    width: 80,
+    minWidth: 80,
+    maxWidth: 80,
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 80,
     boxSizing: 'border-box',
   },
 ];
@@ -1591,6 +1601,7 @@ export default function ContactsPage() {
                 'EVENT',
                 'SCORE',
                 'SOURCE',
+                'SYNCED',
               ].map((h, i) => (
                 <div
                   key={h + i}
@@ -2064,6 +2075,24 @@ export default function ContactsPage() {
                     }}
                   >
                     <ContactSourceCell contact={contact} />
+                  </div>
+                )}
+                {!isMobile && (
+                  <div
+                    style={{
+                      ...CONTACTS_DESKTOP_COL_STYLE[6],
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      padding: '12px 12px',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    {contact.synced_to_hubspot === true ? (
+                      <Check size={14} color='#2d6a1f' aria-hidden />
+                    ) : (
+                      <span style={{ fontSize: 14, color: '#999' }}>—</span>
+                    )}
                   </div>
                 )}
               </div>
