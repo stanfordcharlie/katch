@@ -469,6 +469,9 @@ Return ONLY a valid JSON array with no markdown, no backticks, no explanation. J
           const results = chunkResults.flat()
 
           for (let pi = 0; pi < results.length; pi++) {
+            if (pi > 0) {
+              await new Promise((r) => setTimeout(r, 150))
+            }
             controller.enqueue(
               encoder.encode(
                 JSON.stringify({
