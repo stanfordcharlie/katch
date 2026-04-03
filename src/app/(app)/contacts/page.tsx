@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'r
 import type { User } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { ExternalLink } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { DEFAULT_SIGNAL_LABELS } from '@/lib/katch-constants';
 
@@ -107,6 +108,15 @@ const CONTACTS_DESKTOP_COL_STYLE: CSSProperties[] = [
     flexGrow: 0,
     flexShrink: 0,
     flexBasis: 80,
+    boxSizing: 'border-box',
+  },
+  {
+    width: 36,
+    minWidth: 36,
+    maxWidth: 36,
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 36,
     boxSizing: 'border-box',
   },
 ];
@@ -1601,6 +1611,7 @@ export default function ContactsPage() {
                 'SCORE',
                 'SOURCE',
                 'SYNCED',
+                '',
               ].map((h, i) => (
                 <div
                   key={h + i}
@@ -2062,6 +2073,29 @@ export default function ContactsPage() {
                     {scoreNum == null ? '—' : scoreNum}
                   </span>
                 </div>
+                {isMobile && (
+                  <div
+                    style={{
+                      width: 32,
+                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <a
+                      href={`/contacts/${contact.id}`}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      aria-label='Open contact in new tab'
+                      className='opacity-0 group-hover:opacity-100 transition-opacity'
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 4 }}
+                    >
+                      <ExternalLink size={13} color='#999' />
+                    </a>
+                  </div>
+                )}
                 {!isMobile && (
                   <div
                     style={{
@@ -2107,6 +2141,30 @@ export default function ContactsPage() {
                     ) : (
                       <span style={{ fontSize: 14, color: '#999' }}>—</span>
                     )}
+                  </div>
+                )}
+                {!isMobile && (
+                  <div
+                    style={{
+                      ...CONTACTS_DESKTOP_COL_STYLE[7],
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      padding: '12px 8px',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    <a
+                      href={`/contacts/${contact.id}`}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      aria-label='Open contact in new tab'
+                      className='opacity-0 group-hover:opacity-100 transition-opacity'
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                    >
+                      <ExternalLink size={13} color='#999' />
+                    </a>
                   </div>
                 )}
               </div>
