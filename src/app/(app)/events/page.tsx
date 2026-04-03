@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, type CSSProperties } from "react";
 import type { User } from "@supabase/supabase-js";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { EVENT_TYPES } from "@/lib/katch-constants";
 
@@ -79,7 +78,6 @@ function getCalendarGridCells(viewYear: number, viewMonth: number) {
 }
 
 export default function EventsPage() {
-  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [contacts, setContacts] = useState<any[]>([]);
   const [contactEventLinks, setContactEventLinks] = useState<any[]>([]);
@@ -119,9 +117,6 @@ export default function EventsPage() {
   const enrichAbortRef = useRef<AbortController | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [openEventMenuId, setOpenEventMenuId] = useState<string | null>(null);
-  const eventMenuWrapperRefs = useRef<Record<string, HTMLDivElement | null>>({});
-
   const [eventFormSelectedDate, setEventFormSelectedDate] = useState<Date | null>(null);
   const [eventFormDateError, setEventFormDateError] = useState(false);
   const [eventFormCalendarOpen, setEventFormCalendarOpen] = useState(false);
@@ -147,18 +142,6 @@ export default function EventsPage() {
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
   }, [eventFormCalendarOpen]);
-
-  useEffect(() => {
-    if (openEventMenuId === null) return;
-    const onMouseDown = (e: MouseEvent) => {
-      const el = eventMenuWrapperRefs.current[openEventMenuId];
-      if (el && !el.contains(e.target as Node)) {
-        setOpenEventMenuId(null);
-      }
-    };
-    document.addEventListener("mousedown", onMouseDown);
-    return () => document.removeEventListener("mousedown", onMouseDown);
-  }, [openEventMenuId]);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -550,254 +533,6 @@ export default function EventsPage() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
-
-  const eventCardMenuPanelStyle: CSSProperties = {
-    position: "absolute",
-    right: 0,
-    top: "100%",
-    zIndex: 50,
-    minWidth: 180,
-    padding: 4,
-    background: "#fff",
-    borderRadius: 10,
-    border: "1px solid rgba(0,0,0,0.08)",
-    boxShadow: "0 8px 30px rgba(0,0,0,0.12)",
-  };
-
-  const eventCardMenuItemBase: CSSProperties = {
-    width: "100%",
-    padding: "7px 12px",
-    fontSize: 13,
-    cursor: "pointer",
-    borderRadius: 6,
-    border: "none",
-    background: "transparent",
-    textAlign: "left",
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    boxSizing: "border-box",
-    color: "#111",
-  };
-
-  const renderEventOverflowMenu = (ev: any, showImportLeadList = false) => (
-    <div
-      ref={(el) => {
-        eventMenuWrapperRefs.current[ev.id] = el;
-      }}
-      style={{ position: "relative", flexShrink: 0 }}
-    >
-      <button
-        type="button"
-        aria-label="More actions"
-        aria-expanded={openEventMenuId === ev.id}
-        onClick={(e) => {
-          e.stopPropagation();
-          setOpenEventMenuId((id) => (id === ev.id ? null : ev.id));
-        }}
-        style={{
-          background: openEventMenuId === ev.id ? "#e8e8e8" : "transparent",
-          border: "none",
-          borderRadius: 6,
-          padding: "6px 8px",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-        onMouseEnter={(e) => {
-          if (openEventMenuId !== ev.id) e.currentTarget.style.background = "#f0f0f0";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = openEventMenuId === ev.id ? "#e8e8e8" : "transparent";
-        }}
-      >
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-          <circle cx="3" cy="8" r="1.5" fill="#666" />
-          <circle cx="8" cy="8" r="1.5" fill="#666" />
-          <circle cx="13" cy="8" r="1.5" fill="#666" />
-        </svg>
-      </button>
-      {openEventMenuId === ev.id && (
-        <div role="menu" style={eventCardMenuPanelStyle} onClick={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            role="menuitem"
-            onClick={(e) => {
-              e.stopPropagation();
-              setOpenEventMenuId(null);
-              router.push("/contacts?event=" + ev.id);
-            }}
-            style={eventCardMenuItemBase}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#f5f5f5";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-            }}
-          >
-            View Contacts
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            onClick={(e) => {
-              e.stopPropagation();
-              setOpenEventMenuId(null);
-              router.push("/sequences?event=" + ev.id);
-            }}
-            style={eventCardMenuItemBase}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#f5f5f5";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-            }}
-          >
-            Generate Sequences
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            onClick={(e) => {
-              e.stopPropagation();
-              setOpenEventMenuId(null);
-              setEvForm({
-                name: ev.name,
-                date: ev.date || "",
-                type: ev.type || "Conference",
-                location: ev.location || "",
-                notes: ev.notes || "",
-                attendees: ev.attendees || [],
-              });
-              setEventFormDateError(false);
-              setEditingEvent(ev.id);
-              setShowEventForm(true);
-            }}
-            style={eventCardMenuItemBase}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#f5f5f5";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-            }}
-          >
-            Edit
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            onClick={(e) => {
-              e.stopPropagation();
-              setOpenEventMenuId(null);
-              exportEventCsv(ev.name);
-            }}
-            style={eventCardMenuItemBase}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#f5f5f5";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-            }}
-          >
-            Export CSV
-          </button>
-          {showImportLeadList ? (
-            <button
-              type="button"
-              role="menuitem"
-              disabled={isParsingListEvent === ev.id}
-              onClick={(e) => {
-                e.stopPropagation();
-                setOpenEventMenuId(null);
-                openImportLeadListPicker(ev.id);
-              }}
-              style={{
-                ...eventCardMenuItemBase,
-                opacity: isParsingListEvent === ev.id ? 0.85 : 1,
-                cursor: isParsingListEvent === ev.id ? "default" : "pointer",
-              }}
-              onMouseEnter={(e) => {
-                if (isParsingListEvent !== ev.id) e.currentTarget.style.background = "#f5f5f5";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent";
-              }}
-            >
-              {isParsingListEvent === ev.id ? "Parsing list..." : "Import lead list"}
-            </button>
-          ) : null}
-          <button
-            type="button"
-            role="menuitem"
-            disabled={isSyncingEvent === ev.id}
-            onClick={(e) => {
-              e.stopPropagation();
-              setOpenEventMenuId(null);
-              void syncEventToHubSpot(ev.id);
-            }}
-            style={{
-              ...eventCardMenuItemBase,
-              color: "#ff7a59",
-              opacity: isSyncingEvent === ev.id ? 0.85 : 1,
-              cursor: isSyncingEvent === ev.id ? "default" : "pointer",
-            }}
-            onMouseEnter={(e) => {
-              if (isSyncingEvent !== ev.id) e.currentTarget.style.background = "#f5f5f5";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-            }}
-          >
-            {isSyncingEvent === ev.id ? (
-              <>
-                <span
-                  style={{
-                    width: 12,
-                    height: 12,
-                    border: "2px solid #ffd4c2",
-                    borderTopColor: "#ff7a59",
-                    borderRadius: "50%",
-                    animation: "eventsHubSpotSpin 0.8s linear infinite",
-                    flexShrink: 0,
-                  }}
-                />
-                Syncing...
-              </>
-            ) : (
-              "Sync to HubSpot"
-            )}
-          </button>
-          <div style={{ margin: "4px 0", borderTop: "1px solid #f0f0f0" }} />
-          <button
-            type="button"
-            role="menuitem"
-            onClick={async (e) => {
-              e.stopPropagation();
-              setOpenEventMenuId(null);
-              const { error } = await supabase.from("events").delete().eq("id", ev.id);
-              if (error) {
-                console.error("Delete event error:", error);
-                return;
-              }
-              setEvents((prev) => prev.filter((row) => row.id !== ev.id));
-              setSelectedIds((prev) => prev.filter((id) => id !== ev.id));
-              showToast("Event deleted", "success");
-            }}
-            style={{ ...eventCardMenuItemBase, color: "#e55a5a" }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#f5f5f5";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-            }}
-          >
-            Delete
-          </button>
-        </div>
-      )}
-    </div>
-  );
 
   if (!user) return <div className="min-h-screen bg-[#f7f7f5]" />;
 
@@ -1263,80 +998,91 @@ export default function EventsPage() {
                   alignItems: "stretch",
                 }}
               >
-                <img
-                  src={getEventThumbnailSrc(ev.type)}
-                  alt=""
+                <Link
+                  href={`/events/${ev.id}`}
                   style={{
-                    width: 140,
-                    height: "100%",
-                    objectFit: "cover",
-                    borderRadius: "10px 0 0 10px",
-                    flexShrink: 0,
-                    display: "block",
-                  }}
-                />
-                <div
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    padding: "20px 24px",
                     display: "flex",
                     flexDirection: "row",
-                    alignItems: "center",
-                    gap: 10,
+                    flex: 1,
+                    minWidth: 0,
+                    alignItems: "stretch",
+                    textDecoration: "none",
+                    color: "inherit",
                   }}
                 >
-                  <div
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedIds((prev) =>
-                        prev.includes(ev.id) ? prev.filter((id) => id !== ev.id) : [...prev, ev.id]
-                      );
-                    }}
+                  <img
+                    src={getEventThumbnailSrc(ev.type)}
+                    alt=""
                     style={{
-                      width: 20,
-                      height: 20,
-                      borderRadius: 4,
-                      border: "1.5px solid #dddddd",
-                      background: isSelected ? "#7dde3c" : "#ffffff",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
+                      width: 140,
+                      height: "100%",
+                      objectFit: "cover",
+                      borderRadius: "10px 0 0 10px",
                       flexShrink: 0,
+                      display: "block",
                     }}
-                  >
-                    {isSelected && (
-                      <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="3">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    )}
-                  </div>
+                  />
                   <div
                     style={{
                       flex: 1,
                       minWidth: 0,
+                      padding: "20px 24px",
                       display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "center",
-                      gap: 6,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 10,
                     }}
                   >
-                    <Link
-                      href={`/dashboard/${ev.id}`}
+                    <div
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedIds((prev) =>
+                          prev.includes(ev.id) ? prev.filter((id) => id !== ev.id) : [...prev, ev.id]
+                        );
+                      }}
                       style={{
-                        fontSize: 16,
-                        fontWeight: 700,
-                        color: "#111",
-                        textDecoration: "none",
-                        lineHeight: 1.25,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
+                        width: 20,
+                        height: 20,
+                        borderRadius: 4,
+                        border: "1.5px solid #dddddd",
+                        background: isSelected ? "#7dde3c" : "#ffffff",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
                       }}
                     >
-                      {ev.name}
-                    </Link>
+                      {isSelected && (
+                        <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth="3">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      )}
+                    </div>
+                    <div
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        gap: 6,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 16,
+                          fontWeight: 700,
+                          color: "#111",
+                          lineHeight: 1.25,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {ev.name}
+                      </div>
                     <div
                       style={{
                         fontSize: 12,
@@ -1408,6 +1154,7 @@ export default function EventsPage() {
                     </div>
                   </div>
                 </div>
+                </Link>
                 <div
                   style={{
                     flexShrink: 0,
@@ -1440,7 +1187,6 @@ export default function EventsPage() {
                   >
                     View Dashboard
                   </Link>
-                  {renderEventOverflowMenu(ev)}
                 </div>
               </div>
             );
@@ -1480,6 +1226,7 @@ export default function EventsPage() {
                 >
                   <div
                     onClick={(e) => {
+                      e.preventDefault();
                       e.stopPropagation();
                       setSelectedIds((prev) =>
                         prev.includes(ev.id) ? prev.filter((id) => id !== ev.id) : [...prev, ev.id]
@@ -1512,24 +1259,30 @@ export default function EventsPage() {
                     )}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 0 }}>
-                      <Link
-                        href={`/dashboard/${ev.id}`}
-                        onClick={(e) => e.stopPropagation()}
-                        style={{
-                          flex: 1,
-                          minWidth: 0,
-                          fontSize: 15,
-                          fontWeight: 600,
-                          color: "#111",
-                          whiteSpace: "normal",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          textDecoration: "none",
-                        }}
-                      >
-                        {ev.name}
-                      </Link>
+                    <Link
+                      href={`/events/${ev.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        display: "block",
+                        textDecoration: "none",
+                        color: "inherit",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 0 }}>
+                        <span
+                          style={{
+                            flex: 1,
+                            minWidth: 0,
+                            fontSize: 15,
+                            fontWeight: 600,
+                            color: "#111",
+                            whiteSpace: "normal",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {ev.name}
+                        </span>
                       {ev.type && (
                         <span
                           style={{
@@ -1578,20 +1331,21 @@ export default function EventsPage() {
                           Past
                         </span>
                       ) : null}
-                    </div>
-                    <div style={{ fontSize: 12, color: "#999", marginTop: 4 }}>
-                      {ev.date && !isNaN(new Date(ev.date).getTime()) && (
-                        <span>
-                          {new Date(ev.date + "T00:00:00").toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
-                        </span>
-                      )}
-                      {ev.date && !isNaN(new Date(ev.date).getTime()) && ev.location ? " · " : ""}
-                      {ev.location && <>{ev.location}</>}
-                    </div>
+                      </div>
+                      <div style={{ fontSize: 12, color: "#999", marginTop: 4 }}>
+                        {ev.date && !isNaN(new Date(ev.date).getTime()) && (
+                          <span>
+                            {new Date(ev.date + "T00:00:00").toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
+                          </span>
+                        )}
+                        {ev.date && !isNaN(new Date(ev.date).getTime()) && ev.location ? " · " : ""}
+                        {ev.location && <>{ev.location}</>}
+                      </div>
+                    </Link>
                   </div>
                   <span
                     style={{
@@ -1641,7 +1395,6 @@ export default function EventsPage() {
                   >
                     View Dashboard
                   </Link>
-                  {renderEventOverflowMenu(ev, true)}
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
