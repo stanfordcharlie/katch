@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
-import { Check } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -2089,7 +2088,22 @@ export default function ContactsPage() {
                     }}
                   >
                     {contact.synced_to_hubspot === true ? (
-                      <Check size={14} color='#2d6a1f' aria-hidden />
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: '#fff3ee',
+                          border: '1px solid #ffd4c2',
+                          color: '#ff7a59',
+                          fontSize: 10,
+                          fontWeight: 600,
+                          padding: '2px 6px',
+                          borderRadius: 4,
+                        }}
+                      >
+                        H
+                      </span>
                     ) : (
                       <span style={{ fontSize: 14, color: '#999' }}>—</span>
                     )}

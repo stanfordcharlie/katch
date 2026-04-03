@@ -123,6 +123,7 @@ export default function EventsPage() {
   const eventMenuWrapperRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const [eventFormSelectedDate, setEventFormSelectedDate] = useState<Date | null>(null);
+  const [eventFormDateError, setEventFormDateError] = useState(false);
   const [eventFormCalendarOpen, setEventFormCalendarOpen] = useState(false);
   const [eventFormCalendarView, setEventFormCalendarView] = useState(() => {
     const n = new Date();
@@ -464,6 +465,7 @@ export default function EventsPage() {
   const resetEvForm = () => {
     setEvForm({ name: "", date: "", type: "Conference", location: "", notes: "", attendees: [] });
     setEventFormSelectedDate(null);
+    setEventFormDateError(false);
     setEventFormCalendarOpen(false);
     const n = new Date();
     setEventFormCalendarView({ year: n.getFullYear(), month: n.getMonth() });
@@ -473,6 +475,11 @@ export default function EventsPage() {
     if (!evForm.name.trim() || !user?.id) return;
 
     const dateStr = eventFormSelectedDate ? toYmdLocal(eventFormSelectedDate) : "";
+    if (!dateStr) {
+      setEventFormDateError(true);
+      return;
+    }
+    setEventFormDateError(false);
 
     if (editingEvent) {
       const { data, error } = await supabase
@@ -663,6 +670,7 @@ export default function EventsPage() {
                 notes: ev.notes || "",
                 attendees: ev.attendees || [],
               });
+              setEventFormDateError(false);
               setEditingEvent(ev.id);
               setShowEventForm(true);
             }}
@@ -893,7 +901,9 @@ export default function EventsPage() {
           </p>
           <div className="grid grid-cols-2 gap-3" style={{ gridTemplateColumns: isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))" }}>
             <div className="col-span-2">
-              <label className="text-xs text-slate-500 mb-1 block" style={{ fontSize: 13 }}>Event name *</label>
+              <label className="text-xs mb-1 block" style={{ fontSize: 13, color: "#111" }}>
+                Event name <span style={{ color: "#e55a5a" }}>*</span>
+              </label>
               <input
                 type="text"
                 value={evForm.name}
@@ -903,8 +913,19 @@ export default function EventsPage() {
                 style={{ fontFamily: "Inter, sans-serif", height: isMobile ? 44 : undefined }}
               />
             </div>
-            <div ref={eventDatePickerRef} style={{ position: "relative" }}>
-              <label className="text-xs text-slate-500 mb-1 block" style={{ fontSize: 13 }}>Date</label>
+            <div
+              className="col-span-2"
+              style={{
+                display: "grid",
+                gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 3fr) minmax(0, 2fr)",
+                gap: 12,
+                alignItems: "start",
+              }}
+            >
+            <div ref={eventDatePickerRef} style={{ position: "relative", minWidth: 0 }}>
+              <label className="text-xs mb-1 block" style={{ fontSize: 13, color: "#111" }}>
+                Date <span style={{ color: "#e55a5a" }}>*</span>
+              </label>
               <div style={{ position: "relative" }}>
                 <input
                   type="text"
@@ -966,6 +987,9 @@ export default function EventsPage() {
                   </svg>
                 </button>
               </div>
+              {eventFormDateError ? (
+                <p style={{ margin: "6px 0 0", fontSize: 12, color: "#e55a5a" }}>Date is required</p>
+              ) : null}
               {eventFormCalendarOpen &&
                 (() => {
                   const { year: vy, month: vm } = eventFormCalendarView;
@@ -1057,6 +1081,7 @@ export default function EventsPage() {
                                   const ymd = toYmdLocal(cell.date);
                                   setEventFormSelectedDate(cell.date);
                                   setEvForm((f) => ({ ...f, date: ymd }));
+                                  setEventFormDateError(false);
                                   setEventFormCalendarOpen(false);
                                 }}
                                 style={{
@@ -1092,8 +1117,8 @@ export default function EventsPage() {
                   );
                 })()}
             </div>
-            <div>
-              <label className="text-xs text-slate-500 mb-1 block" style={{ fontSize: 13 }}>Type</label>
+            <div style={{ minWidth: 0 }}>
+              <label className="text-xs mb-1 block" style={{ fontSize: 13, color: "#111" }}>Type</label>
               <select
                 value={evForm.type}
                 onChange={(e) => setEvForm((f) => ({ ...f, type: e.target.value }))}
@@ -1105,8 +1130,9 @@ export default function EventsPage() {
                 ))}
               </select>
             </div>
+            </div>
             <div className="col-span-2">
-              <label className="text-xs text-slate-500 mb-1 block" style={{ fontSize: 13 }}>Location</label>
+              <label className="text-xs mb-1 block" style={{ fontSize: 13, color: "#111" }}>Location</label>
               <input
                 type="text"
                 value={evForm.location}
@@ -1118,7 +1144,7 @@ export default function EventsPage() {
             </div>
           </div>
           <div>
-            <label className="text-xs text-slate-500 mb-1 block" style={{ fontSize: 13 }}>Notes</label>
+            <label className="text-xs mb-1 block" style={{ fontSize: 13, color: "#111" }}>Notes</label>
             <textarea
               value={evForm.notes}
               onChange={(e) => setEvForm((f) => ({ ...f, notes: e.target.value }))}
