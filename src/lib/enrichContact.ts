@@ -57,7 +57,7 @@ Return ONLY a valid JSON object, no markdown, no explanation:
 }`
 
     const response = await anthropic.messages.create({
-      model: 'claude-opus-4-5',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 1000,
       messages: [{ role: 'user', content: prompt }],
     })
@@ -71,6 +71,7 @@ Return ONLY a valid JSON object, no markdown, no explanation:
         ai_enrichment: enrichment,
         enriched_at: new Date().toISOString(),
         enriched: true,
+        lead_score: enrichment.suggested_lead_score,
       })
       .eq('id', contactId)
 

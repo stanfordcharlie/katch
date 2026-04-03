@@ -167,6 +167,8 @@ export default function ScanPage() {
     newContact: DuplicateNewContact | null;
     imageFile: File | null;
   }>({ show: false, existingContact: null, newContact: null, imageFile: null });
+  const [saving, setSaving] = useState(false);
+  const [saveContactFeedback, setSaveContactFeedback] = useState<null | "success" | "error">(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -263,6 +265,8 @@ export default function ScanPage() {
       localStorage.removeItem("katch_scan_draft");
     } catch (e) {}
     setStagedFiles([]);
+    setSaving(false);
+    setSaveContactFeedback(null);
   };
 
   const handleBulkProcess = async (
@@ -819,7 +823,9 @@ export default function ScanPage() {
     setReviewNewEventName("");
   };
 
-  const persistScannedContact = async (sessionUser: User) => {
+  const persistScannedContact = async (
+    sessionUser: User
+  ): Promise<"failed" | "merged" | "inserted"> => {
     const activeChecks = signalLabels.filter((label) => checks[label]);
 
     const imageUrl = await uploadDataUrlAsContactImage(sessionUser, uploadedImage, "scan");
@@ -840,13 +846,10 @@ export default function ScanPage() {
     const mergedProspect = await mergeLeadListProspectIfExists(sessionUser.id, extracted?.email, mergePatch);
     if (mergedProspect === "failed") {
       showToast("Failed to save contact");
-      return;
+      return "failed";
     }
     if (mergedProspect === "merged") {
-      resetScan();
-      showToast("Matched existing prospect — contact updated.");
-      router.push("/contacts");
-      return;
+      return "merged";
     }
 
     const payload: Record<string, unknown> = {
@@ -884,105 +887,147 @@ export default function ScanPage() {
         console.error("Error details:", JSON.stringify(error, null, 2));
         console.error("Payload keys:", Object.keys(payload));
         showToast("Failed to save contact");
-        return;
+        return "failed";
       }
       if (!data) {
         console.error("Save contact: no data returned");
         showToast("Failed to save contact");
-        return;
+        return "failed";
       }
-      resetScan();
-      showToast("Contact saved");
-      router.push("/contacts");
+      return "inserted";
     } catch (err) {
       console.error("Full error:", err);
       showToast("Failed to save contact");
+      return "failed";
     }
   };
 
   const handleSaveContact = async () => {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const sessionUser = sessionData.session?.user;
-    if (!sessionUser?.id) {
-      console.error("Save contact: no session user");
-      showToast("Failed to save contact");
-      return;
-    }
+    if (saving || saveContactFeedback) return;
 
-    const activeChecks = signalLabels.filter((label) => checks[label]);
-    const imageUrlEarly = await uploadDataUrlAsContactImage(sessionUser as User, uploadedImage, "scan");
-    const hasEnrichmentEarly = !!singleEnrichment;
-    const mergePatchEarly: Record<string, unknown> = {
-      source: "scan",
-      status: "captured",
-      lead_score: leadScore,
-      checks: activeChecks,
-      free_note: freeNote,
-      event: eventTag || "Untagged",
-      ai_enrichment: singleEnrichment,
-      enriched: hasEnrichmentEarly,
-      enriched_at: hasEnrichmentEarly ? new Date().toISOString() : null,
+    const failSaveUi = () => {
+      setSaving(false);
+      setSaveContactFeedback("error");
+      window.setTimeout(() => setSaveContactFeedback(null), 1200);
     };
-    if (imageUrlEarly) mergePatchEarly.image = imageUrlEarly;
-    const mergedEarly = await mergeLeadListProspectIfExists(sessionUser.id, extracted?.email, mergePatchEarly);
-    if (mergedEarly === "failed") {
-      showToast("Failed to save contact");
-      return;
-    }
-    if (mergedEarly === "merged") {
-      showToast("Matched existing prospect — contact updated.");
-      resetScan();
-      router.push("/contacts");
-      return;
-    }
 
-    const dup = await findDuplicateContact(
-      extracted?.name ?? "",
-      extracted?.email ?? "",
-      sessionUser.id
-    );
-    if (dup) {
-      let imageFile: File | null = null;
-      if (uploadedImage && uploadedImage.startsWith("data:")) {
-        try {
-          const arr = uploadedImage.split(",");
-          if (arr.length === 2) {
-            const mimeMatch = arr[0].match(/data:(.*?);base64/);
-            const mime = mimeMatch ? mimeMatch[1] : "image/jpeg";
-            const bstr = atob(arr[1]);
-            let n = bstr.length;
-            const u8arr = new Uint8Array(n);
-            while (n--) {
-              u8arr[n] = bstr.charCodeAt(n);
-            }
-            imageFile = new File([u8arr], "contact-image.jpg", { type: mime });
-          }
-        } catch {
-          imageFile = null;
-        }
+    const succeedSaveUi = (after: () => void) => {
+      setSaving(false);
+      setSaveContactFeedback("success");
+      window.setTimeout(() => {
+        setSaveContactFeedback(null);
+        after();
+      }, 1200);
+    };
+
+    setSaving(true);
+    setSaveContactFeedback(null);
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const sessionUser = sessionData.session?.user;
+      if (!sessionUser?.id) {
+        console.error("Save contact: no session user");
+        showToast("Failed to save contact");
+        failSaveUi();
+        return;
       }
-      setDuplicateModal({
-        show: true,
-        existingContact: dup,
-        newContact: {
-          name: extracted?.name ?? "",
-          title: extracted?.title ?? "",
-          company: extracted?.company ?? "",
-          email: extracted?.email ?? "",
-          phone: extracted?.phone ?? "",
-          linkedin: extracted?.linkedin ?? "",
-          lead_score: leadScore,
-          checks: activeChecks,
-          free_note: freeNote,
-          event: eventTag || "Untagged",
-          enriched: !!singleEnrichment,
-        },
-        imageFile,
-      });
-      return;
-    }
 
-    await persistScannedContact(sessionUser);
+      const activeChecks = signalLabels.filter((label) => checks[label]);
+      const imageUrlEarly = await uploadDataUrlAsContactImage(sessionUser as User, uploadedImage, "scan");
+      const hasEnrichmentEarly = !!singleEnrichment;
+      const mergePatchEarly: Record<string, unknown> = {
+        source: "scan",
+        status: "captured",
+        lead_score: leadScore,
+        checks: activeChecks,
+        free_note: freeNote,
+        event: eventTag || "Untagged",
+        ai_enrichment: singleEnrichment,
+        enriched: hasEnrichmentEarly,
+        enriched_at: hasEnrichmentEarly ? new Date().toISOString() : null,
+      };
+      if (imageUrlEarly) mergePatchEarly.image = imageUrlEarly;
+      const mergedEarly = await mergeLeadListProspectIfExists(sessionUser.id, extracted?.email, mergePatchEarly);
+      if (mergedEarly === "failed") {
+        showToast("Failed to save contact");
+        failSaveUi();
+        return;
+      }
+      if (mergedEarly === "merged") {
+        succeedSaveUi(() => {
+          showToast("Matched existing prospect — contact updated.");
+          resetScan();
+          router.push("/contacts");
+        });
+        return;
+      }
+
+      const dup = await findDuplicateContact(
+        extracted?.name ?? "",
+        extracted?.email ?? "",
+        sessionUser.id
+      );
+      if (dup) {
+        let imageFile: File | null = null;
+        if (uploadedImage && uploadedImage.startsWith("data:")) {
+          try {
+            const arr = uploadedImage.split(",");
+            if (arr.length === 2) {
+              const mimeMatch = arr[0].match(/data:(.*?);base64/);
+              const mime = mimeMatch ? mimeMatch[1] : "image/jpeg";
+              const bstr = atob(arr[1]);
+              let n = bstr.length;
+              const u8arr = new Uint8Array(n);
+              while (n--) {
+                u8arr[n] = bstr.charCodeAt(n);
+              }
+              imageFile = new File([u8arr], "contact-image.jpg", { type: mime });
+            }
+          } catch {
+            imageFile = null;
+          }
+        }
+        setDuplicateModal({
+          show: true,
+          existingContact: dup,
+          newContact: {
+            name: extracted?.name ?? "",
+            title: extracted?.title ?? "",
+            company: extracted?.company ?? "",
+            email: extracted?.email ?? "",
+            phone: extracted?.phone ?? "",
+            linkedin: extracted?.linkedin ?? "",
+            lead_score: leadScore,
+            checks: activeChecks,
+            free_note: freeNote,
+            event: eventTag || "Untagged",
+            enriched: !!singleEnrichment,
+          },
+          imageFile,
+        });
+        setSaving(false);
+        return;
+      }
+
+      const result = await persistScannedContact(sessionUser as User);
+      if (result === "failed") {
+        failSaveUi();
+        return;
+      }
+      succeedSaveUi(() => {
+        if (result === "merged") {
+          showToast("Matched existing prospect — contact updated.");
+        } else {
+          showToast("Contact saved");
+        }
+        resetScan();
+        router.push("/contacts");
+      });
+    } catch {
+      showToast("Failed to save contact");
+      failSaveUi();
+    }
   };
 
   const handleDuplicateMerge = async () => {
@@ -1075,7 +1120,16 @@ export default function ScanPage() {
       showToast("Failed to save contact");
       return;
     }
-    await persistScannedContact(sessionUser);
+    const result = await persistScannedContact(sessionUser);
+    if (result === "merged") {
+      resetScan();
+      showToast("Matched existing prospect — contact updated.");
+      router.push("/contacts");
+    } else if (result === "inserted") {
+      resetScan();
+      showToast("Contact saved");
+      router.push("/contacts");
+    }
   };
 
   const handleDuplicateCancel = () => {
@@ -3616,20 +3670,55 @@ export default function ScanPage() {
 
               <button
                 type="button"
-                onClick={handleSaveContact}
+                onClick={() => void handleSaveContact()}
+                disabled={saving || saveContactFeedback !== null}
                 style={{
-                  background: "#7dde3c",
-                  color: "#0a1a0a",
+                  background:
+                    saveContactFeedback === "success"
+                      ? "#2d6a1f"
+                      : saveContactFeedback === "error"
+                        ? "#fff"
+                        : "#7dde3c",
+                  color:
+                    saveContactFeedback === "success"
+                      ? "#fff"
+                      : saveContactFeedback === "error"
+                        ? "#e55a5a"
+                        : "#0a1a0a",
                   fontWeight: 700,
                   borderRadius: 10,
                   height: isMobile ? 52 : 44,
                   width: "100%",
                   fontSize: 15,
                   border: "none",
-                  cursor: "pointer",
+                  cursor: saving || saveContactFeedback !== null ? "default" : "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 10,
                 }}
               >
-                Save Contact
+                {saving ? (
+                  <>
+                    <div
+                      className="animate-spin shrink-0"
+                      style={{
+                        width: 18,
+                        height: 18,
+                        border: "2px solid rgba(10,26,10,0.25)",
+                        borderTopColor: "#0a1a0a",
+                        borderRadius: "50%",
+                      }}
+                    />
+                    Saving...
+                  </>
+                ) : saveContactFeedback === "success" ? (
+                  "✓ Saved!"
+                ) : saveContactFeedback === "error" ? (
+                  "Failed — try again"
+                ) : (
+                  "Save Contact"
+                )}
               </button>
               <button
                 type="button"

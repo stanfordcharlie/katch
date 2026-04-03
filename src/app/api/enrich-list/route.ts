@@ -347,6 +347,7 @@ export async function POST(req: NextRequest) {
                 icp_fit_score: 5,
                 icp_fit_reason: 'Could not score',
                 suggested_lead_score: 5,
+                lead_score: 5,
                 summary: '',
                 talking_points: [] as unknown[],
                 red_flags: [] as unknown[],
@@ -426,12 +427,14 @@ Return ONLY a valid JSON array with no markdown, no backticks, no explanation. J
                 if (score) {
                   const talking_points = Array.isArray(score.talking_points) ? score.talking_points : []
                   const red_flags = Array.isArray(score.red_flags) ? score.red_flags : []
+                  const suggestedLead = Number(score.suggested_lead_score ?? 5) || 5
                   enriched = {
                     ...contact,
                     icp_fit_score: Number(score.icp_fit_score ?? 5) || 5,
                     icp_fit_reason:
                       typeof score.icp_fit_reason === 'string' ? score.icp_fit_reason : '',
-                    suggested_lead_score: Number(score.suggested_lead_score ?? 5) || 5,
+                    suggested_lead_score: suggestedLead,
+                    lead_score: suggestedLead,
                     summary: typeof score.summary === 'string' ? score.summary : '',
                     talking_points,
                     red_flags,
@@ -450,6 +453,7 @@ Return ONLY a valid JSON array with no markdown, no backticks, no explanation. J
                     icp_fit_score: 5,
                     icp_fit_reason: 'Could not score',
                     suggested_lead_score: 5,
+                    lead_score: 5,
                     summary: '',
                     talking_points: [],
                     red_flags: [],
