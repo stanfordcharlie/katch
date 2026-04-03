@@ -224,7 +224,7 @@ async function mapHeadersWithClaude(headers: string[]): Promise<Record<string, u
     'These are column headers from a conference attendee CSV export. Map each header to one of: name, first_name, last_name, email, company, title, phone, linkedin, or ignore. Return only a JSON object where keys are these field names and values are the exact original header strings or null. Headers: ' +
     JSON.stringify(headers)
   const response = await anthropic.messages.create({
-    model: 'claude-opus-4-5',
+    model: 'claude-haiku-4-5-20251001',
     max_tokens: 800,
     messages: [{ role: 'user', content: prompt }],
   })
@@ -329,7 +329,6 @@ export async function POST(req: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          const results: Array<Record<string, unknown>> = []
           const chunks: CsvContact[][] = []
           for (let i = 0; i < contactsToProcess.length; i += 10) {
             chunks.push(contactsToProcess.slice(i, i + 10))
@@ -340,36 +339,19 @@ export async function POST(req: NextRequest) {
             throw new Error('Missing ANTHROPIC_API_KEY')
           }
 
-          for (let bi = 0; bi < chunks.length; bi++) {
-            const chunk = chunks[bi]
+          const processChunk = async (chunk: CsvContact[]): Promise<Record<string, unknown>[]> => {
             let responseText = '[]'
-
-            const pushFallbackForChunk = async () => {
-              for (const contact of chunk) {
-                const fallback = {
-                  ...contact,
-                  icp_fit_score: 5,
-                  icp_fit_reason: 'Could not score',
-                  suggested_lead_score: 5,
-                  summary: '',
-                  talking_points: [] as unknown[],
-                  red_flags: [] as unknown[],
-                  ai_enrichment: null,
-                }
-                results.push(fallback)
-                controller.enqueue(
-                  encoder.encode(
-                    JSON.stringify({
-                      type: 'progress',
-                      current: results.length,
-                      total: contactsToProcess.length,
-                      contact: fallback,
-                    }) + '\n'
-                  )
-                )
-                await new Promise((r) => setTimeout(r, 20))
-              }
-            }
+            const buildFallbacks = (): Record<string, unknown>[] =>
+              chunk.map((contact) => ({
+                ...contact,
+                icp_fit_score: 5,
+                icp_fit_reason: 'Could not score',
+                suggested_lead_score: 5,
+                summary: '',
+                talking_points: [] as unknown[],
+                red_flags: [] as unknown[],
+                ai_enrichment: null,
+              }))
 
             try {
               const batchPrompt = `You are a B2B sales intelligence assistant. Score each of the following contacts against this ICP profile and return a JSON array.
@@ -436,6 +418,7 @@ Return ONLY a valid JSON array with no markdown, no backticks, no explanation. J
                 if (!Number.isNaN(idx)) byIndex.set(idx, score)
               }
 
+              const enrichedList: Record<string, unknown>[] = []
               for (let i = 0; i < chunk.length; i++) {
                 const contact = chunk[i]
                 const score = byIndex.get(i)
@@ -473,27 +456,29 @@ Return ONLY a valid JSON array with no markdown, no backticks, no explanation. J
                     ai_enrichment: null,
                   }
                 }
-                results.push(enriched)
-                controller.enqueue(
-                  encoder.encode(
-                    JSON.stringify({
-                      type: 'progress',
-                      current: results.length,
-                      total: contactsToProcess.length,
-                      contact: enriched,
-                    }) + '\n'
-                  )
-                )
-                await new Promise((r) => setTimeout(r, 20))
+                enrichedList.push(enriched)
               }
+              return enrichedList
             } catch (e) {
               console.error('Batch parse failed:', e, 'Raw response:', responseText)
-              await pushFallbackForChunk()
+              return buildFallbacks()
             }
+          }
 
-            if (bi < chunks.length - 1) {
-              await new Promise((r) => setTimeout(r, 300))
-            }
+          const chunkResults = await Promise.all(chunks.map((chunk) => processChunk(chunk)))
+          const results = chunkResults.flat()
+
+          for (let pi = 0; pi < results.length; pi++) {
+            controller.enqueue(
+              encoder.encode(
+                JSON.stringify({
+                  type: 'progress',
+                  current: pi + 1,
+                  total: contactsToProcess.length,
+                  contact: results[pi],
+                }) + '\n'
+              )
+            )
           }
 
           const doneEvent =
