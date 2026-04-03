@@ -739,8 +739,8 @@ export default function SettingsPage() {
                           alignItems: "center",
                           gap: 12,
                           padding: "12px 16px",
-                          background: signal.enabled ? "#f0faf0" : "#fff",
-                          border: signal.enabled ? "1px solid #e0f5e0" : "1px solid #e8e8e8",
+                          background: "#fff",
+                          border: "1px solid #e8e8e8",
                           borderRadius: 8,
                         }}
                       >
@@ -919,9 +919,9 @@ export default function SettingsPage() {
                           alignItems: "center",
                           gap: 12,
                           padding: "14px 16px",
-                          background: field.enabled ? "#f8fdf4" : "#ffffff",
-                          border: field.enabled ? "1px solid #d4edbc" : "1px solid #ebebeb",
-                          borderRadius: 10,
+                          background: "#fff",
+                          border: "1px solid #e8e8e8",
+                          borderRadius: 8,
                           marginBottom: 8,
                         }}
                       >
