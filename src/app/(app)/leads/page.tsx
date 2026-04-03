@@ -193,6 +193,7 @@ export default function LeadsPage() {
   const [saving, setSaving] = useState(false);
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; variant: "success" | "error" } | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
 
   const showToast = useCallback((message: string, variant: "success" | "error" = "success") => {
     setToast({ message, variant });
@@ -215,6 +216,13 @@ export default function LeadsPage() {
     return () => {
       mountedRef.current = false;
     };
+  }, []);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
   }, []);
 
   useEffect(() => {
@@ -811,12 +819,22 @@ export default function LeadsPage() {
 
       <div
         style={{
+          display: "grid",
+          gridTemplateColumns: isMobile ? "1fr" : "380px 1fr",
+          gap: 24,
+          alignItems: "start",
+        }}
+      >
+      <div
+        style={{
           background: "#fff",
           border: "1px solid #ebebeb",
           borderRadius: 16,
           padding: 32,
-          marginBottom: 16,
           position: "relative",
+          maxWidth: 380,
+          width: "100%",
+          boxSizing: "border-box",
         }}
       >
         {enrichLoading && (
@@ -1256,12 +1274,11 @@ export default function LeadsPage() {
         </button>
       </div>
 
-      <div>
+      <div style={{ background: "#f0f2f0", minWidth: 0 }}>
         <h2 style={{ fontSize: 17, fontWeight: 700, color: "#111", margin: "0 0 12px" }}>Past Lead Lists</h2>
         {pastLists.length === 0 ? (
           <p style={{ color: "#999", fontSize: 13, textAlign: "center", padding: 32 }}>No lead lists uploaded yet.</p>
         ) : (
-          <div style={{ background: "#fff", border: "1px solid #ebebeb", borderRadius: 12, overflow: "hidden" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
                 <tr style={{ background: "#fafafa", borderBottom: "1px solid #ebebeb" }}>
@@ -1319,8 +1336,8 @@ export default function LeadsPage() {
                 ))}
               </tbody>
             </table>
-          </div>
         )}
+      </div>
       </div>
 
       {resultsModal && (

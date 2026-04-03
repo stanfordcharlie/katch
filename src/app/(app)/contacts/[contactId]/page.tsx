@@ -585,12 +585,31 @@ export default function ContactDetailPage() {
             </button>
             <button
               type='button'
-              style={{ ...hubspotBtn, opacity: isSyncing ? 0.65 : 1, cursor: isSyncing ? 'not-allowed' : 'pointer' }}
+              style={{
+                ...(contact.synced_to_hubspot
+                  ? {
+                      ...hubspotBtn,
+                      background: '#f0faf0',
+                      border: '1px solid #c3e6c3',
+                      color: '#2d6a1f',
+                    }
+                  : hubspotBtn),
+                opacity: isSyncing ? 0.65 : 1,
+                cursor: isSyncing ? 'not-allowed' : 'pointer',
+              }}
               onClick={() => void handleSyncHubSpot()}
               disabled={isSyncing}
             >
-              <span style={{ fontWeight: 800, fontSize: 12 }}>H</span>
-              {isSyncing ? 'Syncing…' : contact.synced_to_hubspot ? 'Re-sync to HubSpot' : 'Sync to HubSpot'}
+              {isSyncing ? (
+                'Syncing…'
+              ) : contact.synced_to_hubspot ? (
+                '✓ Synced to HubSpot'
+              ) : (
+                <>
+                  <span style={{ fontWeight: 800, fontSize: 12 }}>H</span>
+                  Sync to HubSpot
+                </>
+              )}
             </button>
             <button type='button' style={secondaryBtn} onClick={openDetailEditModal}>
               Edit

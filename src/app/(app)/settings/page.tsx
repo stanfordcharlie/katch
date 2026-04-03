@@ -154,26 +154,22 @@ function SettingRowCard({
   return (
     <div
       style={{
-        background: "#fff",
-        border: "none",
-        borderTop: "1px solid #e8e8e8",
-        borderRadius: 0,
-        padding: "20px 0",
-        marginBottom: 0,
+        marginBottom: 32,
         boxSizing: "border-box",
         display: "flex",
         flexDirection: controlFullWidth ? "column" : "row",
         justifyContent: "space-between",
         alignItems: controlFullWidth ? "stretch" : "center",
-        gap: 16,
+        gap: 0,
       }}
     >
       <div style={{ minWidth: 0, flex: controlFullWidth ? undefined : "0 1 280px" }}>
         <div
           style={{
-            fontSize: 14,
+            fontSize: 15,
             fontWeight: 600,
             color: "#111",
+            marginBottom: 4,
             fontFamily: "Inter, sans-serif",
           }}
         >
@@ -181,9 +177,9 @@ function SettingRowCard({
         </div>
         <div
           style={{
-            fontSize: 12,
+            fontSize: 13,
             color: "#999",
-            marginTop: 4,
+            marginBottom: 16,
             fontFamily: "Inter, sans-serif",
           }}
         >
@@ -517,12 +513,12 @@ export default function SettingsPage() {
       )}
       <style>{`
         .settings-form-control {
-          font-family: Inter, -apple-system, sans-serif;
+          font-family: inherit;
           font-size: 14px;
           color: #111;
           border: 1px solid #e8e8e8;
           border-radius: 8px;
-          padding: 10px 14px;
+          padding: 10px 12px;
           background: #fff;
           outline: none;
           width: 100%;
@@ -661,7 +657,7 @@ export default function SettingsPage() {
           style={{
             flex: 1,
             overflowY: "auto",
-            padding: isMobile ? "24px 24px 100px" : "24px 24px",
+            padding: isMobile ? "24px 32px 100px" : "24px 32px",
             boxSizing: "border-box",
           }}
         >
@@ -711,39 +707,28 @@ export default function SettingsPage() {
         ) : (
           <>
             {activeSection === "conversation-signals" && (
-              <section>
-                <div
-                  style={{
-                    background: "#fff",
-                    border: "none",
-                    borderTop: "1px solid #e8e8e8",
-                    borderRadius: 0,
-                    padding: "20px 0",
-                    marginBottom: 0,
-                    boxSizing: "border-box",
-                  }}
-                >
-                  <div style={{ marginBottom: 16 }}>
-                    <div
-                      style={{
-                        fontSize: 14,
-                        fontWeight: 600,
-                        color: "#111",
-                        fontFamily: "Inter, sans-serif",
-                      }}
-                    >
-                      Conversation Signals
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: "#999",
-                        marginTop: 4,
-                        fontFamily: "Inter, sans-serif",
-                      }}
-                    >
-                      Configure the signals you mark after each conversation.
-                    </div>
+              <section style={{ marginBottom: 32 }}>
+                <div style={{ boxSizing: "border-box" }}>
+                  <div
+                    style={{
+                      fontSize: 15,
+                      fontWeight: 600,
+                      color: "#111",
+                      marginBottom: 4,
+                      fontFamily: "Inter, sans-serif",
+                    }}
+                  >
+                    Conversation Signals
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: "#999",
+                      marginBottom: 16,
+                      fontFamily: "Inter, sans-serif",
+                    }}
+                  >
+                    Configure the signals you mark after each conversation.
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {signals.map((signal) => (
@@ -786,7 +771,6 @@ export default function SettingsPage() {
                           style={{
                             flex: 1,
                             minWidth: 0,
-                            width: "auto",
                             fontWeight: 400,
                             fontSize: 14,
                             color: "#111",
@@ -903,39 +887,28 @@ export default function SettingsPage() {
             )}
 
             {activeSection === "contact-fields" && (
-              <section>
-                <div
-                  style={{
-                    background: "#fff",
-                    border: "none",
-                    borderTop: "1px solid #e8e8e8",
-                    borderRadius: 0,
-                    padding: "20px 0",
-                    marginBottom: 0,
-                    boxSizing: "border-box",
-                  }}
-                >
-                  <div style={{ marginBottom: 16 }}>
-                    <div
-                      style={{
-                        fontSize: 14,
-                        fontWeight: 600,
-                        color: "#111",
-                        fontFamily: "Inter, sans-serif",
-                      }}
-                    >
-                      Contact Fields
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: "#999",
-                        marginTop: 4,
-                        fontFamily: "Inter, sans-serif",
-                      }}
-                    >
-                      Decide which fields you track for each contact.
-                    </div>
+              <section style={{ marginBottom: 32 }}>
+                <div style={{ boxSizing: "border-box" }}>
+                  <div
+                    style={{
+                      fontSize: 15,
+                      fontWeight: 600,
+                      color: "#111",
+                      marginBottom: 4,
+                      fontFamily: "Inter, sans-serif",
+                    }}
+                  >
+                    Contact Fields
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: "#999",
+                      marginBottom: 16,
+                      fontFamily: "Inter, sans-serif",
+                    }}
+                  >
+                    Decide which fields you track for each contact.
                   </div>
                   <div>
                     {fields.map((field) => (
@@ -979,7 +952,6 @@ export default function SettingsPage() {
                           style={{
                             flex: 1,
                             minWidth: 0,
-                            width: "auto",
                             fontWeight: 400,
                           }}
                         />
@@ -1198,44 +1170,78 @@ export default function SettingsPage() {
             )}
 
             {activeSection === "integrations" && (
-              <section>
-                <SettingRowCard
-                  title="HubSpot CRM"
-                  description="Sync contacts directly to your HubSpot account."
+              <section style={{ marginBottom: 32 }}>
+                <div
+                  style={{
+                    width: "100%",
+                    background: "#fff",
+                    border: "1px solid #e8e8e8",
+                    borderRadius: 10,
+                    padding: "16px 20px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 16,
+                    boxSizing: "border-box",
+                    flexWrap: isMobile ? "wrap" : "nowrap",
+                    fontFamily: "Inter, sans-serif",
+                  }}
                 >
                   <div
                     style={{
                       display: "flex",
-                      flexDirection: "column",
-                      alignItems: "flex-end",
-                      gap: 10,
-                      flexShrink: 0,
+                      alignItems: "center",
+                      gap: 14,
+                      minWidth: 0,
+                      flex: "1 1 200px",
                     }}
                   >
-                    {hubspotConnected && hubId != null && hubId !== "" && (
-                      <div
-                        style={{
-                          fontSize: 11,
-                          color: "#bbb",
-                          textAlign: "right",
-                          fontFamily: "Inter, sans-serif",
-                        }}
-                      >
-                        {hubId}
+                    <div
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 10,
+                        background: "#ff7a59",
+                        color: "#fff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontWeight: 600,
+                        fontSize: 18,
+                        flexShrink: 0,
+                        fontFamily: "Inter, sans-serif",
+                      }}
+                      aria-hidden
+                    >
+                      H
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: "#111" }}>HubSpot CRM</div>
+                      <div style={{ fontSize: 13, color: "#999", marginTop: 2 }}>
+                        Sync contacts directly to your HubSpot account.
                       </div>
-                    )}
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      flexShrink: 0,
+                      marginLeft: isMobile ? 0 : "auto",
+                    }}
+                  >
                     {hubspotConnected ? (
                       <>
                         <span
                           style={{
-                            background: "#f0f7eb",
+                            background: "#f0faf0",
+                            border: "1px solid #c3e6c3",
                             color: "#2d6a1f",
                             fontSize: 12,
+                            borderRadius: 20,
+                            padding: "4px 10px",
                             fontWeight: 600,
-                            borderRadius: 999,
-                            padding: "4px 12px",
-                            marginRight: isMobile ? 0 : 10,
-                            alignSelf: isMobile ? "center" : undefined,
                           }}
                         >
                           ● Connected
@@ -1246,22 +1252,22 @@ export default function SettingsPage() {
                             const {
                               data: { session },
                             } = await supabase.auth.getSession();
-                            const user = session?.user;
-                            if (!user) return;
-                            await supabase.from("hubspot_tokens").delete().eq("user_id", user.id);
+                            const u = session?.user;
+                            if (!u) return;
+                            await supabase.from("hubspot_tokens").delete().eq("user_id", u.id);
                             setHubspotConnected(false);
                             setHubId(null);
                             showToast("HubSpot disconnected.", "success");
                           }}
                           style={{
-                            background: "#fff",
-                            border: "1px solid #fde8e8",
+                            background: "transparent",
+                            border: "none",
                             color: "#e55a5a",
                             fontSize: 13,
                             fontWeight: 600,
-                            borderRadius: 999,
-                            padding: "8px 16px",
                             cursor: "pointer",
+                            padding: 0,
+                            fontFamily: "Inter, sans-serif",
                           }}
                         >
                           Disconnect
@@ -1275,21 +1281,22 @@ export default function SettingsPage() {
                           window.location.href = `/api/hubspot/connect?userId=${user.id}`;
                         }}
                         style={{
-                          background: "#ff7a59",
+                          background: "#1a3a2a",
                           color: "#fff",
                           fontSize: 13,
                           fontWeight: 600,
-                          borderRadius: 999,
-                          padding: "8px 20px",
+                          borderRadius: 10,
+                          padding: "10px 18px",
                           border: "none",
                           cursor: "pointer",
+                          fontFamily: "Inter, sans-serif",
                         }}
                       >
                         Connect HubSpot
                       </button>
                     )}
                   </div>
-                </SettingRowCard>
+                </div>
               </section>
             )}
 
