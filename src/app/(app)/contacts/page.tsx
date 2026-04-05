@@ -211,6 +211,69 @@ const findDuplicateGroups = (list: Contact[]): Contact[][] => {
   return Object.values(buckets).filter((g) => g.length >= 2);
 };
 
+const KEPT_SEPARATE_GROUPS_KEY = 'kept_separate_groups';
+
+function duplicateGroupIdsKey(group: Contact[]): string {
+  return group.map((c) => c.id).sort().join('|');
+}
+
+function loadKeptSeparateGroupKeys(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem(KEPT_SEPARATE_GROUPS_KEY);
+    if (!raw) return new Set();
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return new Set();
+    const keys = new Set<string>();
+    for (const item of parsed) {
+      if (!Array.isArray(item)) continue;
+      const ids = item.filter((x): x is string => typeof x === 'string');
+      if (ids.length === 0) continue;
+      keys.add([...ids].sort().join('|'));
+    }
+    return keys;
+  } catch {
+    return new Set();
+  }
+}
+
+function filterOutKeptSeparateDuplicateGroups(groups: Contact[][]): Contact[][] {
+  if (typeof window === 'undefined') return groups;
+  const keptKeys = loadKeptSeparateGroupKeys();
+  return groups.filter((g) => !keptKeys.has(duplicateGroupIdsKey(g)));
+}
+
+function appendKeptSeparateGroupToStorage(group: Contact[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    const raw = localStorage.getItem(KEPT_SEPARATE_GROUPS_KEY);
+    let parsed: unknown = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(parsed)) parsed = [];
+    const sortedIds = group.map((c) => c.id).sort();
+    const newKey = sortedIds.join('|');
+    const arrays: string[][] = [];
+    for (const item of parsed) {
+      if (Array.isArray(item) && item.every((x) => typeof x === 'string')) {
+        arrays.push([...item].sort());
+      }
+    }
+    if (!arrays.some((arr) => arr.join('|') === newKey)) {
+      arrays.push(sortedIds);
+    }
+    localStorage.setItem(KEPT_SEPARATE_GROUPS_KEY, JSON.stringify(arrays));
+  } catch {
+    /* ignore */
+  }
+}
+
+function persistDuplicatesAllResolvedBannerDismiss() {
+  try {
+    localStorage.setItem('duplicates_dismissed', 'true');
+  } catch {
+    /* ignore */
+  }
+}
+
 function ContactSourceCell({ contact }: { contact: Contact }) {
   const src = contact.source;
 
@@ -325,6 +388,26 @@ export default function ContactsPage() {
   const [sequenceDrawerExpanded, setSequenceDrawerExpanded] = useState<Record<number, boolean>>({});
   const [sequenceDrawerEditIdx, setSequenceDrawerEditIdx] = useState<number | null>(null);
 
+  const syncDuplicateBannerWithGroups = useCallback((groups: Contact[][]) => {
+    const newCount = groups.length;
+    try {
+      const stored = localStorage.getItem('duplicates_last_count');
+      const storedNum = stored === null ? null : parseInt(stored, 10);
+      const dismissed = localStorage.getItem('duplicates_dismissed') === 'true';
+      if (storedNum === null || Number.isNaN(storedNum) || storedNum !== newCount) {
+        localStorage.removeItem('duplicates_dismissed');
+        localStorage.setItem('duplicates_last_count', String(newCount));
+        setShowDuplicateBanner(newCount > 0);
+      } else if (dismissed) {
+        setShowDuplicateBanner(false);
+      } else {
+        setShowDuplicateBanner(newCount > 0);
+      }
+    } catch {
+      setShowDuplicateBanner(newCount > 0);
+    }
+  }, []);
+
   const fetchContacts = useCallback(async () => {
     if (!user?.id) return;
     const [{ data, error }, { data: eventsData }] = await Promise.all([
@@ -343,15 +426,16 @@ export default function ContactsPage() {
 
     const nextContacts = (((data as unknown) as Contact[]) || []);
     setContacts(nextContacts);
-    setDuplicateGroups(findDuplicateGroups(nextContacts));
-    setShowDuplicateBanner(true);
+    const groups = filterOutKeptSeparateDuplicateGroups(findDuplicateGroups(nextContacts));
+    setDuplicateGroups(groups);
+    syncDuplicateBannerWithGroups(groups);
     setEvents(eventsData || []);
     const map: Record<string, string> = {};
     ((eventsData as Array<{ id: string; name: string }>) || []).forEach((e) => {
       map[e.id] = e.name;
     });
     setEventsMap(map);
-  }, [user?.id]);
+  }, [user?.id, syncDuplicateBannerWithGroups]);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -427,16 +511,17 @@ export default function ContactsPage() {
               return;
             }
             const nextContacts = (((data as unknown) as Contact[]) || []);
-    setContacts(nextContacts);
-    setDuplicateGroups(findDuplicateGroups(nextContacts));
-    setShowDuplicateBanner(true);
+            setContacts(nextContacts);
+            const groups = filterOutKeptSeparateDuplicateGroups(findDuplicateGroups(nextContacts));
+            setDuplicateGroups(groups);
+            syncDuplicateBannerWithGroups(groups);
           });
       }
     };
 
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [user?.id]);
+  }, [user?.id, syncDuplicateBannerWithGroups]);
 
   const showToast = (msg: string, variant: 'success' | 'error' | 'warning' = 'success') => {
     setToast(msg);
@@ -814,10 +899,11 @@ export default function ContactsPage() {
   const resolveDuplicateGroup = (index: number) => {
     const remaining = duplicateGroups.filter((_, i) => i !== index);
     setDuplicateGroups(remaining);
+    syncDuplicateBannerWithGroups(remaining);
     if (remaining.length === 0) {
       setShowDuplicateModal(false);
-      setShowDuplicateBanner(false);
       setDuplicateGroupIndex(0);
+      persistDuplicatesAllResolvedBannerDismiss();
       showToast('All duplicates resolved', 'success');
       return;
     }
@@ -825,6 +911,10 @@ export default function ContactsPage() {
   };
 
   const handleKeepSeparate = (index: number) => {
+    const group = duplicateGroups[index];
+    if (group?.length) {
+      appendKeptSeparateGroupToStorage(group);
+    }
     resolveDuplicateGroup(index);
   };
 
@@ -922,8 +1012,9 @@ export default function ContactsPage() {
 
     if (remaining.length === 0) {
       setDuplicateGroups([]);
+      syncDuplicateBannerWithGroups([]);
+      persistDuplicatesAllResolvedBannerDismiss();
       setShowDuplicateModal(false);
-      setShowDuplicateBanner(false);
       setDuplicateGroupIndex(0);
       showToast('Contacts merged successfully', 'success');
       showToast('All duplicates resolved', 'success');
@@ -931,6 +1022,7 @@ export default function ContactsPage() {
     }
 
     setDuplicateGroups(remaining);
+    syncDuplicateBannerWithGroups(remaining);
     setDuplicateGroupIndex((prev) => Math.max(0, Math.min(prev, remaining.length - 1)));
     showToast('Contacts merged successfully', 'success');
   };
@@ -1218,7 +1310,14 @@ export default function ContactsPage() {
           </div>
           <button
             type='button'
-            onClick={() => setShowDuplicateBanner(false)}
+            onClick={() => {
+              setShowDuplicateBanner(false);
+              try {
+                localStorage.setItem('duplicates_dismissed', 'true');
+              } catch {
+                /* ignore */
+              }
+            }}
             style={{
               color: '#b45309',
               cursor: 'pointer',
@@ -3447,10 +3546,17 @@ export default function ContactsPage() {
                       type='button'
                       onClick={() => void handleMergeDuplicateGroup(group, duplicateGroupIndex)}
                       style={{
+                        width: 130,
+                        minHeight: 36,
+                        height: 36,
+                        boxSizing: 'border-box',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                         background: '#1a3a2a',
                         color: '#fff',
                         borderRadius: 8,
-                        padding: '8px 16px',
+                        padding: '0 12px',
                         fontSize: 13,
                         fontWeight: 600,
                         cursor: 'pointer',
@@ -3463,12 +3569,20 @@ export default function ContactsPage() {
                       type='button'
                       onClick={() => handleKeepSeparate(duplicateGroupIndex)}
                       style={{
+                        width: 130,
+                        minHeight: 36,
+                        height: 36,
+                        boxSizing: 'border-box',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                         background: 'transparent',
                         border: '1px solid #e8e8e8',
                         color: '#999',
                         borderRadius: 8,
-                        padding: '8px 16px',
+                        padding: '0 12px',
                         fontSize: 13,
+                        fontWeight: 600,
                         cursor: 'pointer',
                       }}
                     >

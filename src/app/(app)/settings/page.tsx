@@ -205,8 +205,6 @@ export default function SettingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [displayName, setDisplayName] = useState("");
   const [signals, setSignals] = useState<Signal[]>(DEFAULT_SIGNALS);
   const [fields, setFields] = useState<Field[]>(DEFAULT_FIELDS);
   const [defaultTone, setDefaultTone] = useState<string>("professional");
@@ -326,17 +324,6 @@ export default function SettingsPage() {
 
       setUser(user);
 
-      const meta = (user.user_metadata || {}) as Record<string, unknown>;
-      const metaDisplay = (meta.display_name as string) || (meta.full_name as string) || (meta.name as string) || "";
-      const email = user.email ?? null;
-      let resolvedName = metaDisplay;
-      if (!resolvedName && email) {
-        const beforeAt = email.split("@")[0]?.trim() || "";
-        resolvedName = beforeAt ? beforeAt.charAt(0).toUpperCase() + beforeAt.slice(1).toLowerCase() : "";
-      }
-      setDisplayName(resolvedName);
-      setUserEmail(email);
-
       const { data, error } = await supabase
         .from("user_settings")
         .select("*")
@@ -438,16 +425,6 @@ export default function SettingsPage() {
       setTimeout(() => setSaveStatus("idle"), 2000);
     }
   };
-
-  const avatarInitials = (() => {
-    if (displayName) {
-      const parts = displayName.trim().split(" ");
-      if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-      return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
-    }
-    if (userEmail) return userEmail.charAt(0).toUpperCase();
-    return "?";
-  })();
 
   const addSignal = () => {
     const name = signalInput.trim();
@@ -583,64 +560,6 @@ export default function SettingsPage() {
             );
           })}
         </nav>
-        <div
-          style={{
-            marginTop: "auto",
-            paddingTop: 20,
-            borderTop: "1px solid #ebebeb",
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            minWidth: 0,
-          }}
-        >
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: "999px",
-              backgroundColor: "#1a3a2a",
-              color: "#f7f7f5",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 12,
-              fontWeight: 600,
-              flexShrink: 0,
-              fontFamily: "Inter, sans-serif",
-            }}
-          >
-            {avatarInitials}
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <p
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: "#111",
-                margin: 0,
-                fontFamily: "Inter, sans-serif",
-              }}
-            >
-              {displayName || "Your account"}
-            </p>
-            {userEmail ? (
-              <p
-                style={{
-                  fontSize: 11,
-                  color: "#999",
-                  margin: 0,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  fontFamily: "Inter, sans-serif",
-                }}
-              >
-                {userEmail}
-              </p>
-            ) : null}
-          </div>
-        </div>
       </aside>
 
       <div

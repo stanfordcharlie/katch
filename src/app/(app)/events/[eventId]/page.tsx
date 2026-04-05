@@ -285,6 +285,7 @@ export default function EventDetailPage() {
         </>
       ) : (
         <>
+          <div style={{ paddingBottom: 100 }}>
           <div
             style={{
               width: '100%',
@@ -394,8 +395,24 @@ export default function EventDetailPage() {
               </Link>
             </div>
           </div>
+          </div>
 
-          <div style={{ display: 'flex', flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+          <div
+            style={{
+              position: 'fixed',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              background: 'rgba(240,242,240,0.85)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              borderTop: '1px solid rgba(0,0,0,0.07)',
+              padding: '12px 24px 24px',
+              zIndex: 50,
+              display: 'flex',
+              gap: 12,
+            }}
+          >
             <button type="button" style={primaryBtn} onClick={() => router.push(`/dashboard/${eventId}`)}>
               View Dashboard
             </button>
