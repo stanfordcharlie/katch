@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { Upload, User as UserIcon } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -2612,21 +2613,13 @@ export default function ScanPage() {
         id="staged-add-input"
         onChange={handleStagedAddMore}
       />
-      <div style={{ maxWidth: isMobile ? "100%" : "1100px", margin: "0 auto", padding: isMobile ? "20px 24px 0" : "36px 24px 0" }}>
-        <div
-          className="w-full rounded-2xl p-8"
-          style={{
-            background:
-              "linear-gradient(135deg, #1a3a2a 0%, #2d5a3d 30%, #1e4d6b 70%, #0f2a3d 100%)",
-            marginBottom: 24,
-            fontFamily: "Inter, sans-serif",
-          }}
-        >
+      <div style={{ maxWidth: isMobile ? "100%" : "1100px", margin: "0 auto", padding: isMobile ? "20px 24px 0" : "24px 24px 0" }}>
+        <div style={{ marginBottom: 24, fontFamily: "Inter, sans-serif" }}>
           <h1
             style={{
-              fontSize: 28,
-              fontWeight: 700,
-              color: "#fff",
+              fontSize: 22,
+              fontWeight: 500,
+              color: "#111",
               margin: 0,
               fontFamily: "Inter, sans-serif",
             }}
@@ -2635,14 +2628,14 @@ export default function ScanPage() {
           </h1>
           <p
             style={{
-              fontSize: 14,
-              color: "rgba(255,255,255,0.6)",
+              fontSize: 13,
+              color: "#999",
               marginTop: 4,
               marginBottom: 0,
               fontFamily: "Inter, sans-serif",
             }}
           >
-            Drop a photo, scan with camera, or bulk upload from an event.
+            Drop a photo, scan with camera, or bulk upload.
           </p>
         </div>
         {restoredDraft && (
@@ -2678,7 +2671,7 @@ export default function ScanPage() {
               display: "grid",
               gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
               gap: "20px",
-              alignItems: "start",
+              alignItems: "stretch",
               marginTop: 0,
             }}
           >
@@ -2735,145 +2728,147 @@ export default function ScanPage() {
                 });
               }}
               style={{
-                background: "#ffffff",
-                border: "2px dashed",
-                borderColor: isDragging ? "#7dde3c" : "#ddd",
-                borderRadius: "20px",
-                minHeight: "360px",
+                background: "rgba(255,255,255,0.7)",
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
+                border: "1px solid rgba(0,0,0,0.06)",
+                borderRadius: 14,
+                padding: 32,
+                boxSizing: "border-box",
+                minHeight: 360,
                 display: "flex",
-                flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: "12px",
-                padding: "40px 32px",
-                textAlign: "center",
-                transition: "border-color 0.2s ease, background 0.2s ease",
-                ...(isDragging ? { background: "#fafff7" } : {}),
+                fontFamily: "Inter, sans-serif",
               }}
             >
               <div
                 style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: "50%",
-                  background: "linear-gradient(135deg, #f0f7eb, #e8f5e0)",
+                  width: "100%",
+                  minHeight: 296,
+                  border: "2px dashed rgba(0,0,0,0.1)",
+                  borderRadius: 12,
                   display: "flex",
+                  flexDirection: "column",
                   alignItems: "center",
                   justifyContent: "center",
-                  marginBottom: 4,
-                }}
-              >
-                <svg width="28" height="28" fill="none" viewBox="0 0 24 24" stroke="#7dde3c" strokeWidth="1.5">
-                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                  <polyline points="17 8 12 3 7 8" />
-                  <line x1="12" y1="3" x2="12" y2="15" />
-                </svg>
-              </div>
-              <p
-                style={{
-                  fontSize: "18px",
-                  fontWeight: 600,
-                  letterSpacing: "-0.01em",
+                  gap: 12,
+                  padding: "28px 20px",
                   textAlign: "center",
-                  color: "#111",
-                  margin: 0,
+                  boxSizing: "border-box",
+                  transition: "border-color 0.2s ease, background 0.2s ease",
+                  ...(isDragging
+                    ? { background: "rgba(0,0,0,0.03)", borderColor: "rgba(0,0,0,0.16)" }
+                    : {}),
                 }}
               >
-                Drop a badge or card here
-              </p>
-              <p
-                style={{
-                  fontSize: "13px",
-                  color: "#999",
-                  textAlign: "center",
-                  lineHeight: 1.5,
-                  margin: 0,
-                  maxWidth: "280px",
-                }}
-              >
-                Drag one photo to scan, or drop multiple to bulk upload
-              </p>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "row",
-                  flexWrap: "wrap",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  gap: 10,
-                  marginTop: 4,
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={handleOpenCamera}
+                <Upload size={28} color="#999" strokeWidth={1.5} aria-hidden />
+                <p
                   style={{
-                    background: "#7dde3c",
-                    color: "#0a1a0a",
-                    fontWeight: 600,
-                    borderRadius: "999px",
-                    padding: "10px 22px",
-                    fontSize: "14px",
-                    border: "none",
-                    cursor: "pointer",
-                  }}
-                >
-                  Open Camera
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const input = document.getElementById("single-upload-input") as HTMLInputElement | null;
-                    input?.click();
-                  }}
-                  style={{
-                    background: "#ffffff",
-                    border: "1px solid #e8e8e8",
+                    fontSize: 15,
+                    fontWeight: 500,
+                    textAlign: "center",
                     color: "#111",
-                    borderRadius: "999px",
-                    padding: "10px 22px",
-                    fontSize: "14px",
-                    fontWeight: 600,
-                    cursor: "pointer",
+                    margin: 0,
                   }}
                 >
-                  Upload photo
-                </button>
+                  Drop a badge or card here
+                </p>
+                <p
+                  style={{
+                    fontSize: 13,
+                    color: "#999",
+                    textAlign: "center",
+                    lineHeight: 1.5,
+                    margin: 0,
+                    maxWidth: 280,
+                  }}
+                >
+                  Drag one photo to scan, or drop multiple to bulk upload
+                </p>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    gap: 10,
+                    marginTop: 4,
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={handleOpenCamera}
+                    style={{
+                      background: "#1a3a2a",
+                      color: "#fff",
+                      fontWeight: 500,
+                      borderRadius: 8,
+                      padding: "9px 18px",
+                      fontSize: 13,
+                      border: "none",
+                      cursor: "pointer",
+                      fontFamily: "Inter, sans-serif",
+                    }}
+                  >
+                    Open Camera
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const input = document.getElementById("single-upload-input") as HTMLInputElement | null;
+                      input?.click();
+                    }}
+                    style={{
+                      background: "#fff",
+                      border: "1px solid #e8e8e8",
+                      color: "#111",
+                      borderRadius: 8,
+                      padding: "9px 18px",
+                      fontSize: 13,
+                      fontWeight: 500,
+                      cursor: "pointer",
+                      fontFamily: "Inter, sans-serif",
+                    }}
+                  >
+                    Upload photo
+                  </button>
+                </div>
               </div>
             </div>
             <div
               style={{
-                background: "#ffffff",
-                border: "1px solid #ebebeb",
-                borderRadius: "20px",
-                minHeight: "360px",
+                background: "rgba(255,255,255,0.7)",
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
+                border: "1px solid rgba(0,0,0,0.06)",
+                borderRadius: 14,
+                padding: 32,
+                boxSizing: "border-box",
+                minHeight: 360,
                 overflow: "hidden",
+                fontFamily: "Inter, sans-serif",
               }}
             >
               {stagedFiles.length === 0 ? (
                 <div
                   style={{
-                    minHeight: "360px",
+                    minHeight: 296,
                     display: "flex",
                     flexDirection: "column",
                     alignItems: "center",
                     justifyContent: "center",
-                    gap: "8px",
-                    padding: "24px",
+                    gap: 8,
                   }}
                 >
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" aria-hidden>
-                    <path
-                      d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
-                      fill="#ddd"
-                    />
-                  </svg>
-                  <span style={{ fontSize: 13, color: "#bbb", textAlign: "center" }}>
+                  <UserIcon size={32} color="#ddd" strokeWidth={1.5} aria-hidden />
+                  <span style={{ fontSize: 13, color: "#999", textAlign: "center" }}>
                     Contact details will appear here
                   </span>
                 </div>
               ) : (
-                <div style={{ padding: 20 }}>
+                <div style={{ padding: 0 }}>
                   <div
                     style={{
                       display: "flex",
@@ -3196,18 +3191,26 @@ export default function ScanPage() {
           {!showRightForm ? (
             <div
               style={{
-                background: "#fff",
-                border: "1px solid #ebebeb",
-                borderRadius: "16px",
-                minHeight: "280px",
+                background: "rgba(255,255,255,0.7)",
+                backdropFilter: "blur(12px)",
+                WebkitBackdropFilter: "blur(12px)",
+                border: "1px solid rgba(0,0,0,0.06)",
+                borderRadius: 14,
+                padding: 32,
+                boxSizing: "border-box",
+                minHeight: 280,
                 display: "flex",
+                flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#ccc",
-                fontSize: "14px",
+                gap: 8,
+                fontFamily: "Inter, sans-serif",
               }}
             >
-              Scan a badge to see contact details
+              <UserIcon size={32} color="#ddd" strokeWidth={1.5} aria-hidden />
+              <span style={{ fontSize: 13, color: "#999", textAlign: "center" }}>
+                Contact details will appear here
+              </span>
             </div>
           ) : (
             <div

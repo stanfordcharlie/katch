@@ -758,11 +758,20 @@ export default function LeadsPage() {
   };
 
   if (!user) {
-    return <div style={{ minHeight: "100vh", background: "#f7f7f5" }} />;
+    return <div style={{ minHeight: "100vh", background: "#f0f2f0" }} />;
   }
 
   return (
-    <div style={{ padding: "24px 24px 32px", maxWidth: 960, margin: "0 auto" }}>
+    <div
+      style={{
+        padding: "24px 24px 32px",
+        maxWidth: "100%",
+        backgroundColor: "#f0f2f0",
+        minHeight: "100vh",
+        boxSizing: "border-box",
+        fontFamily: "Inter, sans-serif",
+      }}
+    >
       {toast && (
         <div
           style={{
@@ -783,20 +792,12 @@ export default function LeadsPage() {
         </div>
       )}
 
-      <div
-        className="w-full rounded-2xl p-8"
-        style={{
-          background:
-            "linear-gradient(135deg, #1a3a2a 0%, #2d5a3d 30%, #1e4d6b 70%, #0f2a3d 100%)",
-          marginBottom: 24,
-          fontFamily: "Inter, sans-serif",
-        }}
-      >
+      <div style={{ marginBottom: 24 }}>
         <h1
           style={{
-            fontSize: 28,
-            fontWeight: 700,
-            color: "#fff",
+            fontSize: 22,
+            fontWeight: 500,
+            color: "#111",
             margin: 0,
             fontFamily: "Inter, sans-serif",
           }}
@@ -805,8 +806,8 @@ export default function LeadsPage() {
         </h1>
         <p
           style={{
-            fontSize: 14,
-            color: "rgba(255,255,255,0.6)",
+            fontSize: 13,
+            color: "#999",
             marginTop: 4,
             marginBottom: 0,
             maxWidth: 520,
@@ -820,19 +821,20 @@ export default function LeadsPage() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: isMobile ? "1fr" : "380px 1fr",
+          gridTemplateColumns: isMobile ? "1fr" : "1fr 340px",
           gap: 24,
           alignItems: "start",
         }}
       >
       <div
         style={{
-          background: "#fff",
-          border: "1px solid #ebebeb",
-          borderRadius: 16,
-          padding: 32,
+          background: "rgba(255,255,255,0.6)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+          border: "1px solid rgba(0,0,0,0.07)",
+          borderRadius: 14,
+          padding: 28,
           position: "relative",
-          maxWidth: 380,
           width: "100%",
           boxSizing: "border-box",
         }}
@@ -843,7 +845,7 @@ export default function LeadsPage() {
               position: "absolute",
               inset: 0,
               background: "rgba(255,255,255,0.92)",
-              borderRadius: 16,
+              borderRadius: 14,
               zIndex: 5,
               display: "flex",
               flexDirection: "column",
@@ -919,49 +921,49 @@ export default function LeadsPage() {
             if (f && f.name.toLowerCase().endsWith(".csv")) setSelectedFile(f);
           }}
           style={{
-            background:
-              isDragging || isDropZoneHover ? "#f8fdf4" : "#ffffff",
+            background: isDragging || isDropZoneHover ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.5)",
             border: "2px dashed",
-            borderColor: isDragging || isDropZoneHover ? "#7dde3c" : "#d0d0d0",
-            borderRadius: 16,
-            padding: "48px 32px",
+            borderColor: isDragging || isDropZoneHover ? "rgba(0,0,0,0.14)" : "rgba(0,0,0,0.1)",
+            borderRadius: 12,
+            minHeight: 220,
+            boxSizing: "border-box",
+            padding: "12px 16px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
             textAlign: "center",
             cursor: "pointer",
-            transition: "border-color 0.2s",
+            transition: "border-color 0.2s, background 0.2s",
+            overflow: "hidden",
           }}
         >
-          <div
-            style={{
-              width: 64,
-              height: 64,
-              borderRadius: 99,
-              background: "#f0fce8",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 16px",
-            }}
+          <svg
+            width="28"
+            height="28"
+            viewBox="0 0 24 24"
+            fill="none"
+            style={{ display: "block", margin: "0 auto 8px", flexShrink: 0 }}
+            aria-hidden
           >
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M12 4v12M8 8l4-4 4 4"
-                stroke="#7dde3c"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"
-                stroke="#7dde3c"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: "#111", marginBottom: 6 }}>
+            <path
+              d="M12 4v12M8 8l4-4 4 4"
+              stroke="#999"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"
+              stroke="#999"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+          <div style={{ fontSize: 15, fontWeight: 500, color: "#111", marginBottom: 4, flexShrink: 0 }}>
             Drop a CSV file here
           </div>
-          <div style={{ fontSize: 13, color: "#999", marginBottom: 12 }}>or</div>
+          <div style={{ fontSize: 13, color: "#999", marginBottom: 8, flexShrink: 0 }}>or</div>
           <button
             type="button"
             onClick={(e) => {
@@ -969,14 +971,15 @@ export default function LeadsPage() {
               openFilePicker();
             }}
             style={{
-              background: "#ffffff",
+              background: "#fff",
               border: "1px solid #e8e8e8",
               color: "#111",
-              borderRadius: 10,
-              padding: "9px 20px",
-              fontSize: 14,
+              borderRadius: 8,
+              padding: "8px 16px",
+              fontSize: 13,
               fontWeight: 500,
               cursor: "pointer",
+              fontFamily: "Inter, sans-serif",
             }}
           >
             Browse files
@@ -1263,79 +1266,108 @@ export default function LeadsPage() {
             background: !selectedFile || enrichLoading ? "#ccc" : "#1a3a2a",
             color: "#fff",
             border: "none",
-            borderRadius: 10,
-            padding: 12,
-            fontSize: 15,
-            fontWeight: 600,
+            borderRadius: 8,
+            padding: "12px 16px",
+            fontSize: 13,
+            fontWeight: 500,
             cursor: !selectedFile || enrichLoading ? "not-allowed" : "pointer",
+            fontFamily: "Inter, sans-serif",
           }}
         >
           Score & Rank Leads
         </button>
       </div>
 
-      <div style={{ background: "#f0f2f0", minWidth: 0 }}>
-        <h2 style={{ fontSize: 17, fontWeight: 700, color: "#111", margin: "0 0 12px" }}>Past Lead Lists</h2>
+      <div style={{ minWidth: 0 }}>
+        <div
+          style={{
+            fontSize: 11,
+            color: "#999",
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+            fontWeight: 600,
+            marginBottom: 8,
+            fontFamily: "Inter, sans-serif",
+          }}
+        >
+          Past lead lists
+        </div>
         {pastLists.length === 0 ? (
-          <p style={{ color: "#999", fontSize: 13, textAlign: "center", padding: 32 }}>No lead lists uploaded yet.</p>
+          <p style={{ color: "#999", fontSize: 13, textAlign: "center", padding: 32, margin: 0 }}>
+            No lead lists uploaded yet.
+          </p>
         ) : (
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-              <thead>
-                <tr style={{ background: "#fafafa", borderBottom: "1px solid #ebebeb" }}>
-                  {["FILE", "EVENT", "CONTACTS", "TOP ICP SCORE", "DATE", "ACTION"].map((h) => (
-                    <th
-                      key={h}
-                      style={{
-                        textAlign: "left",
-                        padding: "12px 14px",
-                        fontWeight: 600,
-                        color: "#666",
-                        fontSize: 11,
-                        letterSpacing: "0.02em",
-                      }}
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {pastLists.map((list) => (
-                  <tr key={list.id} style={{ borderBottom: "1px solid #f5f5f5" }}>
-                    <td style={{ padding: "12px 14px", color: "#111", fontWeight: 500 }}>{list.filename}</td>
-                    <td style={{ padding: "12px 14px", color: "#666" }}>{list.eventName}</td>
-                    <td style={{ padding: "12px 14px", color: "#666" }}>
-                      <div>{list.contactCount}</div>
-                      {list.savedCount > 0 ? (
-                        <div style={{ color: "#4a6fa5", fontSize: 12, marginTop: 4 }}>
-                          {list.savedCount} prospect{list.savedCount === 1 ? "" : "s"}
-                        </div>
-                      ) : null}
-                    </td>
-                    <td style={{ padding: "12px 14px", color: "#666" }}>{list.topScore}/10</td>
-                    <td style={{ padding: "12px 14px", color: "#666" }}>{formatTableDate(list.uploadDate)}</td>
-                    <td style={{ padding: "12px 14px" }}>
-                      <button
-                        type="button"
-                        onClick={() => openPastList(list)}
-                        style={{
-                          background: "transparent",
-                          border: "1px solid #e0e0e0",
-                          borderRadius: 8,
-                          padding: "6px 12px",
-                          fontSize: 12,
-                          fontWeight: 500,
-                          color: "#1a3a2a",
-                          cursor: "pointer",
-                        }}
-                      >
-                        View results
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+            {pastLists.map((list) => (
+              <div
+                key={list.id}
+                style={{
+                  background: "rgba(255,255,255,0.6)",
+                  backdropFilter: "blur(16px)",
+                  WebkitBackdropFilter: "blur(16px)",
+                  border: "1px solid rgba(0,0,0,0.06)",
+                  borderRadius: 8,
+                  padding: "8px 12px",
+                  marginBottom: 4,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 8,
+                  boxSizing: "border-box",
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0, paddingRight: 8 }}>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 500,
+                      color: "#111",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                    title={list.filename}
+                  >
+                    {list.filename}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: "#999",
+                      marginTop: 2,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                    title={`${list.eventName} · ${formatTableDate(list.uploadDate)} · ${list.contactCount} contact${list.contactCount === 1 ? "" : "s"} · Top ICP ${list.topScore}/10`}
+                  >
+                    {`${list.eventName} · ${formatTableDate(list.uploadDate)} · ${list.contactCount} contact${list.contactCount === 1 ? "" : "s"} · Top ICP ${list.topScore}/10`}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => openPastList(list)}
+                  style={{
+                    fontSize: 12,
+                    color: "#1a3a2a",
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    fontWeight: 400,
+                    padding: 0,
+                    margin: 0,
+                    fontFamily: "Inter, sans-serif",
+                    textDecoration: "none",
+                    boxShadow: "none",
+                    flexShrink: 0,
+                    alignSelf: "center",
+                  }}
+                >
+                  View results
+                </button>
+              </div>
+            ))}
+          </div>
         )}
       </div>
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
@@ -132,10 +132,15 @@ export default function HomePage() {
     return group.reduce((max, c) => Math.max(max, c.lead_score ?? 0), 0);
   };
 
-  const followUpEventLabel = (eventId: string | null) => {
-    if (!eventId) return "—";
-    const name = events.find((e) => e.id === eventId)?.name;
-    return name && name.trim() ? name : "—";
+  const followUpEventLabel = (eventId: string | null): string | null => {
+    if (eventId == null || !String(eventId).trim()) return null;
+    const trimmed = String(eventId).trim();
+    const fromEvents = events.find((e) => e.id === trimmed)?.name?.trim();
+    if (fromEvents) return fromEvents;
+    const looksLikeUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(trimmed);
+    if (looksLikeUuid) return null;
+    return trimmed;
   };
 
   const needsFollowUp = contacts;
@@ -149,18 +154,24 @@ export default function HomePage() {
 
   const scoreBadge = (score: number | null) => {
     const s = score ?? 0;
-    if (s >= 9) return { label: "Fire", color: "#c47c2a", bg: "#fff3e8" };
-    if (s >= 8) return { label: "Hot", color: "#b45309", bg: "#fef3c7" };
-    if (s >= 5) return { label: "Warm", color: "#166534", bg: "#dcfce7" };
-    return { label: "Cold", color: "#4b5563", bg: "#e5e7eb" };
+    if (s >= 9) return { label: "Fire", color: "#ff9500", bg: "#fff3ee" };
+    if (s >= 5) return { label: "Warm", color: "#2d6a1f", bg: "#f0faf0" };
+    return { label: "Cold", color: "#999", bg: "#f5f5f5" };
   };
+
+  const todayLabel = new Date().toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
 
   if (!user) {
     return (
       <div
         style={{
           minHeight: "100vh",
-          backgroundColor: "#f7f7f5",
+          backgroundColor: "#f0f2f0",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -168,6 +179,7 @@ export default function HomePage() {
           fontSize: "14px",
           fontWeight: 400,
           lineHeight: 1.5,
+          fontFamily: "Inter, sans-serif",
         }}
       >
         Loading…
@@ -175,624 +187,346 @@ export default function HomePage() {
     );
   }
 
+  const statItems = [
+    { label: "TOTAL SCANNED", value: totalContactsCount.toString() },
+    { label: "HOT LEADS", value: hotLeadsCount.toString() },
+    { label: "SEQUENCES SENT", value: "—" },
+    { label: "EVENTS ATTENDED", value: eventsAttended.toString() },
+  ];
+
+  const cardShell: CSSProperties = {
+    background: "rgba(255,255,255,0.7)",
+    backdropFilter: "blur(12px)",
+    WebkitBackdropFilter: "blur(12px)",
+    border: "1px solid rgba(0,0,0,0.06)",
+    borderRadius: 14,
+    padding: 20,
+  };
+
+  const pillStyle = (badge: { bg: string; color: string }) => ({
+    fontSize: 11,
+    fontWeight: 600 as const,
+    borderRadius: 20,
+    padding: "3px 8px",
+    backgroundColor: badge.bg,
+    color: badge.color,
+    flexShrink: 0,
+  });
+
   return (
     <div
       style={{
         minHeight: "100vh",
-        padding: isMobile ? "24px 24px 100px" : "24px 24px 32px",
+        padding: isMobile ? "24px 24px 100px" : "24px",
         overflowX: "hidden",
         maxWidth: "100vw",
-        color: "#111111",
+        color: "#111",
+        backgroundColor: "#f0f2f0",
+        fontFamily: "Inter, sans-serif",
+        boxSizing: "border-box",
       }}
     >
-      {/* Hero card */}
       {loading ? (
-        <div
-          className="skeleton"
-          style={{
-            borderRadius: 20,
-            height: 200,
-            marginBottom: 16,
-            margin: "20px 20px 16px",
-          }}
-        />
-      ) : (
-      <section
-        style={{
-          background: "linear-gradient(135deg, #1a3a2a 0%, #2d5a3d 30%, #1e4d6b 70%, #0f2a3d 100%)",
-          borderRadius: 20,
-          margin: "20px 20px 0",
-          padding: isMobile ? "28px 22px" : "40px 48px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: isMobile ? "stretch" : "center",
-          minHeight: 200,
-          flexDirection: isMobile ? "column" : "row",
-          gap: isMobile ? 16 : 24,
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            borderRadius: 20,
-            background: "radial-gradient(ellipse at 30% 50%, rgba(125,222,60,0.15) 0%, transparent 60%)",
-            pointerEvents: "none",
-          }}
-        />
-        <div style={{ maxWidth: isMobile ? "100%" : "54%", width: isMobile ? "100%" : "auto", position: "relative", zIndex: 1 }}>
-          <h1
+        <>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, gap: 16 }}>
+            <div className="skeleton" style={{ height: 72, flex: 1, maxWidth: 320, borderRadius: 10 }} />
+            <div className="skeleton" style={{ height: 36, width: 120, borderRadius: 8 }} />
+          </div>
+          <div className="skeleton" style={{ height: 72, borderRadius: 14, marginBottom: 20 }} />
+          <div
             style={{
-              fontSize: "clamp(28px, 3.5vw, 42px)",
-              fontWeight: 700,
-              letterSpacing: "-0.03em",
-              lineHeight: 1.1,
-              color: "#ffffff",
-              marginBottom: 6,
+              display: "grid",
+              gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+              gap: 20,
+              alignItems: "flex-start",
             }}
           >
-            {greeting}, {firstName}
-          </h1>
-          <p
-            style={{
-              fontSize: "15px",
-              fontWeight: 400,
-              lineHeight: 1.45,
-              color: "rgba(255,255,255,0.55)",
-              marginBottom: 0,
-            }}
-          >
-            Here&apos;s your event pipeline at a glance.
-          </p>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 10,
-            minWidth: isMobile ? 0 : 220,
-            width: isMobile ? "100%" : "auto",
-            position: "relative",
-            zIndex: 1,
-          }}
-        >
-          {[
-            { label: "TOTAL SCANNED", value: totalContactsCount.toString() },
-            { label: "HOT LEADS", value: hotLeadsCount.toString() },
-            { label: "SEQUENCES SENT", value: "—" },
-            { label: "EVENTS ATTENDED", value: eventsAttended.toString() },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              style={{
-                background: "rgba(255,255,255,0.08)",
-                backdropFilter: "blur(12px)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                borderRadius: 12,
-                padding: "12px 16px",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 600,
-                  letterSpacing: "0.04em",
-                  textTransform: "uppercase",
-                  color: "rgba(255,255,255,0.5)",
-                }}
-              >
-                {stat.label}
-              </span>
-              <span
-                style={{
-                  fontSize: "20px",
-                  fontWeight: 700,
-                  letterSpacing: "-0.02em",
-                  lineHeight: 1,
-                  color: "#ffffff",
-                }}
-              >
-                {stat.value}
-              </span>
-            </div>
-          ))}
-        </div>
-      </section>
-      )}
-
-      {/* Quick actions */}
-      {loading ? (
-        <section
-          style={{
-            margin: "20px 20px 0",
-            display: isMobile ? "flex" : "grid",
-            gridTemplateColumns: isMobile ? undefined : "repeat(3, minmax(0, 1fr))",
-            flexDirection: isMobile ? "column" : undefined,
-            gap: isMobile ? 10 : 16,
-          }}
-        >
-          {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              className="skeleton"
-              style={{
-                borderRadius: 14,
-                height: 120,
-                width: "100%",
-              }}
-            />
-          ))}
-        </section>
+            <div className="skeleton" style={{ minHeight: 220, borderRadius: 14 }} />
+            <div className="skeleton" style={{ minHeight: 220, borderRadius: 14 }} />
+          </div>
+        </>
       ) : (
-      <section
-        style={{
-          margin: "20px 20px 0",
-          display: isMobile ? "flex" : "grid",
-          gridTemplateColumns: isMobile ? undefined : "repeat(3, minmax(0, 1fr))",
-          flexDirection: isMobile ? "column" : undefined,
-          gap: isMobile ? 10 : 16,
-        }}
-      >
-        {[
-          {
-            label: "Scan a badge",
-            desc: "Open the scanner and capture a new contact.",
-            href: "/scan",
-            iconBg: "#f0f7eb",
-            iconColor: "#2d6a1f",
-            icon: (
-              <svg viewBox="0 0 16 16" width="16" height="16" fill="none">
-                <path d="M2 5a1 1 0 011-1h1.5l1-2h5l1 2H13a1 1 0 011 1v7a1 1 0 01-1 1H3a1 1 0 01-1-1V5z" stroke="currentColor" strokeWidth="1.2" fill="none"/>
-                <circle cx="8" cy="8.5" r="2" stroke="currentColor" strokeWidth="1.2" fill="none"/>
-              </svg>
-            ),
-          },
-          {
-            label: "Generate sequences",
-            desc: "Write thoughtful follow-up emails in one click.",
-            href: "/sequences",
-            iconBg: "#f0f4ff",
-            iconColor: "#4a6cf7",
-            icon: (
-              <svg viewBox="0 0 16 16" width="16" height="16" fill="none">
-                <rect x="2" y="4" width="12" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.2" fill="none"/>
-                <path d="M2 6l6 4 6-4" stroke="currentColor" strokeWidth="1.2"/>
-              </svg>
-            ),
-          },
-          {
-            label: "Import attendees",
-            desc: "Upload event lists and enrich them automatically.",
-            href: "/leads",
-            iconBg: "#fff3eb",
-            iconColor: "#b07020",
-            icon: (
-              <svg viewBox="0 0 16 16" width="16" height="16" fill="none">
-                <path d="M8 10V3M5 6l3-3 3 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-                <path d="M3 12h10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-              </svg>
-            ),
-          },
-        ].map((qa) => (
-          <button
-            key={qa.href}
-            onClick={() => router.push(qa.href)}
+        <>
+          <div
             style={{
-              textAlign: "left",
-              background: "#ffffff",
-              borderRadius: 16,
-              border: "1px solid #ebebeb",
-              padding: 24,
-              cursor: "pointer",
               display: "flex",
-              flexDirection: "column",
+              flexDirection: isMobile ? "column" : "row",
+              alignItems: isMobile ? "stretch" : "center",
               justifyContent: "space-between",
-              width: isMobile ? "100%" : "auto",
-              minWidth: isMobile ? 0 : undefined,
-              minHeight: isMobile ? 44 : 150,
-              transition: "all 0.15s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = "translateY(-2px)";
-              e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.08)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "translateY(0)";
-              e.currentTarget.style.boxShadow = "none";
+              gap: 16,
+              marginBottom: 20,
             }}
           >
-            <div
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 10,
-                backgroundColor: qa.iconBg,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: qa.iconColor,
-              }}
-            >
-              {qa.icon}
-            </div>
             <div>
-              <div
-                style={{
-                  fontSize: "15px",
-                  fontWeight: 600,
-                  letterSpacing: "-0.01em",
-                  color: "#111111",
-                  marginTop: 16,
-                  marginBottom: 4,
-                }}
-              >
-                {qa.label}
+              <div style={{ fontSize: 28, fontWeight: 500, color: "#111", lineHeight: 1.2 }}>
+                {greeting}, {firstName}
               </div>
-              <div
-                style={{
-                  fontSize: "13px",
-                  fontWeight: 400,
-                  lineHeight: 1.5,
-                  color: "#999999",
-                }}
-              >
-                {qa.desc}
-              </div>
+              <div style={{ fontSize: 13, color: "#999", marginTop: 4 }}>{todayLabel}</div>
             </div>
-          </button>
-        ))}
-      </section>
-      )}
-
-      {loading ? (
-        <section
-          style={{
-            margin: "22px 20px 0",
-            display: "grid",
-            gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 3fr) minmax(0, 2fr)",
-            gap: 16,
-            alignItems: "flex-start",
-          }}
-        >
-          <div
-            className="skeleton"
-            style={{
-              borderRadius: 12,
-              minHeight: 180,
-              border: "1px solid #ebebeb",
-            }}
-          />
-          <div
-            className="skeleton"
-            style={{
-              borderRadius: 12,
-              minHeight: 180,
-              border: "1px solid #ebebeb",
-            }}
-          />
-        </section>
-      ) : (
-      <section
-        style={{
-          margin: "22px 20px 0",
-          display: "grid",
-          gridTemplateColumns: isMobile ? "1fr" : "minmax(0, 3fr) minmax(0, 2fr)",
-          gap: 16,
-          alignItems: "flex-start",
-        }}
-      >
-        {/* Recent Events */}
-        <div
-          style={{
-            background: "#ffffff",
-            borderRadius: 12,
-            border: "1px solid #ebebeb",
-            padding: "14px 16px 16px",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 10,
-            }}
-          >
-            <h2
-              style={{
-                fontSize: "15px",
-                fontWeight: 600,
-                letterSpacing: "-0.01em",
-                color: "#111111",
-              }}
-            >
-              Recent events
-            </h2>
             <button
               type="button"
               onClick={() => router.push("/events")}
               style={{
-                border: "none",
-                background: "transparent",
-                color: "#7dde3c",
-                fontSize: "13px",
+                background: "#1a3a2a",
+                color: "#fff",
+                borderRadius: 8,
+                padding: "8px 16px",
+                fontSize: 13,
                 fontWeight: 500,
-                letterSpacing: "-0.01em",
+                border: "none",
                 cursor: "pointer",
-                textDecoration: "none",
-                minHeight: isMobile ? 44 : undefined,
+                fontFamily: "Inter, sans-serif",
+                alignSelf: isMobile ? "stretch" : "auto",
+                width: isMobile ? "100%" : "auto",
               }}
             >
-              View all →
+              + New Event
             </button>
           </div>
-          {recentEvents.length === 0 ? (
-            <p
-              style={{
-                fontSize: "13px",
-                fontWeight: 400,
-                color: "#6b7280",
-              }}
-            >
-              No events yet. Scan your first badge to see it here.
-            </p>
-          ) : (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 0,
-              }}
-            >
-              {recentEvents.map((ev) => {
-                const eventContacts = contactsByEventId.get(ev.id) || [];
-                const highest = hottestScoreForEvent(ev.id);
-                const badge = scoreBadge(highest);
-                return (
-                  <div
-                    key={ev.id}
-                    onClick={() => router.push("/events")}
-                    style={{
-                      padding: "14px 0",
-                      borderBottom: "1px solid #f0f0f0",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      cursor: "pointer",
-                      transition: "background 0.15s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "#f9f9f9";
-                      e.currentTarget.style.borderRadius = "10px";
-                      e.currentTarget.style.margin = "0 -12px";
-                      e.currentTarget.style.padding = "14px 12px";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "transparent";
-                      e.currentTarget.style.borderRadius = "0";
-                      e.currentTarget.style.margin = "0";
-                      e.currentTarget.style.padding = "14px 0";
-                    }}
-                  >
-                    <div>
-                      <div
-                        style={{
-                          fontSize: "14px",
-                          fontWeight: 500,
-                          letterSpacing: "-0.01em",
-                          color: "#111111",
-                        }}
-                      >
-                        {ev.name || "Untitled event"}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "12px",
-                          fontWeight: 400,
-                          color: "#888888",
-                        }}
-                      >
-                        {[formatDate(ev.date), ev.location].filter(Boolean).join(" · ")}
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "flex-end",
-                        gap: 4,
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: "13px",
-                          fontWeight: 600,
-                          lineHeight: 1.5,
-                          color: "#111",
-                        }}
-                      >
-                        {eventContacts.length} contacts
-                      </span>
-                      {highest > 0 && (
-                        <span
-                          style={{
-                            fontSize: "14px",
-                            fontWeight: 400,
-                            lineHeight: 1.5,
-                            padding: "4px 10px",
-                            borderRadius: 999,
-                            backgroundColor: badge.bg,
-                            color: badge.color,
-                          }}
-                        >
-                          Max score {highest} · {badge.label}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
 
-        {/* Needs follow-up */}
-        <div
-          style={{
-            background: "#ffffff",
-            borderRadius: 12,
-            border: "1px solid #ebebeb",
-            padding: "14px 16px 16px",
-          }}
-        >
           <div
             style={{
+              background: "rgba(255,255,255,0.7)",
+              backdropFilter: "blur(12px)",
+              WebkitBackdropFilter: "blur(12px)",
+              border: "1px solid rgba(0,0,0,0.06)",
+              borderRadius: 14,
+              padding: "14px 24px",
               display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 10,
+              flexWrap: isMobile ? "wrap" : "nowrap",
+              gap: 0,
+              alignItems: "stretch",
+              justifyContent: isMobile ? "space-around" : "flex-start",
+              marginBottom: 20,
+              overflowX: isMobile ? "auto" : "visible",
             }}
           >
-            <h2
-              style={{
-                fontSize: "15px",
-                fontWeight: 600,
-                letterSpacing: "-0.01em",
-                color: "#111111",
-              }}
-            >
-              Needs follow-up
-            </h2>
-            <button
-              type="button"
-              onClick={() => router.push("/contacts")}
-              style={{
-                border: "none",
-                background: "transparent",
-                color: "#7dde3c",
-                fontSize: "13px",
-                fontWeight: 500,
-                letterSpacing: "-0.01em",
-                cursor: "pointer",
-                textDecoration: "none",
-                minHeight: isMobile ? 44 : undefined,
-              }}
-            >
-              View all →
-            </button>
+            {statItems.map((stat, i) => (
+              <div
+                key={stat.label}
+                style={{
+                  padding: "0 28px",
+                  borderLeft: i > 0 ? "1px solid rgba(0,0,0,0.08)" : "none",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 4,
+                  minWidth: isMobile ? 100 : undefined,
+                  flex: isMobile ? "1 1 auto" : undefined,
+                }}
+              >
+                <span style={{ fontSize: 20, fontWeight: 600, color: "#111", lineHeight: 1.1 }}>{stat.value}</span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: "#999",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                    fontWeight: 500,
+                    textAlign: "center",
+                  }}
+                >
+                  {stat.label}
+                </span>
+              </div>
+            ))}
           </div>
-          {needsFollowUp.length === 0 ? (
-            <p
-              style={{
-                fontSize: "13px",
-                fontWeight: 400,
-                color: "#6b7280",
-              }}
-            >
-              You don&apos;t have any Hot or Fire leads yet.
-            </p>
-          ) : (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 0,
-              }}
-            >
-              {needsFollowUp.map((c) => {
-                const badge = scoreBadge(c.lead_score ?? 0);
-                const initials = (c.name || "?").trim().charAt(0).toUpperCase();
-                return (
-                  <div
-                    key={c.id}
-                    onClick={() => router.push("/contacts")}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      justifyContent: "space-between",
-                      padding: "10px 0",
-                      borderBottom: "1px solid #f0f0f0",
-                      cursor: "pointer",
-                      transition: "background 0.15s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "#f9f9f9";
-                      e.currentTarget.style.borderRadius = "10px";
-                      e.currentTarget.style.margin = "0 -12px";
-                      e.currentTarget.style.padding = "10px 12px";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "transparent";
-                      e.currentTarget.style.borderRadius = "0";
-                      e.currentTarget.style.margin = "0";
-                      e.currentTarget.style.padding = "10px 0";
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+
+          <section
+            style={{
+              display: "grid",
+              gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+              gap: 20,
+              alignItems: "flex-start",
+            }}
+          >
+            <div style={cardShell}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: 12,
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: "#999",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                    fontWeight: 600,
+                  }}
+                >
+                  Recent events
+                </span>
+                <button
+                  type="button"
+                  onClick={() => router.push("/events")}
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    color: "#1a3a2a",
+                    fontSize: 12,
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    textDecoration: "none",
+                    fontFamily: "Inter, sans-serif",
+                    minHeight: isMobile ? 44 : undefined,
+                    padding: 0,
+                  }}
+                >
+                  View all
+                </button>
+              </div>
+              {recentEvents.length === 0 ? (
+                <p style={{ fontSize: 13, fontWeight: 400, color: "#6b7280", margin: 0 }}>
+                  No events yet. Scan your first badge to see it here.
+                </p>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  {recentEvents.map((ev) => {
+                    const eventContacts = contactsByEventId.get(ev.id) || [];
+                    const count = eventContacts.length;
+                    const highest = hottestScoreForEvent(ev.id);
+                    const badge = scoreBadge(highest);
+                    return (
                       <div
+                        key={ev.id}
+                        onClick={() => router.push("/events")}
                         style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: "50%",
-                          backgroundColor: badge.bg,
-                          color: badge.color,
+                          padding: "12px 0",
+                          borderBottom: "1px solid rgba(0,0,0,0.06)",
                           display: "flex",
                           alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: 12,
-                          fontWeight: 700,
-                          flexShrink: 0,
+                          justifyContent: "space-between",
+                          gap: 12,
+                          cursor: "pointer",
                         }}
                       >
-                        {initials}
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 14, fontWeight: 500, color: "#111" }}>{ev.name || "Untitled event"}</div>
+                          <div style={{ fontSize: 12, color: "#999", marginTop: 2 }}>
+                            {[formatDate(ev.date), ev.location].filter(Boolean).join(" · ")}
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                          <span style={{ fontSize: 13, fontWeight: 500, color: "#111", whiteSpace: "nowrap" }}>
+                            {count} contact{count === 1 ? "" : "s"}
+                          </span>
+                          {count > 0 && highest > 0 ? (
+                            <span style={pillStyle(badge)}>
+                              {highest} · {badge.label}
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
-                      <div>
-                      <div
-                        style={{
-                          fontSize: "14px",
-                          fontWeight: 500,
-                          color: "#111111",
-                        }}
-                      >
-                        {c.name || "Unknown contact"}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "12px",
-                          fontWeight: 400,
-                          color: "#999",
-                        }}
-                      >
-                        {followUpEventLabel(c.event)}
-                      </div>
-                      </div>
-                    </div>
-                    <span
-                      style={{
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        lineHeight: 1.5,
-                        padding: "4px 10px",
-                        borderRadius: 999,
-                        backgroundColor: badge.bg,
-                        color: badge.color,
-                      }}
-                    >
-                      {c.lead_score ?? 0}/10 · {badge.label}
-                    </span>
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </section>
+
+            <div style={cardShell}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: 12,
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: "#999",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                    fontWeight: 600,
+                  }}
+                >
+                  Needs follow-up
+                </span>
+                <button
+                  type="button"
+                  onClick={() => router.push("/contacts")}
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    color: "#1a3a2a",
+                    fontSize: 12,
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    textDecoration: "none",
+                    fontFamily: "Inter, sans-serif",
+                    minHeight: isMobile ? 44 : undefined,
+                    padding: 0,
+                  }}
+                >
+                  View all
+                </button>
+              </div>
+              {needsFollowUp.length === 0 ? (
+                <p style={{ fontSize: 13, fontWeight: 400, color: "#6b7280", margin: 0 }}>
+                  You don&apos;t have any Hot or Fire leads yet.
+                </p>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column" }}>
+                  {needsFollowUp.map((c) => {
+                    const badge = scoreBadge(c.lead_score ?? 0);
+                    const initials = (c.name || "?").trim().charAt(0).toUpperCase();
+                    const eventLine = followUpEventLabel(c.event);
+                    return (
+                      <div
+                        key={c.id}
+                        onClick={() => router.push("/contacts")}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 12,
+                          justifyContent: "space-between",
+                          padding: "12px 0",
+                          borderBottom: "1px solid rgba(0,0,0,0.06)",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+                          <div
+                            style={{
+                              width: 28,
+                              height: 28,
+                              borderRadius: "50%",
+                              backgroundColor: "#ebebeb",
+                              color: "#555",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: 11,
+                              fontWeight: 600,
+                              flexShrink: 0,
+                            }}
+                          >
+                            {initials}
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 14, fontWeight: 500, color: "#111" }}>{c.name || "Unknown contact"}</div>
+                            {eventLine ? (
+                              <div style={{ fontSize: 12, color: "#999", marginTop: 2 }}>{eventLine}</div>
+                            ) : null}
+                          </div>
+                        </div>
+                        <span style={pillStyle(badge)}>
+                          {c.lead_score ?? 0}/10 · {badge.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </section>
+        </>
       )}
     </div>
   );
