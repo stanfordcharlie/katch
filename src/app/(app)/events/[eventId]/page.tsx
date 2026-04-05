@@ -37,6 +37,21 @@ export default function EventDetailPage() {
   const [avgScore, setAvgScore] = useState<number | null>(null);
   const [previewContacts, setPreviewContacts] = useState<ContactPreviewRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionBarLeft, setActionBarLeft] = useState(208);
+
+  useEffect(() => {
+    const readSidebarOffset = () => {
+      try {
+        const collapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+        setActionBarLeft(collapsed ? 64 : 208);
+      } catch {
+        setActionBarLeft(208);
+      }
+    };
+    readSidebarOffset();
+    window.addEventListener('sidebarToggle', readSidebarOffset);
+    return () => window.removeEventListener('sidebarToggle', readSidebarOffset);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -401,7 +416,7 @@ export default function EventDetailPage() {
             style={{
               position: 'fixed',
               bottom: 0,
-              left: 0,
+              left: actionBarLeft,
               right: 0,
               background: 'rgba(240,242,240,0.85)',
               backdropFilter: 'blur(12px)',
