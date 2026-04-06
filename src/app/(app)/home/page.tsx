@@ -12,6 +12,7 @@ interface Contact {
   /** Event row id (FK target), not a PostgREST embed relation name */
   event: string | null;
   lead_score: number | null;
+  synced_to_hubspot?: boolean | null;
 }
 
 interface EventRow {
@@ -29,6 +30,7 @@ export default function HomePage() {
   const [hotLeadsCount, setHotLeadsCount] = useState(0);
   const [sequencesSentCount, setSequencesSentCount] = useState<number | null>(null);
   const [events, setEvents] = useState<EventRow[]>([]);
+  const [unsyncedCrmContacts, setUnsyncedCrmContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -60,6 +62,7 @@ export default function HomePage() {
         { count: totalCount },
         { count: hotCount },
         { count: sequencesCount },
+        { data: unsyncedCrmData },
       ] = await Promise.all([
         supabase
           .from("contacts")
@@ -87,10 +90,19 @@ export default function HomePage() {
           .select("id", { count: "exact", head: true })
           .eq("user_id", user.id)
           .not("sequences", "is", null),
+        supabase
+          .from("contacts")
+          .select("id,name,event,lead_score,synced_to_hubspot")
+          .eq("user_id", user.id)
+          .gte("lead_score", 7)
+          .or("synced_to_hubspot.is.null,synced_to_hubspot.eq.false")
+          .order("lead_score", { ascending: false })
+          .limit(5),
       ]);
 
       setContacts((contactsData as Contact[]) || []);
       setEvents((eventsData as EventRow[]) || []);
+      setUnsyncedCrmContacts((unsyncedCrmData as Contact[]) || []);
       setTotalContactsCount(totalCount ?? 0);
       setHotLeadsCount(hotCount ?? 0);
       setSequencesSentCount(sequencesCount ?? 0);
@@ -158,6 +170,16 @@ export default function HomePage() {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return iso;
     return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  };
+
+  const unsyncedCrmRowSubtitle = (c: Contact): string | null => {
+    const evId = c.event?.trim();
+    if (!evId) return null;
+    const evRow = events.find((e) => e.id === evId);
+    const label = followUpEventLabel(c.event);
+    const datePart = evRow ? formatDate(evRow.date) : "";
+    const parts = [label, datePart].filter(Boolean) as string[];
+    return parts.length ? parts.join(" · ") : null;
   };
 
   const scoreBadge = (score: number | null) => {
@@ -419,7 +441,22 @@ export default function HomePage() {
                         }}
                       >
                         <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: 14, fontWeight: 500, color: "#111" }}>{ev.name || "Untitled event"}</div>
+                          <a
+                            href={`/events/${ev.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              fontSize: 14,
+                              fontWeight: 500,
+                              color: "#1a3a2a",
+                              textDecoration: "underline",
+                              textUnderlineOffset: 3,
+                              textDecorationColor: "rgba(26,58,42,0.3)",
+                              cursor: "pointer",
+                            }}
+                          >
+                            {ev.name || "Untitled event"}
+                          </a>
                           <div style={{ fontSize: 12, color: "#999", marginTop: 2 }}>
                             {[formatDate(ev.date), ev.location].filter(Boolean).join(" · ")}
                           </div>
@@ -550,6 +587,115 @@ export default function HomePage() {
               )}
             </div>
           </section>
+
+          {unsyncedCrmContacts.length > 0 ? (
+            <div style={{ ...cardShell, marginTop: 20 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: 12,
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: "#999",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                    fontWeight: 600,
+                  }}
+                >
+                  Unsynced to crm
+                </span>
+                <button
+                  type="button"
+                  onClick={() => router.push("/contacts?unsynced=true")}
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    color: "#1a3a2a",
+                    fontSize: 12,
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    textDecoration: "none",
+                    fontFamily: "Inter, sans-serif",
+                    minHeight: isMobile ? 44 : undefined,
+                    padding: 0,
+                  }}
+                >
+                  View all
+                </button>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                {unsyncedCrmContacts.map((c) => {
+                  const badge = scoreBadge(c.lead_score ?? 0);
+                  const initials = (c.name || "?").trim().charAt(0).toUpperCase();
+                  const sub = unsyncedCrmRowSubtitle(c);
+                  return (
+                    <div
+                      key={c.id}
+                      onClick={() => window.open(`/contacts/${c.id}`, "_blank")}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 12,
+                        justifyContent: "space-between",
+                        padding: "12px 0",
+                        borderBottom: "1px solid rgba(0,0,0,0.06)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+                        <div
+                          style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: "50%",
+                            backgroundColor: "#ebebeb",
+                            color: "#555",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: 11,
+                            fontWeight: 600,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {initials}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <a
+                            href={`/contacts/${c.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                              fontSize: 14,
+                              fontWeight: 500,
+                              color: "#111",
+                              textDecoration: "underline",
+                              textUnderlineOffset: 3,
+                              textDecorationColor: "rgba(26,58,42,0.3)",
+                            }}
+                          >
+                            {c.name || "Unknown contact"}
+                          </a>
+                          {sub ? (
+                            <div style={{ fontSize: 12, color: "#999", marginTop: 2 }}>{sub}</div>
+                          ) : null}
+                        </div>
+                      </div>
+                      <span style={pillStyle(badge)}>
+                        {c.lead_score ?? 0}/10 · {badge.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
         </>
       )}
     </div>

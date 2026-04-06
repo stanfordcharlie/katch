@@ -336,6 +336,7 @@ function ContactSourceCell({ contact }: { contact: Contact }) {
 export default function ContactsPage() {
   const searchParams = useSearchParams();
   const eventFromUrl = searchParams.get('event');
+  const unsyncedFromUrl = searchParams.get('unsynced') === 'true';
 
   const [user, setUser] = useState<User | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -711,9 +712,12 @@ export default function ContactsPage() {
       const matchesEvent =
         filterEvent === 'all' || (c.event && c.event === filterEvent);
 
-      return matchesSearch && matchesEvent;
+      const matchesUnsynced =
+        !unsyncedFromUrl || (c.synced_to_hubspot !== true);
+
+      return matchesSearch && matchesEvent && matchesUnsynced;
     });
-  }, [contacts, searchQuery, filterEvent]);
+  }, [contacts, searchQuery, filterEvent, unsyncedFromUrl]);
 
   const sortedContacts = useMemo(() => {
     const list = [...filteredContacts];
