@@ -426,7 +426,7 @@ export default function EventDetailPage() {
                 Event type
               </div>
               <div style={{ fontSize: 20, fontWeight: 600, color: '#111', wordBreak: 'break-word' }}>
-                {eventRow.type ?? '—'}
+                {eventRow.type ? eventRow.type.charAt(0).toUpperCase() + eventRow.type.slice(1) : '—'}
               </div>
             </div>
           </div>
