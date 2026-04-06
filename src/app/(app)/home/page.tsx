@@ -27,6 +27,7 @@ export default function HomePage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [totalContactsCount, setTotalContactsCount] = useState(0);
   const [hotLeadsCount, setHotLeadsCount] = useState(0);
+  const [sequencesSentCount, setSequencesSentCount] = useState<number | null>(null);
   const [events, setEvents] = useState<EventRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -58,6 +59,7 @@ export default function HomePage() {
         { data: eventsData },
         { count: totalCount },
         { count: hotCount },
+        { count: sequencesCount },
       ] = await Promise.all([
         supabase
           .from("contacts")
@@ -80,12 +82,18 @@ export default function HomePage() {
           .select("*", { count: "exact", head: true })
           .eq("user_id", user.id)
           .gte("lead_score", 7),
+        supabase
+          .from("contacts")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .not("sequences", "is", null),
       ]);
 
       setContacts((contactsData as Contact[]) || []);
       setEvents((eventsData as EventRow[]) || []);
       setTotalContactsCount(totalCount ?? 0);
       setHotLeadsCount(hotCount ?? 0);
+      setSequencesSentCount(sequencesCount ?? 0);
       setLoading(false);
     };
 
@@ -187,10 +195,14 @@ export default function HomePage() {
     );
   }
 
+  const showSequencesSent = sequencesSentCount != null && sequencesSentCount > 0;
+
   const statItems = [
     { label: "TOTAL SCANNED", value: totalContactsCount.toString() },
     { label: "HOT LEADS", value: hotLeadsCount.toString() },
-    { label: "SEQUENCES SENT", value: "—" },
+    ...(showSequencesSent
+      ? [{ label: "SEQUENCES SENT", value: String(sequencesSentCount) }]
+      : []),
     { label: "EVENTS ATTENDED", value: eventsAttended.toString() },
   ];
 
@@ -293,6 +305,7 @@ export default function HomePage() {
               borderRadius: 14,
               padding: "14px 24px",
               display: "flex",
+              width: "fit-content",
               flexWrap: isMobile ? "wrap" : "nowrap",
               gap: 0,
               alignItems: "stretch",
@@ -394,7 +407,7 @@ export default function HomePage() {
                     return (
                       <div
                         key={ev.id}
-                        onClick={() => router.push("/events")}
+                        onClick={() => router.push(`/events/${ev.id}`)}
                         style={{
                           padding: "12px 0",
                           borderBottom: "1px solid rgba(0,0,0,0.06)",
@@ -480,7 +493,7 @@ export default function HomePage() {
                     return (
                       <div
                         key={c.id}
-                        onClick={() => router.push("/contacts")}
+                        onClick={() => window.open(`/contacts/${c.id}`, "_blank")}
                         style={{
                           display: "flex",
                           alignItems: "center",
@@ -510,7 +523,18 @@ export default function HomePage() {
                             {initials}
                           </div>
                           <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: 14, fontWeight: 500, color: "#111" }}>{c.name || "Unknown contact"}</div>
+                            <span
+                              style={{
+                                fontSize: 14,
+                                fontWeight: 500,
+                                color: "#1a3a2a",
+                                textDecoration: "underline",
+                                textUnderlineOffset: 3,
+                                textDecorationColor: "rgba(26,58,42,0.3)",
+                              }}
+                            >
+                              {c.name || "Unknown contact"}
+                            </span>
                             {eventLine ? (
                               <div style={{ fontSize: 12, color: "#999", marginTop: 2 }}>{eventLine}</div>
                             ) : null}
