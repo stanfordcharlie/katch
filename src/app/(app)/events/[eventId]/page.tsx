@@ -22,9 +22,6 @@ type ContactPreviewRow = {
   lead_score: number | null;
 };
 
-const HERO_GRADIENT =
-  'linear-gradient(135deg, #1a3a2a 0%, #2d5a3d 30%, #1e4d6b 70%, #0f2a3d 100%)';
-
 export default function EventDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -174,31 +171,6 @@ export default function EventDetailPage() {
 
   const avgLabel = avgScore == null ? '—' : avgScore.toFixed(1);
 
-  const statCardStyle: CSSProperties = {
-    flex: 1,
-    minWidth: 0,
-    background: '#fff',
-    border: '1px solid #e8e8e8',
-    borderRadius: 12,
-    padding: 20,
-  };
-
-  const statLabelStyle: CSSProperties = {
-    fontSize: 12,
-    color: '#999',
-    textTransform: 'uppercase',
-    letterSpacing: '0.04em',
-    fontWeight: 600,
-    marginBottom: 8,
-  };
-
-  const statValueStyle: CSSProperties = {
-    fontSize: 32,
-    fontWeight: 700,
-    color: '#111',
-    lineHeight: 1.15,
-  };
-
   const primaryBtn: CSSProperties = {
     flex: 1,
     minWidth: 0,
@@ -303,16 +275,18 @@ export default function EventDetailPage() {
           <div style={{ paddingBottom: 100 }}>
           <div
             style={{
-              width: '100%',
-              background: HERO_GRADIENT,
-              borderRadius: 16,
-              padding: '24px 24px 28px',
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'flex-start',
+              gap: 12,
               marginBottom: 24,
+              width: '100%',
               boxSizing: 'border-box',
             }}
           >
             <button
               type="button"
+              className="event-hero-back-bg-ink-exempt"
               onClick={() => router.push('/events')}
               aria-label="Back to events"
               style={{
@@ -323,56 +297,150 @@ export default function EventDetailPage() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                marginBottom: 16,
+                flexShrink: 0,
+                marginTop: 2,
               }}
             >
-              <ArrowLeft size={22} color="#ffffff" strokeWidth={2} />
+              <ArrowLeft size={22} color="#999" strokeWidth={2} />
             </button>
-            <h1
-              style={{
-                margin: '0 0 10px',
-                fontSize: 28,
-                fontWeight: 700,
-                color: '#fff',
-                lineHeight: 1.2,
-              }}
-            >
-              {eventRow.name}
-            </h1>
-            {subtitleLine ? (
-              <p style={{ margin: '0 0 8px', fontSize: 15, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>
-                {subtitleLine}
-              </p>
-            ) : null}
-            {eventRow.location ? (
-              <p style={{ margin: 0, fontSize: 15, color: 'rgba(255,255,255,0.6)', lineHeight: 1.4 }}>
-                {eventRow.location}
-              </p>
-            ) : null}
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'row', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
-            <div style={statCardStyle}>
-              <div style={statLabelStyle}>Contacts</div>
-              <div style={statValueStyle}>{contactCount}</div>
-            </div>
-            <div style={statCardStyle}>
-              <div style={statLabelStyle}>Avg Score</div>
-              <div style={statValueStyle}>{avgLabel}</div>
-            </div>
-            <div style={statCardStyle}>
-              <div style={statLabelStyle}>Event Type</div>
-              <div style={{ ...statValueStyle, wordBreak: 'break-word' }}>{eventRow.type ?? '—'}</div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <h1
+                style={{
+                  margin: 0,
+                  fontSize: 22,
+                  fontWeight: 500,
+                  color: '#111',
+                  lineHeight: 1.25,
+                }}
+              >
+                {eventRow.name}
+              </h1>
+              {subtitleLine ? (
+                <p style={{ margin: '6px 0 0', fontSize: 13, color: '#999', lineHeight: 1.4 }}>
+                  {subtitleLine}
+                </p>
+              ) : null}
             </div>
           </div>
 
           <div
             style={{
-              background: '#fff',
-              border: '1px solid #e8e8e8',
-              borderRadius: 12,
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'stretch',
+              width: '100%',
+              background: 'rgba(255,255,255,0.6)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+              border: '1px solid rgba(0,0,0,0.07)',
+              borderRadius: 14,
+              padding: '16px 0',
+              marginBottom: 24,
+              boxSizing: 'border-box',
+            }}
+          >
+            <div
+              style={{
+                flex: 1,
+                minWidth: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center',
+                padding: '0 12px',
+                gap: 4,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 11,
+                  color: '#999',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
+                Contacts
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 600, color: '#111' }}>{contactCount}</div>
+            </div>
+            <div
+              style={{
+                width: 1,
+                alignSelf: 'stretch',
+                flexShrink: 0,
+                background: 'rgba(0,0,0,0.08)',
+              }}
+            />
+            <div
+              style={{
+                flex: 1,
+                minWidth: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center',
+                padding: '0 12px',
+                gap: 4,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 11,
+                  color: '#999',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
+                Avg score
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 600, color: '#111' }}>{avgLabel}</div>
+            </div>
+            <div
+              style={{
+                width: 1,
+                alignSelf: 'stretch',
+                flexShrink: 0,
+                background: 'rgba(0,0,0,0.08)',
+              }}
+            />
+            <div
+              style={{
+                flex: 1,
+                minWidth: 0,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center',
+                padding: '0 12px',
+                gap: 4,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 11,
+                  color: '#999',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
+                Event type
+              </div>
+              <div style={{ fontSize: 20, fontWeight: 600, color: '#111', wordBreak: 'break-word' }}>
+                {eventRow.type ?? '—'}
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              background: 'rgba(255,255,255,0.6)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+              border: '1px solid rgba(0,0,0,0.07)',
+              borderRadius: 14,
               padding: 20,
               marginBottom: 24,
+              boxSizing: 'border-box',
             }}
           >
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -434,7 +502,11 @@ export default function EventDetailPage() {
             <button type="button" style={secondaryBtn} onClick={() => router.push('/sequences')}>
               Generate Sequences
             </button>
-            <button type="button" style={secondaryBtn} onClick={() => router.push('/contacts')}>
+            <button
+              type="button"
+              style={secondaryBtn}
+              onClick={() => router.push(`/contacts?event=${encodeURIComponent(eventRow.name)}`)}
+            >
               View Contacts
             </button>
           </div>

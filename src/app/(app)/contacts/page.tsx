@@ -445,10 +445,6 @@ export default function ContactsPage() {
   }, []);
 
   useEffect(() => {
-    if (eventFromUrl) setFilterEvent(eventFromUrl);
-  }, [eventFromUrl]);
-
-  useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session?.user) setUser(data.session.user as User);
     });
@@ -772,6 +768,37 @@ export default function ContactsPage() {
     const validEventIds = uniqueEventIds.filter((id) => eventsMap[id]);
     return validEventIds;
   }, [contacts, eventsMap]);
+
+  useEffect(() => {
+    if (!eventFromUrl || !eventFromUrl.trim()) return;
+
+    let decoded = eventFromUrl.trim();
+    try {
+      decoded = decodeURIComponent(decoded);
+    } catch {
+      /* keep trimmed raw */
+    }
+
+    const tabEntries = allEventNames.map((eventId) => ({
+      value: eventId,
+      label: eventsMap[eventId] ?? '',
+    }));
+
+    console.log('[contacts] event query param (decoded)', decoded, 'tab values', tabEntries);
+
+    const paramLower = decoded.toLowerCase();
+    const match = tabEntries.find(
+      (t) =>
+        t.label.trim().toLowerCase() === paramLower ||
+        t.value.toLowerCase() === paramLower
+    );
+
+    if (match) {
+      setFilterEvent(match.value);
+    } else {
+      setFilterEvent('all');
+    }
+  }, [eventFromUrl, allEventNames, eventsMap]);
 
   const startEditing = (contact: Contact) => {
     const checksArray = Array.isArray(contact.checks)
@@ -1844,6 +1871,23 @@ export default function ContactsPage() {
               ? null
               : Number(rawScore);
 
+          const expandedLeadScoreDisplay = (() => {
+            const ai = contact.ai_enrichment;
+            if (ai && typeof ai === 'object' && !Array.isArray(ai)) {
+              const fitRaw = (ai as Record<string, unknown>).icp_fit_score;
+              const fit =
+                typeof fitRaw === 'number'
+                  ? fitRaw
+                  : typeof fitRaw === 'string'
+                    ? Number(fitRaw)
+                    : NaN;
+              const fitNum = fit != null && !Number.isNaN(Number(fit)) ? Number(fit) : null;
+              if (fitNum != null) return `${fitNum}/10`;
+            }
+            if (scoreNum != null) return `${scoreNum}/10`;
+            return '—';
+          })();
+
           const initials = (contact.name || '?')
             .toString()
             .trim()
@@ -2849,7 +2893,7 @@ export default function ContactsPage() {
                               margin: 0,
                             }}
                           >
-                            {rawScore ?? '—'}
+                            {expandedLeadScoreDisplay}
                           </p>
                         </div>
                         <div>

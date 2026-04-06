@@ -428,13 +428,14 @@ Return ONLY a valid JSON array with no markdown, no backticks, no explanation. J
                   const talking_points = Array.isArray(score.talking_points) ? score.talking_points : []
                   const red_flags = Array.isArray(score.red_flags) ? score.red_flags : []
                   const suggestedLead = Number(score.suggested_lead_score ?? 5) || 5
+                  const icpFitForLead = Number(score.icp_fit_score ?? 5) || 5
                   enriched = {
                     ...contact,
-                    icp_fit_score: Number(score.icp_fit_score ?? 5) || 5,
+                    icp_fit_score: icpFitForLead,
                     icp_fit_reason:
                       typeof score.icp_fit_reason === 'string' ? score.icp_fit_reason : '',
                     suggested_lead_score: suggestedLead,
-                    lead_score: suggestedLead,
+                    lead_score: icpFitForLead,
                     summary: typeof score.summary === 'string' ? score.summary : '',
                     talking_points,
                     red_flags,

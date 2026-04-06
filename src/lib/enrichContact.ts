@@ -71,7 +71,7 @@ Return ONLY a valid JSON object, no markdown, no explanation:
         ai_enrichment: enrichment,
         enriched_at: new Date().toISOString(),
         enriched: true,
-        lead_score: enrichment.suggested_lead_score,
+        lead_score: enrichment.icp_fit_score,
       })
       .eq('id', contactId)
 

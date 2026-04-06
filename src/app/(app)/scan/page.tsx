@@ -2728,10 +2728,10 @@ export default function ScanPage() {
                 });
               }}
               style={{
-                background: "rgba(255,255,255,0.7)",
-                backdropFilter: "blur(12px)",
-                WebkitBackdropFilter: "blur(12px)",
-                border: "1px solid rgba(0,0,0,0.06)",
+                background: "rgba(255,255,255,0.6)",
+                backdropFilter: "blur(16px)",
+                WebkitBackdropFilter: "blur(16px)",
+                border: "1px solid rgba(0,0,0,0.07)",
                 borderRadius: 14,
                 padding: 32,
                 boxSizing: "border-box",
@@ -2839,10 +2839,10 @@ export default function ScanPage() {
             </div>
             <div
               style={{
-                background: "rgba(255,255,255,0.7)",
-                backdropFilter: "blur(12px)",
-                WebkitBackdropFilter: "blur(12px)",
-                border: "1px solid rgba(0,0,0,0.06)",
+                background: "rgba(255,255,255,0.6)",
+                backdropFilter: "blur(16px)",
+                WebkitBackdropFilter: "blur(16px)",
+                border: "1px solid rgba(0,0,0,0.07)",
                 borderRadius: 14,
                 padding: 32,
                 boxSizing: "border-box",
@@ -3191,10 +3191,10 @@ export default function ScanPage() {
           {!showRightForm ? (
             <div
               style={{
-                background: "rgba(255,255,255,0.7)",
-                backdropFilter: "blur(12px)",
-                WebkitBackdropFilter: "blur(12px)",
-                border: "1px solid rgba(0,0,0,0.06)",
+                background: "rgba(255,255,255,0.6)",
+                backdropFilter: "blur(16px)",
+                WebkitBackdropFilter: "blur(16px)",
+                border: "1px solid rgba(0,0,0,0.07)",
                 borderRadius: 14,
                 padding: 32,
                 boxSizing: "border-box",
