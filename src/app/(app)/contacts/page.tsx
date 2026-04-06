@@ -247,7 +247,7 @@ function appendKeptSeparateGroupToStorage(group: Contact[]) {
   if (typeof window === 'undefined') return;
   try {
     const raw = localStorage.getItem(KEPT_SEPARATE_GROUPS_KEY);
-    let parsed: unknown = raw ? JSON.parse(raw) : [];
+    let parsed = (raw ? JSON.parse(raw) : []) as string[][];
     if (!Array.isArray(parsed)) parsed = [];
     const sortedIds = group.map((c) => c.id).sort();
     const newKey = sortedIds.join('|');
