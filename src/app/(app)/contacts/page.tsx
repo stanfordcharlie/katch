@@ -2086,14 +2086,43 @@ export default function ContactsPage() {
                           {initials}
                         </div>
                       )}
-                      <div
-                        style={{
-                          fontSize: '14px',
-                          fontWeight: 600,
-                          color: '#111',
-                        }}
-                      >
-                        {contact.name}
+                      <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
+                        {contact.name ? (
+                          <span
+                            role='link'
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                window.open(`/contacts/${contact.id}`, '_blank', 'noopener,noreferrer');
+                              }
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(`/contacts/${contact.id}`, '_blank', 'noopener,noreferrer');
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.textDecorationColor = '#1a3a2a';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.textDecorationColor = 'rgba(26,58,42,0.3)';
+                            }}
+                            style={{
+                              fontSize: '14px',
+                              fontWeight: 600,
+                              color: '#1a3a2a',
+                              textDecoration: 'underline',
+                              cursor: 'pointer',
+                              textUnderlineOffset: 3,
+                              textDecorationColor: 'rgba(26,58,42,0.3)',
+                            }}
+                          >
+                            {contact.name}
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '14px', fontWeight: 600, color: '#111' }}>—</span>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -2108,7 +2137,40 @@ export default function ContactsPage() {
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        {contact.name}
+                        {contact.name ? (
+                          <span
+                            role='link'
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                window.open(`/contacts/${contact.id}`, '_blank', 'noopener,noreferrer');
+                              }
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(`/contacts/${contact.id}`, '_blank', 'noopener,noreferrer');
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.textDecorationColor = '#1a3a2a';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.textDecorationColor = 'rgba(26,58,42,0.3)';
+                            }}
+                            style={{
+                              color: '#1a3a2a',
+                              textDecoration: 'underline',
+                              cursor: 'pointer',
+                              textUnderlineOffset: 3,
+                              textDecorationColor: 'rgba(26,58,42,0.3)',
+                            }}
+                          >
+                            {contact.name}
+                          </span>
+                        ) : (
+                          '—'
+                        )}
                       </div>
                       {contact.enriched ? (
                         <div style={{ marginTop: 2 }}>
