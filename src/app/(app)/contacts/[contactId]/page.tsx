@@ -317,66 +317,6 @@ export default function ContactDetailPage() {
     wordBreak: 'break-word',
   };
 
-  const primaryBtn: CSSProperties = {
-    flex: 1,
-    minWidth: 140,
-    padding: '12px 16px',
-    fontSize: 14,
-    fontWeight: 600,
-    borderRadius: 10,
-    border: 'none',
-    background: '#1a3a2a',
-    color: '#fff',
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-  };
-
-  const secondaryBtn: CSSProperties = {
-    flex: 1,
-    minWidth: 140,
-    padding: '12px 16px',
-    fontSize: 14,
-    fontWeight: 600,
-    borderRadius: 10,
-    border: '1px solid #e8e8e8',
-    background: '#fff',
-    color: '#111',
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-  };
-
-  const hubspotBtn: CSSProperties = {
-    flex: 1,
-    minWidth: 140,
-    padding: '12px 16px',
-    fontSize: 14,
-    fontWeight: 600,
-    borderRadius: 999,
-    border: '1px solid #ffd4c2',
-    background: '#fff3ee',
-    color: '#ff7a59',
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  };
-
-  const dangerBtn: CSSProperties = {
-    flex: 1,
-    minWidth: 140,
-    padding: '12px 16px',
-    fontSize: 14,
-    fontWeight: 600,
-    borderRadius: 10,
-    border: '1px solid #f0caca',
-    background: '#fff',
-    color: '#e55a5a',
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-  };
-
   return (
     <div
       className='max-w-2xl mx-auto w-full'
@@ -391,7 +331,7 @@ export default function ContactDetailPage() {
         fontFamily: 'Inter, -apple-system, sans-serif',
       }}
     >
-      <div style={{ flex: 1, overflowY: 'auto', padding: '24px 24px 0', paddingBottom: 100 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '24px 24px 0', paddingBottom: 80 }}>
         <button
           type='button'
           onClick={() => router.push('/contacts')}
@@ -570,54 +510,103 @@ export default function ContactDetailPage() {
         <div
           style={{
             position: 'fixed',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            background: '#f0f2f0',
-            padding: '12px 24px 24px',
+            bottom: 24,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'flex',
+            gap: 8,
+            background: 'rgba(20,30,20,0.82)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            borderRadius: 100,
+            padding: '8px',
             zIndex: 50,
-            borderTop: '1px solid #e8e8e8',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
           }}
         >
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-            <button type='button' style={primaryBtn} onClick={openSequenceDrawer}>
-              Generate Sequence
-            </button>
-            <button
-              type='button'
-              style={{
-                ...(contact.synced_to_hubspot
-                  ? {
-                      ...hubspotBtn,
-                      background: '#f0faf0',
-                      border: '1px solid #c3e6c3',
-                      color: '#2d6a1f',
-                    }
-                  : hubspotBtn),
-                opacity: isSyncing ? 0.65 : 1,
-                cursor: isSyncing ? 'not-allowed' : 'pointer',
-              }}
-              onClick={() => void handleSyncHubSpot()}
-              disabled={isSyncing}
-            >
-              {isSyncing ? (
-                'Syncing…'
-              ) : contact.synced_to_hubspot ? (
-                '✓ Synced to HubSpot'
-              ) : (
-                <>
-                  <span style={{ fontWeight: 800, fontSize: 12 }}>H</span>
-                  Sync to HubSpot
-                </>
-              )}
-            </button>
-            <button type='button' style={secondaryBtn} onClick={openDetailEditModal}>
-              Edit
-            </button>
-            <button type='button' style={dangerBtn} onClick={() => void handleDelete()}>
-              Delete
-            </button>
-          </div>
+          <button
+            type='button'
+            onClick={openSequenceDrawer}
+            style={{
+              background: '#7dde3c',
+              color: '#1a3a2a',
+              borderRadius: 100,
+              padding: '10px 20px',
+              fontSize: 13,
+              fontWeight: 600,
+              border: 'none',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            Generate Sequence
+          </button>
+          <button
+            type='button'
+            style={{
+              background: 'rgba(255,255,255,0.12)',
+              color: '#fff',
+              borderRadius: 100,
+              padding: '10px 20px',
+              fontSize: 13,
+              fontWeight: 500,
+              border: 'none',
+              cursor: isSyncing ? 'not-allowed' : 'pointer',
+              fontFamily: 'inherit',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              opacity: isSyncing ? 0.65 : 1,
+            }}
+            onClick={() => void handleSyncHubSpot()}
+            disabled={isSyncing}
+          >
+            {isSyncing ? (
+              'Syncing…'
+            ) : contact.synced_to_hubspot ? (
+              '✓ Synced to HubSpot'
+            ) : (
+              <>
+                <span style={{ fontWeight: 800, fontSize: 12 }}>H</span>
+                Sync to HubSpot
+              </>
+            )}
+          </button>
+          <button
+            type='button'
+            onClick={openDetailEditModal}
+            style={{
+              background: 'rgba(255,255,255,0.12)',
+              color: '#fff',
+              borderRadius: 100,
+              padding: '10px 20px',
+              fontSize: 13,
+              fontWeight: 500,
+              border: 'none',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            Edit
+          </button>
+          <button
+            type='button'
+            onClick={() => void handleDelete()}
+            style={{
+              background: 'rgba(229,90,90,0.18)',
+              color: '#ff6b6b',
+              borderRadius: 100,
+              padding: '10px 20px',
+              fontSize: 13,
+              fontWeight: 500,
+              border: 'none',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            Delete
+          </button>
         </div>
       ) : null}
 
