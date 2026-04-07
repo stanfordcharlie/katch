@@ -344,6 +344,8 @@ export default function ContactsPage() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterEvent, setFilterEvent] = useState<string>('all');
+  const [filterSource, setFilterSource] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
   const [sortBy, setSortBy] = useState<ContactsSortBy>('newest');
 
   const [selected, setSelected] = useState<Contact | null>(null);
@@ -715,9 +717,17 @@ export default function ContactsPage() {
       const matchesUnsynced =
         !unsyncedFromUrl || (c.synced_to_hubspot !== true);
 
-      return matchesSearch && matchesEvent && matchesUnsynced;
+      const matchesSource =
+        filterSource === 'all' ||
+        (c.source ?? '').toLowerCase() === filterSource.toLowerCase();
+
+      const matchesStatus =
+        filterStatus === 'all' ||
+        (c.status ?? '').toLowerCase() === filterStatus.toLowerCase();
+
+      return matchesSearch && matchesEvent && matchesUnsynced && matchesSource && matchesStatus;
     });
-  }, [contacts, searchQuery, filterEvent, unsyncedFromUrl]);
+  }, [contacts, searchQuery, filterEvent, unsyncedFromUrl, filterSource, filterStatus]);
 
   const sortedContacts = useMemo(() => {
     const list = [...filteredContacts];
@@ -1438,35 +1448,96 @@ export default function ContactsPage() {
           ))}
         </div>
         {contacts.length > 0 && (
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as ContactsSortBy)}
+          <div
             style={{
-              border: '1px solid #e8e8e8',
-              borderRadius: 8,
-              padding: '6px 12px',
-              background: '#fff',
-              fontSize: 13,
-              color: '#111',
-              cursor: 'pointer',
-              fontFamily: 'Inter, sans-serif',
-              outline: 'none',
-              appearance: 'none',
-              WebkitAppearance: 'none',
-              backgroundImage:
-                'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23111\' stroke-width=\'2\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'%3E%3C/polyline%3E%3C/svg%3E")',
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'right 10px center',
-              paddingRight: 30,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              flexShrink: 0,
             }}
           >
-            <option value='newest'>Sort by Newest</option>
-            <option value='oldest'>Sort by Oldest</option>
-            <option value='az'>Sort by A → Z</option>
-            <option value='za'>Sort by Z → A</option>
-            <option value='highest'>Sort by Highest score</option>
-            <option value='lowest'>Sort by Lowest score</option>
-          </select>
+            <select
+              value={filterSource}
+              onChange={(e) => setFilterSource(e.target.value)}
+              style={{
+                border: '1px solid #e8e8e8',
+                borderRadius: 8,
+                padding: '6px 12px',
+                background: '#fff',
+                fontSize: 13,
+                color: '#111',
+                cursor: 'pointer',
+                fontFamily: 'Inter, sans-serif',
+                outline: 'none',
+                appearance: 'none',
+                WebkitAppearance: 'none',
+                backgroundImage:
+                  'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23111\' stroke-width=\'2\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'%3E%3C/polyline%3E%3C/svg%3E")',
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 10px center',
+                paddingRight: 30,
+              }}
+            >
+              <option value='all'>All Sources</option>
+              <option value='scan'>Badge Scan</option>
+              <option value='lead_list'>Lead List</option>
+            </select>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              style={{
+                border: '1px solid #e8e8e8',
+                borderRadius: 8,
+                padding: '6px 12px',
+                background: '#fff',
+                fontSize: 13,
+                color: '#111',
+                cursor: 'pointer',
+                fontFamily: 'Inter, sans-serif',
+                outline: 'none',
+                appearance: 'none',
+                WebkitAppearance: 'none',
+                backgroundImage:
+                  'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23111\' stroke-width=\'2\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'%3E%3C/polyline%3E%3C/svg%3E")',
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 10px center',
+                paddingRight: 30,
+              }}
+            >
+              <option value='all'>All Statuses</option>
+              <option value='captured'>Captured</option>
+              <option value='prospect'>Prospect</option>
+            </select>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as ContactsSortBy)}
+              style={{
+                border: '1px solid #e8e8e8',
+                borderRadius: 8,
+                padding: '6px 12px',
+                background: '#fff',
+                fontSize: 13,
+                color: '#111',
+                cursor: 'pointer',
+                fontFamily: 'Inter, sans-serif',
+                outline: 'none',
+                appearance: 'none',
+                WebkitAppearance: 'none',
+                backgroundImage:
+                  'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23111\' stroke-width=\'2\'%3E%3Cpolyline points=\'6 9 12 15 18 9\'%3E%3C/polyline%3E%3C/svg%3E")',
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 10px center',
+                paddingRight: 30,
+              }}
+            >
+              <option value='newest'>Sort by Newest</option>
+              <option value='oldest'>Sort by Oldest</option>
+              <option value='az'>Sort by A → Z</option>
+              <option value='za'>Sort by Z → A</option>
+              <option value='highest'>Sort by Highest score</option>
+              <option value='lowest'>Sort by Lowest score</option>
+            </select>
+          </div>
         )}
       </div>
 
