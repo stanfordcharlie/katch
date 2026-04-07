@@ -196,6 +196,7 @@ export default function LeadsPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; variant: "success" | "error" } | null>(null);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -762,16 +763,11 @@ export default function LeadsPage() {
     setSelectedIds(contacts.filter((c) => (c.icp_fit_score ?? 0) >= 6).map((c) => c.__id));
   };
 
-  const deletePastList = async (list: StoredLeadList) => {
-    if (!window.confirm("Delete this lead list?")) return;
-    const { error } = await supabase.from("lead_list").delete().eq("id", list.id);
-    if (error) {
-      showToast(error.message, "error");
-      return;
-    }
-    const next = pastLists.filter((l) => l.id !== list.id);
-    localStorage.setItem(LS_KEY, JSON.stringify(next));
-    setPastLists(next);
+  const deletePastList = (list: StoredLeadList) => {
+    const updated = pastLists.filter((l) => l.id != deletingId);
+    setPastLists(updated);
+    localStorage.setItem(LS_KEY, JSON.stringify(updated));
+    setDeletingId(null);
   };
 
   if (!user) {
@@ -1382,76 +1378,124 @@ export default function LeadsPage() {
                   boxSizing: "border-box",
                 }}
               >
-                <div style={{ flex: 1, minWidth: 0, paddingRight: 8 }}>
+                {deletingId === String(list.id) ? (
                   <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 500,
-                      color: "#111",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                    title={list.filename}
-                  >
-                    {list.filename}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: "#999",
-                      marginTop: 2,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                    title={`${list.eventName} · ${formatTableDate(list.uploadDate)} · ${list.contactCount} contact${list.contactCount === 1 ? "" : "s"} · Top ICP ${list.topScore}/10`}
-                  >
-                    {`${list.eventName} · ${formatTableDate(list.uploadDate)} · ${list.contactCount} contact${list.contactCount === 1 ? "" : "s"} · Top ICP ${list.topScore}/10`}
-                  </div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                  <button
-                    type="button"
-                    onClick={() => openPastList(list)}
-                    style={{
-                      fontSize: 12,
-                      color: "#1a3a2a",
-                      background: "transparent",
-                      border: "none",
-                      cursor: "pointer",
-                      fontWeight: 400,
-                      padding: 0,
-                      margin: 0,
-                      fontFamily: "Inter, sans-serif",
-                      textDecoration: "none",
-                      boxShadow: "none",
-                      alignSelf: "center",
-                    }}
-                  >
-                    View results
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Delete lead list"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      void deletePastList(list);
-                    }}
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "center",
-                      padding: 2,
-                      margin: 0,
-                      background: "transparent",
-                      border: "none",
-                      cursor: "pointer",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      width: "100%",
+                      flexWrap: "wrap",
                     }}
                   >
-                    <X size={14} color="#999" />
-                  </button>
-                </div>
+                    <span style={{ fontSize: 13, color: "#111" }}>Delete this list?</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+                      <button
+                        type="button"
+                        onClick={() => setDeletingId(null)}
+                        style={{
+                          background: "transparent",
+                          color: "#999",
+                          border: "none",
+                          cursor: "pointer",
+                          padding: 0,
+                          margin: 0,
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void deletePastList(list)}
+                        style={{
+                          background: "#e55a5a",
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: 6,
+                          padding: "4px 12px",
+                          fontSize: 12,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ flex: 1, minWidth: 0, paddingRight: 8 }}>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 500,
+                          color: "#111",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                        title={list.filename}
+                      >
+                        {list.filename}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: "#999",
+                          marginTop: 2,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                        title={`${list.eventName} · ${formatTableDate(list.uploadDate)} · ${list.contactCount} contact${list.contactCount === 1 ? "" : "s"} · Top ICP ${list.topScore}/10`}
+                      >
+                        {`${list.eventName} · ${formatTableDate(list.uploadDate)} · ${list.contactCount} contact${list.contactCount === 1 ? "" : "s"} · Top ICP ${list.topScore}/10`}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                      <button
+                        type="button"
+                        onClick={() => openPastList(list)}
+                        style={{
+                          fontSize: 12,
+                          color: "#1a3a2a",
+                          background: "transparent",
+                          border: "none",
+                          cursor: "pointer",
+                          fontWeight: 400,
+                          padding: 0,
+                          margin: 0,
+                          fontFamily: "Inter, sans-serif",
+                          textDecoration: "none",
+                          boxShadow: "none",
+                          alignSelf: "center",
+                        }}
+                      >
+                        View results
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Delete lead list"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeletingId(String(list.id));
+                        }}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          padding: 2,
+                          margin: 0,
+                          background: "transparent",
+                          border: "none",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <X size={14} color="#999" />
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             ))}
           </div>
