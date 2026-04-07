@@ -240,6 +240,8 @@ export async function POST(req: NextRequest) {
           phone: contact.phone ?? "",
           jobtitle: contact.title ?? "",
           company: companyNorm,
+          katch_source: contact.source ?? "",
+          katch_status: contact.status ?? "",
         };
         if (hubspotOwnerId) properties.hubspot_owner_id = hubspotOwnerId;
 
