@@ -219,19 +219,7 @@ export async function POST(req: NextRequest) {
         const firstname = nameParts[0] ?? "";
         const lastname = nameParts.slice(1).join(" ") ?? "";
 
-        let companyNorm = contact.company ?? "";
-        if (companyNorm) {
-          let company = String(companyNorm)
-            .replace(/^https?:\/\//i, "")
-            .replace(/^www\./i, "")
-            .replace(/\.[a-z]{2,}(\/.*)?$/i, "")
-            .trim();
-          company = company
-            .split(/[\s-]+/)
-            .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
-            .join(" ");
-          companyNorm = company;
-        }
+        const companyStr = (contact.company ?? "").trim();
 
         const properties: Record<string, string> = {
           firstname,
@@ -239,10 +227,10 @@ export async function POST(req: NextRequest) {
           email: contact.email ?? "",
           phone: contact.phone ?? "",
           jobtitle: contact.title ?? "",
-          company: companyNorm,
           katch_source: contact.source ?? "",
           katch_status: contact.status ?? "",
         };
+        if (companyStr) properties.company = companyStr;
         if (hubspotOwnerId) properties.hubspot_owner_id = hubspotOwnerId;
 
         const response = await fetch("https://api.hubapi.com/crm/v3/objects/contacts", {
