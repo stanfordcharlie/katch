@@ -115,12 +115,13 @@ export default function LandingPage() {
         style={{
           maxWidth: 1080,
           margin: '0 auto',
-          padding: '120px 32px 80px',
+          padding: '160px 32px 120px',
           textAlign: 'center',
           position: 'relative',
-          backgroundImage: "url('/landing-cartoon.png')",
+          overflow: 'hidden',
+          backgroundImage: "url('/hero-city.jpg')",
           backgroundSize: 'cover',
-          backgroundPosition: 'center bottom',
+          backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
         }}
       >
@@ -128,8 +129,7 @@ export default function LandingPage() {
           style={{
             position: 'absolute',
             inset: 0,
-            background: 'rgba(255,255,255,0.72)',
-            backdropFilter: 'blur(1px)',
+            background: 'rgba(255,255,255,0.75)',
             zIndex: 0,
           }}
         />
