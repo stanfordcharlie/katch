@@ -196,7 +196,7 @@ export default function LeadsPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [toast, setToast] = useState<{ message: string; variant: "success" | "error" } | null>(null);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -764,7 +764,7 @@ export default function LeadsPage() {
   };
 
   const deletePastList = (list: StoredLeadList) => {
-    const updated = pastLists.filter((l) => l.id != deletingId);
+    const updated = pastLists.filter((l) => l.id !== deletingId);
     setPastLists(updated);
     localStorage.setItem(LS_KEY, JSON.stringify(updated));
     setDeletingId(null);
@@ -1378,7 +1378,7 @@ export default function LeadsPage() {
                   boxSizing: "border-box",
                 }}
               >
-                {deletingId === String(list.id) ? (
+                {deletingId === list.id ? (
                   <div
                     style={{
                       display: "flex",
@@ -1478,7 +1478,7 @@ export default function LeadsPage() {
                         aria-label="Delete lead list"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setDeletingId(String(list.id));
+                          setDeletingId(list.id);
                         }}
                         style={{
                           display: "flex",
