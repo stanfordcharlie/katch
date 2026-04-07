@@ -1,609 +1,281 @@
-"use client";
+'use client'
+import Link from 'next/link'
+import { useState } from 'react'
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+export default function LandingPage() {
+  const [billing, setBilling] = useState<'monthly' | 'annually'>('monthly')
+  const [mobileMenu, setMobileMenu] = useState(false)
 
-function ScanFrameIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M4 8V4h4M16 4h4v4M4 16v4h4M20 16v4h-4"
-        stroke="#3b6fd4"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function LogoLockup({ small }: { small?: boolean }) {
-  const fs = small ? 15 : 18;
-  const box = small ? 28 : 32;
-  return (
-    <div style={{ display: "flex", alignItems: "center" }}>
-      <div
-        style={{
-          width: box,
-          height: box,
-          borderRadius: 10,
-          background: "#f0f2f0",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <ScanFrameIcon />
-      </div>
-      <span style={{ fontWeight: 700, fontSize: fs, color: "#111", marginLeft: 10 }}>Katch</span>
-    </div>
-  );
-}
-
-const featureItems = [
-  {
-    title: "Scan any badge",
-    desc: "Claude Vision reads badges and business cards instantly. No QR codes needed.",
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a3a2a" strokeWidth="1.8">
-        <path d="M3 9V5a2 2 0 012-2h4M3 15v4a2 2 0 002 2h4M21 9V5a2 2 0 00-2-2h-4M21 15v4a2 2 0 01-2 2h-4" />
-      </svg>
-    ),
-  },
-  {
-    title: "AI lead scoring",
-    desc: "Every contact scored against your ICP automatically. Know who to follow up with first.",
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a3a2a" strokeWidth="1.8">
-        <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z" strokeLinejoin="round" />
-      </svg>
-    ),
-  },
-  {
-    title: "Smart enrichment",
-    desc: "Get talking points, red flags, and ICP fit reasons for every contact you meet.",
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a3a2a" strokeWidth="1.8">
-        <path d="M12 5a3 3 0 00-3 3v1H7a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2h-2V8a3 3 0 00-3-3z" />
-        <path d="M9 14h6M10 11h4" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  {
-    title: "HubSpot sync",
-    desc: "Push contacts and AI insights to HubSpot in one click. Notes, scores, and signals included.",
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a3a2a" strokeWidth="1.8">
-        <path d="M4 12a8 8 0 0113.9-5M20 12a8 8 0 01-13.9 5" strokeLinecap="round" />
-        <path d="M8 12h8" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  {
-    title: "Lead list analysis",
-    desc: "Upload a conference attendee list and rank every lead before the event starts.",
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a3a2a" strokeWidth="1.8">
-        <path d="M4 6h16M4 12h10M4 18h14" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  {
-    title: "Email sequences",
-    desc: "Generate personalized follow-up sequences for each contact based on your conversation.",
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a3a2a" strokeWidth="1.8">
-        <rect x="3" y="5" width="18" height="14" rx="2" />
-        <path d="M3 7l9 6 9-6" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-  },
-];
-
-export default function LandingPageV2() {
-  const router = useRouter();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setIsLoggedIn(!!data.session);
-    });
-  }, []);
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
-  }, []);
-
-  const navPad = isMobile ? "0 20px" : "0 40px";
+  const plans = [
+    {
+      name: 'Starter',
+      price: { monthly: 0, annually: 0 },
+      description: 'For individuals trying out Katch.',
+      cta: 'Get started free',
+      ctaHref: '/login',
+      featured: false,
+      features: [
+        '50 badge scans / month',
+        'Basic ICP scoring',
+        '1 event',
+        'CSV export',
+        'HubSpot sync (25 contacts)',
+      ],
+    },
+    {
+      name: 'Pro',
+      price: { monthly: 29, annually: 23 },
+      description: 'For sales reps who live at conferences.',
+      cta: 'Start free trial',
+      ctaHref: '/login',
+      featured: true,
+      features: [
+        'Unlimited badge scans',
+        'AI lead scoring + enrichment',
+        'Unlimited events',
+        'HubSpot + Salesforce sync',
+        'Email sequence generator',
+        'Lead list upload + scoring',
+        'Priority support',
+      ],
+    },
+    {
+      name: 'Team',
+      price: { monthly: 79, annually: 63 },
+      description: 'For revenue teams attending multiple events.',
+      cta: 'Talk to us',
+      ctaHref: 'mailto:hello@katch.app',
+      featured: false,
+      features: [
+        'Everything in Pro',
+        'Up to 10 seats',
+        'Team shared contact pool',
+        'Rep-level analytics',
+        'Custom ICP per rep',
+        'Dedicated onboarding',
+      ],
+    },
+  ]
 
   return (
-    <div style={{ backgroundColor: "#ffffff", overflowX: "hidden", fontFamily: "Inter, system-ui, sans-serif" }}>
-      <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-      />
-      <style>{`html, body { background: #ffffff !important; }`}</style>
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-select option { color: #111; background: #fff; }
-.landing-nav-link { transition: color 0.2s ease; }
-.landing-nav-link:hover { color: #111 !important; }
-`,
-        }}
-      />
+    <div style={{ fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif", background: '#fff', color: '#0a0a0a', minHeight: '100vh' }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        a { text-decoration: none; color: inherit; }
+        .nav-link { font-size: 15px; color: #555; transition: color 0.15s; }
+        .nav-link:hover { color: #0a0a0a; }
+        .hero-word { display: inline-block; }
+        .feature-card { background: #f9f9f7; border-radius: 16px; padding: 32px; transition: background 0.2s; }
+        .feature-card:hover { background: #f3f3ef; }
+        .plan-card { border: 1px solid #e8e8e4; border-radius: 20px; padding: 36px; transition: transform 0.2s, box-shadow 0.2s; }
+        .plan-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.06); }
+        .plan-card.featured { border: 2px solid #0a0a0a; background: #0a0a0a; color: #fff; }
+        .cta-primary { background: #0a0a0a; color: #fff; border: none; border-radius: 100px; padding: 14px 28px; font-size: 15px; font-weight: 500; cursor: pointer; font-family: inherit; transition: opacity 0.15s; display: inline-block; }
+        .cta-primary:hover { opacity: 0.85; }
+        .cta-secondary { background: transparent; color: #0a0a0a; border: 1px solid #d0d0cc; border-radius: 100px; padding: 14px 28px; font-size: 15px; font-weight: 500; cursor: pointer; font-family: inherit; transition: background 0.15s; display: inline-block; }
+        .cta-secondary:hover { background: #f5f5f1; }
+        .cta-featured { background: #7dde3c; color: #1a3a2a; border: none; border-radius: 100px; padding: 14px 28px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; transition: opacity 0.15s; display: inline-block; width: 100%; text-align: center; }
+        .cta-featured:hover { opacity: 0.9; }
+        .cta-plan { background: transparent; color: #0a0a0a; border: 1px solid #e0e0dc; border-radius: 100px; padding: 14px 28px; font-size: 15px; font-weight: 500; cursor: pointer; font-family: inherit; transition: background 0.15s; display: inline-block; width: 100%; text-align: center; }
+        .cta-plan:hover { background: #f5f5f1; }
+        .cta-plan.dark { color: #fff; border-color: rgba(255,255,255,0.2); }
+        .cta-plan.dark:hover { background: rgba(255,255,255,0.08); }
+        .billing-toggle { display: flex; align-items: center; background: #f3f3ef; border-radius: 100px; padding: 4px; gap: 2px; }
+        .billing-opt { padding: 8px 20px; border-radius: 100px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.15s; color: #888; }
+        .billing-opt.active { background: #fff; color: #0a0a0a; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        .check { color: #7dde3c; font-weight: 600; margin-right: 10px; }
+        .check-dark { color: #a8f060; font-weight: 600; margin-right: 10px; }
+        .badge { display: inline-block; background: #f0fae6; color: #2d6a1f; border-radius: 100px; padding: 4px 12px; font-size: 13px; font-weight: 500; }
+        .step-num { width: 36px; height: 36px; border-radius: 50%; background: #0a0a0a; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; flex-shrink: 0; }
+        .faq-item { border-bottom: 1px solid #e8e8e4; padding: 24px 0; }
+        .pill-tag { display: inline-block; background: #f3f3ef; border-radius: 100px; padding: 6px 14px; font-size: 13px; color: #555; margin: 4px; }
+      `}</style>
 
-      <nav
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 100,
-          height: 64,
-          padding: navPad,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          background: "rgba(255,255,255,0.92)",
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)",
-          borderBottom: "1px solid #ebebeb",
-          boxSizing: "border-box",
-        }}
-      >
-        <a href="#" style={{ textDecoration: "none", color: "inherit" }}>
-          <LogoLockup />
-        </a>
-        {!isMobile && (
-          <div style={{ display: "flex", alignItems: "center", gap: 32, position: "absolute", left: "50%", transform: "translateX(-50%)" }}>
-            <a href="#how" className="landing-nav-link" style={{ fontSize: 14, color: "#666", cursor: "pointer", textDecoration: "none" }}>
-              How it works
-            </a>
-            <a href="#features" className="landing-nav-link" style={{ fontSize: 14, color: "#666", cursor: "pointer", textDecoration: "none" }}>
-              Features
-            </a>
-            <a href="/pricing" className="landing-nav-link" style={{ fontSize: 14, color: "#666", cursor: "pointer", textDecoration: "none" }}>
-              Pricing
-            </a>
+      {/* Nav */}
+      <nav style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #f0f0ec', padding: '0 32px' }}>
+        <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 60 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 28, height: 28, background: '#0a0a0a', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1" fill="white"/><rect x="8" y="1" width="5" height="5" rx="1" fill="white" opacity="0.5"/><rect x="1" y="8" width="5" height="5" rx="1" fill="white" opacity="0.5"/><rect x="8" y="8" width="5" height="5" rx="1" fill="#7dde3c"/></svg>
+            </div>
+            <span style={{ fontWeight: 600, fontSize: 16 }}>Katch</span>
           </div>
-        )}
-        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 12 }}>
-          {isLoggedIn ? (
-            <button
-              type="button"
-              onClick={() => router.push("/home")}
-              style={{
-                background: "#1a3a2a",
-                color: "#fff",
-                borderRadius: 10,
-                padding: isMobile ? "9px 14px" : "9px 20px",
-                fontSize: 14,
-                fontWeight: 600,
-                cursor: "pointer",
-                border: "none",
-              }}
-            >
-              Go to app
-            </button>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={() => router.push("/login")}
-                style={{
-                  color: "#666",
-                  fontSize: 14,
-                  cursor: "pointer",
-                  background: "none",
-                  border: "none",
-                  padding: "4px 8px",
-                }}
-              >
-                Sign in
-              </button>
-              <button
-                type="button"
-                onClick={() => router.push("/signup")}
-                style={{
-                  background: "#1a3a2a",
-                  color: "#fff",
-                  borderRadius: 10,
-                  padding: "9px 20px",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  border: "none",
-                }}
-              >
-                Get started free
-              </button>
-            </>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
+            <a href="#how-it-works" className="nav-link">How it works</a>
+            <a href="#features" className="nav-link">Features</a>
+            <a href="#pricing" className="nav-link">Pricing</a>
+          </div>
+          <Link href="/login" className="cta-primary" style={{ padding: '10px 22px', fontSize: 14 }}>Go to app</Link>
         </div>
       </nav>
 
+      {/* Hero */}
       <section
         style={{
-          minHeight: "100vh",
-          background: "#ffffff",
-          position: "relative",
-          overflow: "hidden",
-          paddingTop: 64,
+          maxWidth: 1080,
+          margin: '0 auto',
+          padding: '120px 32px 80px',
+          textAlign: 'center',
+          position: 'relative',
+          backgroundImage: "url('/landing-cartoon.png')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center bottom',
+          backgroundRepeat: 'no-repeat',
         }}
       >
         <div
           style={{
-            position: "absolute",
+            position: 'absolute',
             inset: 0,
+            background: 'rgba(255,255,255,0.72)',
+            backdropFilter: 'blur(1px)',
             zIndex: 0,
-            opacity: 0.5,
-            backgroundImage:
-              "repeating-linear-gradient(0deg, #e8ebe8, #e8ebe8 1px, transparent 1px, transparent 40px), repeating-linear-gradient(90deg, #e8ebe8, #e8ebe8 1px, transparent 1px, transparent 40px)",
-            backgroundSize: "40px 40px",
-            pointerEvents: "none",
           }}
         />
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            zIndex: 0,
-            background:
-              "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.6) 60%, transparent 100%)",
-            pointerEvents: "none",
-          }}
-        />
-        <div
-          style={{
-            position: "relative",
-            zIndex: 1,
-            textAlign: "center",
-            maxWidth: 760,
-            margin: "0 auto",
-            padding: isMobile ? "72px 24px 48px" : "120px 24px 80px",
-          }}
-        >
-          <h1
-            style={{
-              fontSize: isMobile ? 40 : 64,
-              fontWeight: 800,
-              color: "#0a0a0a",
-              lineHeight: 1.1,
-              letterSpacing: "-2px",
-              marginBottom: 20,
-            }}
-          >
-            Scan it. Score it.
-            <br />
-            <span style={{ color: "#1a3a2a" }}>Close it.</span>
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{ marginBottom: 20 }}>
+            <span className="badge">Now with HubSpot + Salesforce sync</span>
+          </div>
+          <h1 style={{ fontSize: 'clamp(52px, 8vw, 88px)', fontWeight: 300, lineHeight: 1.05, letterSpacing: '-0.03em', marginBottom: 28 }}>
+            Scan it. Score it.<br />
+            <span style={{ fontStyle: 'italic', color: '#7dde3c' }}>Close it.</span>
           </h1>
-          <p
-            style={{
-              fontSize: isMobile ? 17 : 20,
-              color: "#666",
-              lineHeight: 1.6,
-              maxWidth: 540,
-              margin: "0 auto 40px",
-            }}
-          >
-            The AI-powered GTM platform for in-person events. Stop forgetting leads. Start closing deals.
+          <p style={{ fontSize: 20, color: '#666', maxWidth: 520, margin: '0 auto 40px', lineHeight: 1.6, fontWeight: 400 }}>
+            The AI-powered lead capture platform for in-person events. Stop forgetting leads. Start closing deals.
           </p>
-          <div style={{ display: "flex", gap: 12, justifyContent: "center", alignItems: "center", flexWrap: "wrap" }}>
-            <button
-              type="button"
-              onClick={() => router.push("/signup")}
-              style={{
-                background: "#1a3a2a",
-                color: "#fff",
-                borderRadius: 12,
-                padding: "14px 28px",
-                fontSize: 16,
-                fontWeight: 600,
-                cursor: "pointer",
-                border: "none",
-              }}
-            >
-              Get started free
-            </button>
-            <a
-              href="#how"
-              style={{
-                background: "#fff",
-                border: "1px solid #e0e0e0",
-                color: "#111",
-                borderRadius: 12,
-                padding: "14px 28px",
-                fontSize: 16,
-                fontWeight: 500,
-                cursor: "pointer",
-                textDecoration: "none",
-                display: "inline-block",
-              }}
-            >
-              See how it works
-            </a>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link href="/login" className="cta-primary" style={{ fontSize: 16, padding: '16px 32px' }}>Get started free</Link>
+            <a href="#how-it-works" className="cta-secondary" style={{ fontSize: 16, padding: '16px 32px' }}>See how it works</a>
           </div>
-          <p style={{ fontSize: 13, color: "#999", marginTop: 16 }}>Free to start. No credit card required.</p>
-
-          <div
-            style={{
-              background: "linear-gradient(135deg, #1a3a2a 0%, #2d5a3d 30%, #1e4d6b 70%, #0f2a3d 100%)",
-              borderRadius: 20,
-              height: isMobile ? 280 : 420,
-              maxWidth: 900,
-              margin: "60px auto 0",
-              border: "1px solid #e0e0e0",
-              boxShadow: "0 40px 80px rgba(0,0,0,0.12)",
-              overflow: "hidden",
-              position: "relative",
-            }}
-          >
-            <div
-              style={{
-                height: 44,
-                background: "rgba(255,255,255,0.1)",
-                display: "flex",
-                alignItems: "center",
-                padding: "0 16px",
-                gap: 8,
-              }}
-            >
-              <span style={{ width: 10, height: 10, borderRadius: 99, background: "rgba(255,255,255,0.2)" }} />
-              <span style={{ width: 10, height: 10, borderRadius: 99, background: "rgba(255,255,255,0.2)" }} />
-              <span style={{ width: 10, height: 10, borderRadius: 99, background: "rgba(255,255,255,0.2)" }} />
-            </div>
-            <div style={{ padding: 16 }}>
-              {[0, 1, 2, 3, 4].map((i) => (
-                <div
-                  key={i}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    padding: "10px 12px",
-                    background: "rgba(255,255,255,0.05)",
-                    borderRadius: 8,
-                    marginBottom: 8,
-                  }}
-                >
-                  <div style={{ width: 36, height: 10, borderRadius: 4, background: "rgba(255,255,255,0.15)" }} />
-                  <div style={{ flex: 1, height: 10, borderRadius: 4, background: "rgba(255,255,255,0.1)" }} />
-                  <div
-                    style={{
-                      padding: "4px 10px",
-                      borderRadius: 99,
-                      fontSize: 11,
-                      fontWeight: 700,
-                      background: i % 3 === 0 ? "#7dde3c" : "#f59e0b",
-                      color: i % 3 === 0 ? "#0a1a0a" : "#111",
-                    }}
-                  >
-                    {i % 3 === 0 ? "8" : "5"}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <p style={{ marginTop: 16, fontSize: 13, color: '#999' }}>Free to start. No credit card required.</p>
         </div>
       </section>
 
-      <section id="features" style={{ background: "#ffffff", padding: isMobile ? "80px 24px" : "100px 40px" }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-          <div
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              color: "#7dde3c",
-              letterSpacing: "0.15em",
-              textAlign: "center",
-              marginBottom: 12,
-            }}
-          >
-            FEATURES
-          </div>
-          <h2
-            style={{
-              fontSize: isMobile ? 28 : 40,
-              fontWeight: 800,
-              color: "#111",
-              textAlign: "center",
-              marginBottom: 16,
-            }}
-          >
-            Everything you need at a conference
-          </h2>
-          <p
-            style={{
-              fontSize: 18,
-              color: "#666",
-              textAlign: "center",
-              marginBottom: 64,
-            }}
-          >
-            From badge to CRM in seconds. No manual entry, no lost leads.
-          </p>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)",
-              gap: 32,
-            }}
-          >
-            {featureItems.map((f) => (
-              <div
-                key={f.title}
-                style={{
-                  background: "#f8f9f8",
-                  borderRadius: 16,
-                  padding: "28px 24px",
-                  border: "1px solid #ebebeb",
-                }}
-              >
-                <div
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 12,
-                    background: "#f0f7eb",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginBottom: 16,
-                  }}
-                >
-                  {f.icon}
-                </div>
-                <div style={{ fontSize: 17, fontWeight: 700, color: "#111", marginBottom: 8 }}>{f.title}</div>
-                <p style={{ fontSize: 14, color: "#666", lineHeight: 1.6, margin: 0 }}>{f.desc}</p>
-              </div>
+      {/* Logos */}
+      <section style={{ borderTop: '1px solid #f0f0ec', borderBottom: '1px solid #f0f0ec', padding: '28px 32px' }}>
+        <div style={{ maxWidth: 1080, margin: '0 auto', textAlign: 'center' }}>
+          <p style={{ fontSize: 13, color: '#999', marginBottom: 20, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Trusted by teams at</p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 48, flexWrap: 'wrap', alignItems: 'center' }}>
+            {['Rec Technologies', 'Denver Parks', 'Active Network', 'YMCA', 'Vermont Systems'].map(c => (
+              <span key={c} style={{ fontSize: 15, fontWeight: 500, color: '#bbb', letterSpacing: '-0.01em' }}>{c}</span>
             ))}
           </div>
         </div>
       </section>
 
-      <section id="how" style={{ background: "#f8f9f8", padding: isMobile ? "80px 24px" : "100px 40px" }}>
-        <div style={{ maxWidth: 900, margin: "0 auto" }}>
-          <div
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              color: "#7dde3c",
-              letterSpacing: "0.15em",
-              textAlign: "center",
-              marginBottom: 12,
-            }}
-          >
-            HOW IT WORKS
+      {/* How it works */}
+      <section id="how-it-works" style={{ maxWidth: 1080, margin: '0 auto', padding: '100px 32px' }}>
+        <div style={{ textAlign: 'center', marginBottom: 64 }}>
+          <p style={{ fontSize: 13, color: '#999', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>How it works</p>
+          <h2 style={{ fontSize: 'clamp(36px, 5vw, 52px)', fontWeight: 300, letterSpacing: '-0.02em', lineHeight: 1.1 }}>From badge to CRM<br />in three steps.</h2>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
+          {[
+            { n: '1', title: 'Scan', body: 'Point your phone at any badge or business card. Claude Vision reads it instantly — no QR codes, no manual typing.' },
+            { n: '2', title: 'Score', body: 'Every contact is scored against your ICP in seconds. Talking points, red flags, and fit reason generated automatically.' },
+            { n: '3', title: 'Hand off', body: 'Push to HubSpot or Salesforce with one tap. Contacts arrive with scores, notes, and AI insights attached.' },
+          ].map(s => (
+            <div key={s.n} style={{ padding: '40px 36px', background: '#f9f9f7', borderRadius: 20 }}>
+              <div className="step-num" style={{ marginBottom: 24 }}>{s.n}</div>
+              <h3 style={{ fontSize: 24, fontWeight: 500, letterSpacing: '-0.02em', marginBottom: 12 }}>{s.title}</h3>
+              <p style={{ fontSize: 16, color: '#666', lineHeight: 1.65 }}>{s.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Features */}
+      <section id="features" style={{ background: '#f9f9f7', padding: '100px 32px' }}>
+        <div style={{ maxWidth: 1080, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 64 }}>
+            <p style={{ fontSize: 13, color: '#999', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>Features</p>
+            <h2 style={{ fontSize: 'clamp(36px, 5vw, 52px)', fontWeight: 300, letterSpacing: '-0.02em', lineHeight: 1.1 }}>Everything you need<br />at a conference.</h2>
           </div>
-          <h2
-            style={{
-              fontSize: isMobile ? 28 : 36,
-              fontWeight: 800,
-              color: "#111",
-              textAlign: "center",
-              marginBottom: 16,
-            }}
-          >
-            How Katch works
-          </h2>
-          <p style={{ fontSize: 18, color: "#666", textAlign: "center", marginBottom: 48 }}>
-            Three steps from handshake to pipeline.
-          </p>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: isMobile ? "column" : "row",
-              alignItems: isMobile ? "stretch" : "flex-start",
-              gap: isMobile ? 32 : 0,
-            }}
-          >
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
             {[
-              { n: 1, t: "Scan", d: "Capture badges and cards with your camera." },
-              { n: 2, t: "Score", d: "AI scores every lead against your ICP." },
-              { n: 3, t: "Close", d: "Sync to HubSpot and run sequences." },
-            ].map((step, idx) => (
-              <div key={step.n} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", position: "relative" }}>
-                {!isMobile && idx < 2 && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: 20,
-                      left: "calc(50% + 28px)",
-                      width: "calc(100% - 56px)",
-                      borderTop: "2px dashed #d0d0d0",
-                      zIndex: 0,
-                    }}
-                  />
-                )}
-                <div
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 99,
-                    background: "#1a3a2a",
-                    color: "#fff",
-                    fontSize: 18,
-                    fontWeight: 700,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    position: "relative",
-                    zIndex: 1,
-                  }}
-                >
-                  {step.n}
-                </div>
-                <div style={{ fontSize: 20, fontWeight: 700, color: "#111", marginTop: 16 }}>{step.t}</div>
-                <p style={{ fontSize: 14, color: "#666", marginTop: 8, marginBottom: 0, maxWidth: 220 }}>{step.d}</p>
+              { icon: '⬡', title: 'AI badge scanning', body: 'Claude Vision reads badges and business cards instantly. Works on crumpled cards, dim lighting, any format.' },
+              { icon: '◈', title: 'ICP lead scoring', body: 'Every contact scored against your custom ICP profile. Know who to follow up with before you leave the floor.' },
+              { icon: '◎', title: 'Smart enrichment', body: 'Talking points, red flags, and ICP fit reasons generated automatically for every contact you meet.' },
+              { icon: '⟳', title: 'CRM sync', body: 'Push to HubSpot or Salesforce in one click. Contacts arrive with scores, notes, and AI insights included.' },
+              { icon: '≡', title: 'Lead list upload', body: 'Upload pre or post-conference attendee lists. Katch scores every contact and flags who to prioritize.' },
+              { icon: '✉', title: 'Sequence generator', body: 'Generate personalized follow-up email sequences for each contact based on your conversation signals.' },
+            ].map(f => (
+              <div key={f.title} className="feature-card">
+                <div style={{ fontSize: 24, marginBottom: 16, opacity: 0.4 }}>{f.icon}</div>
+                <h3 style={{ fontSize: 18, fontWeight: 500, letterSpacing: '-0.01em', marginBottom: 8 }}>{f.title}</h3>
+                <p style={{ fontSize: 15, color: '#666', lineHeight: 1.65 }}>{f.body}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section
-        style={{
-          background: "linear-gradient(135deg, #1a3a2a 0%, #2d5a3d 30%, #1e4d6b 70%, #0f2a3d 100%)",
-          padding: isMobile ? "64px 24px" : "80px 40px",
-          textAlign: "center",
-          borderRadius: 24,
-          maxWidth: 900,
-          margin: isMobile ? "0 16px 64px" : "0 auto 80px",
-        }}
-      >
-        <h2 style={{ fontSize: isMobile ? 28 : 40, fontWeight: 800, color: "#fff", marginBottom: 16 }}>Ready to close more deals?</h2>
-        <p style={{ fontSize: 18, color: "rgba(255,255,255,0.7)", marginBottom: 32 }}>
-          Join teams who never lose a lead at the booth again.
-        </p>
-        <button
-          type="button"
-          onClick={() => router.push("/signup")}
-          style={{
-            background: "#7dde3c",
-            color: "#0a1a0a",
-            borderRadius: 12,
-            padding: "14px 32px",
-            fontSize: 16,
-            fontWeight: 700,
-            cursor: "pointer",
-            border: "none",
-          }}
-        >
-          Get started free
-        </button>
+      {/* Pricing */}
+      <section id="pricing" style={{ maxWidth: 1080, margin: '0 auto', padding: '100px 32px' }}>
+        <div style={{ textAlign: 'center', marginBottom: 48 }}>
+          <p style={{ fontSize: 13, color: '#999', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>Pricing</p>
+          <h2 style={{ fontSize: 'clamp(36px, 5vw, 52px)', fontWeight: 300, letterSpacing: '-0.02em', marginBottom: 32 }}>Start for free.</h2>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <div className="billing-toggle">
+              <div className={`billing-opt ${billing === 'monthly' ? 'active' : ''}`} onClick={() => setBilling('monthly')}>Monthly</div>
+              <div className={`billing-opt ${billing === 'annually' ? 'active' : ''}`} onClick={() => setBilling('annually')}>
+                Annually
+                {billing === 'annually' && <span style={{ marginLeft: 6, background: '#f0fae6', color: '#2d6a1f', borderRadius: 100, padding: '1px 8px', fontSize: 11, fontWeight: 600 }}>-20%</span>}
+                {billing === 'monthly' && <span style={{ marginLeft: 6, color: '#7dde3c', fontSize: 11, fontWeight: 600 }}>Save 20%</span>}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, alignItems: 'start' }}>
+          {plans.map(p => (
+            <div key={p.name} className={`plan-card ${p.featured ? 'featured' : ''}`}>
+              <p style={{ fontSize: 13, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: p.featured ? 'rgba(255,255,255,0.5)' : '#999', marginBottom: 12 }}>{p.name}</p>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 8 }}>
+                <span style={{ fontSize: 48, fontWeight: 300, letterSpacing: '-0.03em' }}>
+                  {p.price[billing] === 0 ? 'Free' : `$${p.price[billing]}`}
+                </span>
+                {p.price[billing] > 0 && <span style={{ fontSize: 14, color: p.featured ? 'rgba(255,255,255,0.5)' : '#999' }}>/mo</span>}
+              </div>
+              <p style={{ fontSize: 14, color: p.featured ? 'rgba(255,255,255,0.6)' : '#888', marginBottom: 28, lineHeight: 1.5 }}>{p.description}</p>
+              <Link href={p.ctaHref} className={p.featured ? 'cta-featured' : 'cta-plan'} style={!p.featured ? {} : {}}>{p.cta}</Link>
+              <div style={{ borderTop: `1px solid ${p.featured ? 'rgba(255,255,255,0.1)' : '#f0f0ec'}`, marginTop: 28, paddingTop: 24 }}>
+                {p.features.map(f => (
+                  <div key={f} style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 12, fontSize: 14, color: p.featured ? 'rgba(255,255,255,0.85)' : '#444' }}>
+                    <span className={p.featured ? 'check-dark' : 'check'}>✓</span>
+                    {f}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
-      <footer
-        style={{
-          background: "#f8f9f8",
-          borderTop: "1px solid #ebebeb",
-          padding: isMobile ? "32px 24px" : "40px 40px",
-          display: "flex",
-          flexDirection: isMobile ? "column" : "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: isMobile ? 20 : 0,
-        }}
-      >
-        <LogoLockup small />
-        <div style={{ display: "flex", gap: 24 }}>
-          <a href="#" style={{ fontSize: 13, color: "#999", textDecoration: "none" }}>
-            Privacy
-          </a>
-          <a href="#" style={{ fontSize: 13, color: "#999", textDecoration: "none" }}>
-            Terms
-          </a>
-          <a href="mailto:hello@katch.app" style={{ fontSize: 13, color: "#999", textDecoration: "none" }}>
-            Contact
-          </a>
+      {/* CTA banner */}
+      <section style={{ background: '#0a0a0a', margin: '0 32px 80px', borderRadius: 24, padding: '72px 48px', textAlign: 'center', maxWidth: 1016, marginLeft: 'auto', marginRight: 'auto' }}>
+        <h2 style={{ fontSize: 'clamp(32px, 5vw, 52px)', fontWeight: 300, color: '#fff', letterSpacing: '-0.02em', marginBottom: 16 }}>Never lose a conference<br />lead again.</h2>
+        <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.5)', marginBottom: 36 }}>Join sales reps who use Katch to capture, score, and close.</p>
+        <Link href="/login" style={{ background: '#7dde3c', color: '#1a3a2a', borderRadius: 100, padding: '16px 36px', fontSize: 16, fontWeight: 600, display: 'inline-block' }}>Get started free</Link>
+      </section>
+
+      {/* Footer */}
+      <footer style={{ borderTop: '1px solid #f0f0ec', padding: '40px 32px' }}>
+        <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 24, height: 24, background: '#0a0a0a', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1" fill="white"/><rect x="8" y="8" width="5" height="5" rx="1" fill="#7dde3c"/></svg>
+            </div>
+            <span style={{ fontWeight: 600, fontSize: 14 }}>Katch</span>
+          </div>
+          <p style={{ fontSize: 13, color: '#bbb' }}>© 2026 Katch. All rights reserved.</p>
+          <div style={{ display: 'flex', gap: 24 }}>
+            <a href="#" style={{ fontSize: 13, color: '#bbb' }}>Privacy</a>
+            <a href="#" style={{ fontSize: 13, color: '#bbb' }}>Terms</a>
+            <a href="mailto:hello@katch.app" style={{ fontSize: 13, color: '#bbb' }}>Contact</a>
+          </div>
         </div>
-        <span style={{ fontSize: 13, color: "#bbb" }}>2026 Katch</span>
       </footer>
     </div>
-  );
+  )
 }
