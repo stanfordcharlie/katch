@@ -229,12 +229,20 @@ export default function HomePage() {
   ];
 
   const cardShell: CSSProperties = {
-    background: "rgba(255,255,255,0.7)",
-    backdropFilter: "blur(12px)",
-    WebkitBackdropFilter: "blur(12px)",
-    border: "1px solid rgba(0,0,0,0.06)",
+    background: "rgba(255,255,255,0.6)",
+    backdropFilter: "blur(16px)",
+    WebkitBackdropFilter: "blur(16px)",
+    border: "1px solid rgba(0,0,0,0.07)",
     borderRadius: 14,
     padding: 20,
+  };
+
+  const sectionLabelStyle: CSSProperties = {
+    fontSize: 11,
+    color: "#999",
+    textTransform: "uppercase",
+    letterSpacing: "0.06em",
+    fontWeight: 600,
   };
 
   const pillStyle = (badge: { bg: string; color: string }) => ({
@@ -251,13 +259,15 @@ export default function HomePage() {
     <div
       style={{
         minHeight: "100vh",
-        padding: isMobile ? "24px 24px 100px" : "24px",
+        padding: "24px 32px 32px",
         overflowX: "hidden",
         maxWidth: "100vw",
         color: "#111",
         backgroundColor: "#f0f2f0",
         fontFamily: "Inter, sans-serif",
         boxSizing: "border-box",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
       {loading ? (
@@ -269,9 +279,10 @@ export default function HomePage() {
           <div className="skeleton" style={{ height: 72, borderRadius: 14, marginBottom: 20 }} />
           <div
             style={{
+              width: "100%",
               display: "grid",
-              gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
-              gap: 20,
+              gridTemplateColumns: "1fr 1fr",
+              gap: 24,
               alignItems: "flex-start",
             }}
           >
@@ -283,10 +294,10 @@ export default function HomePage() {
         <>
           <div
             style={{
+              width: "100%",
               display: "flex",
-              flexDirection: isMobile ? "column" : "row",
-              alignItems: isMobile ? "stretch" : "center",
               justifyContent: "space-between",
+              alignItems: "flex-start",
               gap: 16,
               marginBottom: 20,
             }}
@@ -320,46 +331,42 @@ export default function HomePage() {
 
           <div
             style={{
-              background: "rgba(255,255,255,0.7)",
-              backdropFilter: "blur(12px)",
-              WebkitBackdropFilter: "blur(12px)",
-              border: "1px solid rgba(0,0,0,0.06)",
+              background: "rgba(255,255,255,0.6)",
+              backdropFilter: "blur(16px)",
+              WebkitBackdropFilter: "blur(16px)",
+              border: "1px solid rgba(0,0,0,0.07)",
               borderRadius: 14,
-              padding: "14px 24px",
+              padding: "16px 32px",
               display: "flex",
-              width: "fit-content",
-              flexWrap: isMobile ? "wrap" : "nowrap",
               gap: 0,
               alignItems: "stretch",
-              justifyContent: isMobile ? "space-around" : "flex-start",
-              marginBottom: 20,
-              overflowX: isMobile ? "auto" : "visible",
+              marginBottom: 24,
+              width: "auto",
+              alignSelf: "flex-start",
+              boxSizing: "border-box",
             }}
           >
             {statItems.map((stat, i) => (
               <div
                 key={stat.label}
                 style={{
-                  padding: "0 28px",
+                  padding: "0 32px",
                   borderLeft: i > 0 ? "1px solid rgba(0,0,0,0.08)" : "none",
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: 4,
-                  minWidth: isMobile ? 100 : undefined,
-                  flex: isMobile ? "1 1 auto" : undefined,
+                  textAlign: "center",
                 }}
               >
-                <span style={{ fontSize: 20, fontWeight: 600, color: "#111", lineHeight: 1.1 }}>{stat.value}</span>
+                <span style={{ fontSize: 22, fontWeight: 600, color: "#111", lineHeight: 1.1 }}>{stat.value}</span>
                 <span
                   style={{
                     fontSize: 11,
                     color: "#999",
                     textTransform: "uppercase",
                     letterSpacing: "0.06em",
-                    fontWeight: 500,
-                    textAlign: "center",
+                    marginTop: 4,
                   }}
                 >
                   {stat.label}
@@ -370,9 +377,10 @@ export default function HomePage() {
 
           <section
             style={{
+              width: "100%",
               display: "grid",
-              gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
-              gap: 20,
+              gridTemplateColumns: "1fr 1fr",
+              gap: 24,
               alignItems: "flex-start",
             }}
           >
@@ -385,15 +393,7 @@ export default function HomePage() {
                   marginBottom: 12,
                 }}
               >
-                <span
-                  style={{
-                    fontSize: 11,
-                    color: "#999",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                    fontWeight: 600,
-                  }}
-                >
+                <span style={sectionLabelStyle}>
                   Recent events
                 </span>
                 <button
@@ -487,15 +487,7 @@ export default function HomePage() {
                   marginBottom: 12,
                 }}
               >
-                <span
-                  style={{
-                    fontSize: 11,
-                    color: "#999",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                    fontWeight: 600,
-                  }}
-                >
+                <span style={sectionLabelStyle}>
                   Needs follow-up
                 </span>
                 <button
@@ -589,7 +581,7 @@ export default function HomePage() {
           </section>
 
           {unsyncedCrmContacts.length > 0 ? (
-            <div style={{ ...cardShell, marginTop: 20 }}>
+            <div style={{ ...cardShell, marginTop: 20, width: "100%", boxSizing: "border-box" }}>
               <div
                 style={{
                   display: "flex",
@@ -598,15 +590,7 @@ export default function HomePage() {
                   marginBottom: 12,
                 }}
               >
-                <span
-                  style={{
-                    fontSize: 11,
-                    color: "#999",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                    fontWeight: 600,
-                  }}
-                >
+                <span style={sectionLabelStyle}>
                   Unsynced to crm
                 </span>
                 <button

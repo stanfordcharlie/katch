@@ -261,6 +261,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const csvText = body.csvText as string | undefined
     const userId = body.userId as string | undefined
+    const listTiming = body.listTiming as string | undefined
+    const contactStatus = listTiming === 'post' ? 'captured' : 'prospect'
 
     if (!csvText || !userId) {
       return NextResponse.json({ error: 'Missing csvText or userId' }, { status: 400 })
@@ -471,7 +473,7 @@ Return ONLY a valid JSON array with no markdown, no backticks, no explanation. J
           }
 
           const chunkResults = await Promise.all(chunks.map((chunk) => processChunk(chunk)))
-          const results = chunkResults.flat()
+          const results = chunkResults.flat().map((row) => ({ ...row, status: contactStatus }))
 
           for (let pi = 0; pi < results.length; pi++) {
             if (pi > 0) {

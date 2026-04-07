@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
+import { X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { ENRICHMENT_JOB_KEY } from "@/components/EnrichmentProgressPill";
 
@@ -75,6 +76,7 @@ type EnrichedRow = {
   summary: string;
   talking_points: unknown[];
   red_flags: unknown[];
+  status?: "prospect" | "captured";
 };
 
 type StoredLeadList = {
@@ -114,6 +116,7 @@ function mapRawContactsToEnrichedRows(enriched: unknown[], jobId: number): Enric
       talking_points: Array.isArray(row.talking_points) ? row.talking_points : [],
       red_flags: Array.isArray(row.red_flags) ? row.red_flags : [],
       ai_enrichment: (row.ai_enrichment as Record<string, unknown>) || {},
+      status: row.status === "captured" || row.status === "prospect" ? row.status : undefined,
     };
   });
 }
@@ -167,6 +170,7 @@ export default function LeadsPage() {
   const [events, setEvents] = useState<EventRow[]>([]);
   const [pastLists, setPastLists] = useState<StoredLeadList[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [listTiming, setListTiming] = useState<"pre" | "post" | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isDropZoneHover, setIsDropZoneHover] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string>("");
@@ -498,7 +502,7 @@ export default function LeadsPage() {
   const etaSeconds = Math.ceil(remainingForEta * 1.5);
 
   const runEnrich = async () => {
-    if (!user?.id || !selectedFile) return;
+    if (!user?.id || !selectedFile || listTiming === null) return;
     const csvText = await selectedFile.text();
     const parsed = parseCSV(csvText);
     if (parsed.length < 2) {
@@ -540,6 +544,7 @@ export default function LeadsPage() {
           csvText,
           userId: user.id,
           eventId: selectedEventId || undefined,
+          listTiming,
         }),
       });
 
@@ -711,7 +716,7 @@ export default function LeadsPage() {
         enriched_at: new Date().toISOString(),
         checks: [],
         source: "lead_list",
-        status: "prospect",
+        status: contact.status === "captured" ? "captured" : "prospect",
       })
     );
     const outcomes = await Promise.all(inserts.map((p) => p.then((r) => ({ error: r.error }))));
@@ -755,6 +760,18 @@ export default function LeadsPage() {
       contacts,
     });
     setSelectedIds(contacts.filter((c) => (c.icp_fit_score ?? 0) >= 6).map((c) => c.__id));
+  };
+
+  const deletePastList = async (list: StoredLeadList) => {
+    if (!window.confirm("Delete this lead list?")) return;
+    const { error } = await supabase.from("lead_list").delete().eq("id", list.id);
+    if (error) {
+      showToast(error.message, "error");
+      return;
+    }
+    const next = pastLists.filter((l) => l.id !== list.id);
+    localStorage.setItem(LS_KEY, JSON.stringify(next));
+    setPastLists(next);
   };
 
   if (!user) {
@@ -1011,6 +1028,55 @@ export default function LeadsPage() {
           </div>
         )}
 
+        {selectedFile && (
+          <div style={{ marginTop: 20, width: "100%" }}>
+            <div
+              style={{
+                fontSize: 13,
+                color: "#111",
+                marginBottom: 10,
+                fontFamily: "Inter, sans-serif",
+              }}
+            >
+              When are you uploading this list?
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => setListTiming("pre")}
+                style={{
+                  background: listTiming === "pre" ? "#1a3a2a" : "#fff",
+                  color: listTiming === "pre" ? "#fff" : "#111",
+                  border: listTiming === "pre" ? "1px solid #1a3a2a" : "1px solid #e8e8e8",
+                  borderRadius: 100,
+                  padding: "8px 18px",
+                  fontSize: 13,
+                  cursor: "pointer",
+                  fontFamily: "Inter, sans-serif",
+                }}
+              >
+                Before the event
+              </button>
+              <button
+                type="button"
+                onClick={() => setListTiming("post")}
+                style={{
+                  background: listTiming === "post" ? "#1a3a2a" : "#fff",
+                  color: listTiming === "post" ? "#fff" : "#111",
+                  border: listTiming === "post" ? "1px solid #1a3a2a" : "1px solid #e8e8e8",
+                  borderRadius: 100,
+                  padding: "8px 18px",
+                  fontSize: 13,
+                  cursor: "pointer",
+                  fontFamily: "Inter, sans-serif",
+                }}
+              >
+                After the event
+              </button>
+            </div>
+          </div>
+        )}
+
         <p style={{ fontSize: 12, color: "#999", marginTop: 12, textAlign: "center" }}>
           CSV should include name, email, company, and title columns. Katch will figure out the column mapping automatically.
         </p>
@@ -1258,19 +1324,19 @@ export default function LeadsPage() {
 
         <button
           type="button"
-          disabled={!selectedFile || enrichLoading}
+          disabled={!selectedFile || enrichLoading || listTiming === null}
           onClick={() => void runEnrich()}
           style={{
             width: "100%",
             marginTop: 20,
-            background: !selectedFile || enrichLoading ? "#ccc" : "#1a3a2a",
+            background: !selectedFile || enrichLoading || listTiming === null ? "#ccc" : "#1a3a2a",
             color: "#fff",
             border: "none",
             borderRadius: 8,
             padding: "12px 16px",
             fontSize: 13,
             fontWeight: 500,
-            cursor: !selectedFile || enrichLoading ? "not-allowed" : "pointer",
+            cursor: !selectedFile || enrichLoading || listTiming === null ? "not-allowed" : "pointer",
             fontFamily: "Inter, sans-serif",
           }}
         >
@@ -1344,27 +1410,48 @@ export default function LeadsPage() {
                     {`${list.eventName} · ${formatTableDate(list.uploadDate)} · ${list.contactCount} contact${list.contactCount === 1 ? "" : "s"} · Top ICP ${list.topScore}/10`}
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => openPastList(list)}
-                  style={{
-                    fontSize: 12,
-                    color: "#1a3a2a",
-                    background: "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                    fontWeight: 400,
-                    padding: 0,
-                    margin: 0,
-                    fontFamily: "Inter, sans-serif",
-                    textDecoration: "none",
-                    boxShadow: "none",
-                    flexShrink: 0,
-                    alignSelf: "center",
-                  }}
-                >
-                  View results
-                </button>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                  <button
+                    type="button"
+                    onClick={() => openPastList(list)}
+                    style={{
+                      fontSize: 12,
+                      color: "#1a3a2a",
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                      fontWeight: 400,
+                      padding: 0,
+                      margin: 0,
+                      fontFamily: "Inter, sans-serif",
+                      textDecoration: "none",
+                      boxShadow: "none",
+                      alignSelf: "center",
+                    }}
+                  >
+                    View results
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Delete lead list"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void deletePastList(list);
+                    }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: 2,
+                      margin: 0,
+                      background: "transparent",
+                      border: "none",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <X size={14} color="#999" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
