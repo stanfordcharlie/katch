@@ -163,24 +163,16 @@ export async function POST(req: NextRequest) {
       phone: result.phone,
       linkedin: result.linkedin,
     };
-    let icp: {
-      what_we_sell?: string;
-      target_customer?: string;
-      problems_solved?: string;
-      ideal_titles?: string;
-      ideal_industries?: string;
-      ideal_company_size?: string;
-      disqualifiers?: string;
-      value_props?: string;
-    } | null = null;
+    let settings: { icp_profile?: unknown } | null = null;
     if (userId) {
-      const { data: settings } = await supabaseAdmin
+      const { data } = await supabaseAdmin
         .from("user_settings")
         .select("icp_profile")
         .eq("user_id", userId)
         .single();
-      icp = (settings?.icp_profile as typeof icp) ?? null;
+      settings = data;
     }
+    const icp = settings?.icp_profile as Record<string, string> | null;
     const enrichmentPrompt = `You are an expert sales intelligence analyst. Given a contact and a company ICP profile, return enrichment data.
 
 CONTACT:
