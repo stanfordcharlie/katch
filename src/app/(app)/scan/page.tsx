@@ -170,6 +170,8 @@ export default function ScanPage() {
   }>({ show: false, existingContact: null, newContact: null, imageFile: null });
   const [saving, setSaving] = useState(false);
   const [saveContactFeedback, setSaveContactFeedback] = useState<null | "success" | "error">(null);
+  const [enrichingNotice, setEnrichingNotice] = useState(false);
+  const [enrichment, setEnrichment] = useState<any>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -179,6 +181,7 @@ export default function ScanPage() {
   stagedFilesRef.current = stagedFiles;
   const bulkProcessCancelRequestedRef = useRef(false);
   const scanStartTime = useRef<number>(0);
+  const lastSavedContactIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -268,6 +271,8 @@ export default function ScanPage() {
     setStagedFiles([]);
     setSaving(false);
     setSaveContactFeedback(null);
+    setEnrichingNotice(false);
+    setEnrichment(null);
   };
 
   const handleBulkProcess = async (
@@ -652,6 +657,7 @@ export default function ScanPage() {
       }
       if (data.contact) {
         setExtracted(data.contact);
+        setEnrichment(data.aiEnrichment ?? null);
         setScanMode("review");
         try {
           const imageDataUrl = uploadedImage || `data:${mediaType};base64,${base64}`;
@@ -895,6 +901,7 @@ export default function ScanPage() {
         showToast("Failed to save contact");
         return "failed";
       }
+      lastSavedContactIdRef.current = data.id as string;
       return "inserted";
     } catch (err) {
       console.error("Full error:", err);
@@ -923,6 +930,7 @@ export default function ScanPage() {
 
     setSaving(true);
     setSaveContactFeedback(null);
+    lastSavedContactIdRef.current = null;
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -1026,6 +1034,7 @@ export default function ScanPage() {
         router.push("/contacts");
       });
     } catch {
+      setEnrichingNotice(false);
       showToast("Failed to save contact");
       failSaveUi();
     }
@@ -3280,46 +3289,79 @@ export default function ScanPage() {
                     </div>
                   ))}
               </div>
+              {enrichingNotice && !enrichment ? (
+                <p style={{ fontSize: 13, color: "#999", margin: "2px 0 10px 0" }}>Enriching with AI...</p>
+              ) : null}
+              {enrichment ? (
+                <div style={{ marginTop: 8, marginBottom: 12 }}>
+                  <p
+                    style={{
+                      fontSize: 11,
+                      color: "#999",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                      margin: "0 0 8px 0",
+                    }}
+                  >
+                    AI INSIGHTS
+                  </p>
+                  {(enrichment.icp_fit_score != null || enrichment.icp_fit_reason != null) && (
+                    <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
+                      {enrichment.icp_fit_score != null ? (
+                        <span
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 600,
+                            color: "#2d6a1f",
+                            background: "#f0f7eb",
+                            border: "1px solid #d4edbc",
+                            borderRadius: 999,
+                            padding: "2px 8px",
+                          }}
+                        >
+                          ICP fit: {String(enrichment.icp_fit_score)}/10
+                        </span>
+                      ) : null}
+                      {enrichment.icp_fit_reason != null ? (
+                        <span style={{ fontSize: 13, color: "#444" }}>{String(enrichment.icp_fit_reason)}</span>
+                      ) : null}
+                    </div>
+                  )}
+                  {typeof enrichment.summary === "string" ? (
+                    <p style={{ fontSize: 13, color: "#444", lineHeight: 1.6, margin: "0 0 8px 0" }}>{enrichment.summary}</p>
+                  ) : null}
+                  {Array.isArray(enrichment.talking_points) && enrichment.talking_points.length > 0 ? (
+                    <div style={{ marginBottom: 8 }}>
+                      <p style={{ fontSize: 11, color: "#999", margin: "0 0 4px 0" }}>Talking points</p>
+                      <ul style={{ margin: 0, paddingLeft: 18 }}>
+                        {(enrichment.talking_points as unknown[])
+                          .filter((point) => typeof point === "string")
+                          .map((point, idx) => (
+                            <li key={idx} style={{ fontSize: 13, color: "#444" }}>
+                              {point as string}
+                            </li>
+                          ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                  {Array.isArray(enrichment.red_flags) && enrichment.red_flags.length > 0 ? (
+                    <div>
+                      <p style={{ fontSize: 11, color: "#e55a5a", margin: "0 0 4px 0" }}>Red flags</p>
+                      <ul style={{ margin: 0, paddingLeft: 18 }}>
+                        {(enrichment.red_flags as unknown[])
+                          .filter((flag) => typeof flag === "string")
+                          .map((flag, idx) => (
+                            <li key={idx} style={{ fontSize: 13, color: "#444" }}>
+                              {flag as string}
+                            </li>
+                          ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
 
               <div style={{ marginTop: 16, marginBottom: 12 }}>
-                <button
-                  type="button"
-                  onClick={() => void handleSinglePanelEnrich()}
-                  disabled={singlePanelEnriching}
-                  style={{
-                    background: "#f0f7eb",
-                    border: "1px solid #c8e6b0",
-                    color: "#2d6a1f",
-                    borderRadius: 10,
-                    padding: "10px 16px",
-                    fontSize: 13,
-                    fontWeight: 500,
-                    cursor: singlePanelEnriching ? "wait" : "pointer",
-                    width: "fit-content",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 8,
-                    opacity: singlePanelEnriching ? 0.75 : 1,
-                  }}
-                >
-                  {singlePanelEnriching ? (
-                    <>
-                      <div
-                        style={{
-                          width: 14,
-                          height: 14,
-                          border: "2px solid #e8e8e8",
-                          borderTop: "2px solid #7dde3c",
-                          borderRadius: "50%",
-                          animation: "spin 0.8s linear infinite",
-                        }}
-                      />
-                      Enriching...
-                    </>
-                  ) : (
-                    "✦ Enrich with AI"
-                  )}
-                </button>
                 {singleEnrichError ? (
                   <p style={{ fontSize: 12, color: "#e55a5a", margin: "8px 0 0 0" }}>
                     Enrichment failed, try again
@@ -3713,7 +3755,7 @@ export default function ScanPage() {
                         borderRadius: "50%",
                       }}
                     />
-                    Saving...
+                    Saving and enriching...
                   </>
                 ) : saveContactFeedback === "success" ? (
                   "✓ Saved!"
