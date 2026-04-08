@@ -668,6 +668,9 @@ export default function ScanPage() {
       if (data.contact) {
         setExtracted(data.contact);
         setEnrichment(data.aiEnrichment ?? null);
+        setLeadScore(
+          data.aiEnrichment?.icp_fit_score ?? data.aiEnrichment?.suggested_lead_score ?? 5
+        );
         setScanMode("review");
         try {
           const imageDataUrl = uploadedImage || `data:${mediaType};base64,${base64}`;
