@@ -173,6 +173,15 @@ export default function ScanPage() {
   const [enrichingNotice, setEnrichingNotice] = useState(false);
   const [enrichment, setEnrichment] = useState<any>(null);
   const [scanReadError, setScanReadError] = useState(false);
+  const [scanRetryingAttempt, setScanRetryingAttempt] = useState<number | null>(null);
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [manualContactFields, setManualContactFields] = useState({
+    name: "",
+    title: "",
+    company: "",
+    email: "",
+    phone: "",
+  });
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -275,6 +284,9 @@ export default function ScanPage() {
     setEnrichingNotice(false);
     setEnrichment(null);
     setScanReadError(false);
+    setScanRetryingAttempt(null);
+    setShowManualEntry(false);
+    setManualContactFields({ name: "", title: "", company: "", email: "", phone: "" });
   };
 
   const handleBulkProcess = async (
@@ -637,61 +649,73 @@ export default function ScanPage() {
 
   const scanWithClaude = async (base64: string, mediaType: string) => {
     setScanReadError(false);
+    setShowManualEntry(false);
+    setScanRetryingAttempt(null);
     setSingleEnrichment(null);
     setSingleEnrichError(false);
     setSinglePanelEnriching(false);
     setScanMode("extracting");
-    try {
-      const res = await fetch("/api/scan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: base64, mediaType, userId: user?.id }),
-      });
-      const data = await res.json();
-      if (res.status === 422 && data.error === "scan_failed") {
-        showToast(
-          typeof data.message === "string"
-            ? data.message
-            : "Could not extract contact information from this image. Please try a clearer photo.",
-          { background: "#e55a5a", color: "#fff" }
-        );
-        setScanReadError(true);
-        setScanMode("idle");
-        return;
+    let lastFail: { kind: "422"; message: string } | { kind: "other" } | null = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      if (attempt > 1) {
+        setScanRetryingAttempt(attempt);
+        await new Promise((r) => window.setTimeout(r, 1000));
       }
-      if (data?.error != null && !data.contact) {
-        showToast("Couldn't read card — try a clearer photo");
-        setScanReadError(true);
-        setScanMode("idle");
-        return;
-      }
-      if (data.contact) {
-        setExtracted(data.contact);
-        setEnrichment(data.aiEnrichment ?? null);
-        setLeadScore(
-          data.aiEnrichment?.icp_fit_score ?? data.aiEnrichment?.suggested_lead_score ?? 5
-        );
-        setScanMode("review");
-        try {
-          const imageDataUrl = uploadedImage || `data:${mediaType};base64,${base64}`;
-          localStorage.setItem(
-            "katch_scan_draft",
-            JSON.stringify({
-              imageDataUrl,
-              contactResult: data.contact,
-              timestamp: Date.now(),
-            })
+      try {
+        const res = await fetch("/api/scan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ imageBase64: base64, mediaType, userId: user?.id }),
+        });
+        const data = await res.json();
+        if (res.status === 422 && data.error === "scan_failed") {
+          lastFail = {
+            kind: "422",
+            message:
+              typeof data.message === "string"
+                ? data.message
+                : "Could not extract contact information from this image. Please try a clearer photo.",
+          };
+          continue;
+        }
+        if (data?.error != null && !data.contact) {
+          lastFail = { kind: "other" };
+          continue;
+        }
+        if (data.contact) {
+          setExtracted(data.contact);
+          setEnrichment(data.aiEnrichment ?? null);
+          setLeadScore(
+            data.aiEnrichment?.icp_fit_score ?? data.aiEnrichment?.suggested_lead_score ?? 5
           );
-        } catch (e) {}
-      } else {
-        showToast("Couldn't read card — try a clearer photo");
-        setScanReadError(true);
-        setScanMode("idle");
+          setScanRetryingAttempt(null);
+          setScanMode("review");
+          try {
+            const imageDataUrl = uploadedImage || `data:${mediaType};base64,${base64}`;
+            localStorage.setItem(
+              "katch_scan_draft",
+              JSON.stringify({
+                imageDataUrl,
+                contactResult: data.contact,
+                timestamp: Date.now(),
+              })
+            );
+          } catch (e) {}
+          return;
+        }
+        lastFail = { kind: "other" };
+      } catch {
+        lastFail = { kind: "other" };
       }
-    } catch {
-      showToast("Scan failed — check your connection");
-      setScanReadError(true);
-      setScanMode("idle");
+    }
+    setScanRetryingAttempt(null);
+    setUploadedImage(null);
+    setScanReadError(true);
+    setScanMode("idle");
+    if (lastFail?.kind === "422") {
+      showToast(lastFail.message, { background: "#e55a5a", color: "#fff" });
+    } else {
+      showToast("Couldn't read card — try a clearer photo");
     }
   };
 
@@ -2876,7 +2900,120 @@ export default function ScanPage() {
               }}
             >
               {stagedFiles.length === 0 ? (
-                scanReadError ? (
+                showManualEntry ? (
+                  <div style={{ width: "100%", boxSizing: "border-box" }}>
+                    {(
+                      [
+                        ["name", "Name"],
+                        ["title", "Title"],
+                        ["company", "Company"],
+                        ["email", "Email"],
+                        ["phone", "Phone"],
+                      ] as const
+                    ).map(([key, label]) => (
+                      <div key={key} style={{ marginBottom: 14 }}>
+                        <label
+                          htmlFor={`manual-${key}`}
+                          style={{ display: "block", fontSize: 13, color: "#666", marginBottom: 6 }}
+                        >
+                          {label}
+                        </label>
+                        <input
+                          id={`manual-${key}`}
+                          type="text"
+                          value={manualContactFields[key]}
+                          onChange={(e) =>
+                            setManualContactFields((prev) => ({ ...prev, [key]: e.target.value }))
+                          }
+                          style={{
+                            border: "1px solid #e8e8e8",
+                            borderRadius: 8,
+                            padding: "10px 12px",
+                            fontSize: 14,
+                            width: "100%",
+                            boxSizing: "border-box",
+                          }}
+                        />
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const name = manualContactFields.name.trim();
+                        const title = manualContactFields.title.trim();
+                        const company = manualContactFields.company.trim();
+                        const email = manualContactFields.email.trim();
+                        const phone = manualContactFields.phone.trim();
+                        const contact = { name, title, company, email, phone, linkedin: "" };
+                        setExtracted(contact);
+                        setEnrichment(null);
+                        setSingleEnrichment(null);
+                        setSingleEnrichError(false);
+                        if (user?.id) {
+                          try {
+                            const res = await fetch("/api/enrich", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                userId: user.id,
+                                contact: {
+                                  name: contact.name,
+                                  title: contact.title,
+                                  company: contact.company,
+                                  email: contact.email,
+                                },
+                              }),
+                            });
+                            const data = await res.json();
+                            if (res.ok && !data.error && data.enrichment) {
+                              const en = data.enrichment as Record<string, unknown>;
+                              setSingleEnrichment(en);
+                              setEnrichment(en);
+                              const fit = en.icp_fit_score;
+                              const suggested = en.suggested_lead_score;
+                              const score =
+                                typeof fit === "number"
+                                  ? fit
+                                  : typeof fit === "string"
+                                    ? Number(fit)
+                                    : typeof suggested === "number"
+                                      ? suggested
+                                      : typeof suggested === "string"
+                                        ? Number(suggested)
+                                        : NaN;
+                              setLeadScore(
+                                Number.isFinite(score) ? Math.min(10, Math.max(1, Math.round(score))) : 5
+                              );
+                            } else {
+                              setLeadScore(5);
+                            }
+                          } catch {
+                            setLeadScore(5);
+                          }
+                        } else {
+                          setLeadScore(5);
+                        }
+                        setScanReadError(false);
+                        setShowManualEntry(false);
+                        setScanMode("review");
+                      }}
+                      style={{
+                        marginTop: 8,
+                        width: "100%",
+                        background: "#1a3a2a",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: 8,
+                        padding: 12,
+                        fontSize: 14,
+                        cursor: "pointer",
+                        fontFamily: "Inter, sans-serif",
+                      }}
+                    >
+                      Use this contact
+                    </button>
+                  </div>
+                ) : scanReadError ? (
                   <div
                     style={{
                       background: "rgba(229,90,90,0.08)",
@@ -2913,6 +3050,24 @@ export default function ScanPage() {
                           }}
                         >
                           Try again
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowManualEntry(true)}
+                          style={{
+                            marginTop: 8,
+                            width: "100%",
+                            background: "transparent",
+                            border: "1px solid #1a3a2a",
+                            color: "#1a3a2a",
+                            borderRadius: 8,
+                            padding: "8px 16px",
+                            fontSize: 13,
+                            cursor: "pointer",
+                            fontFamily: "Inter, sans-serif",
+                          }}
+                        >
+                          Enter manually
                         </button>
                       </div>
                     </div>
@@ -3274,10 +3429,18 @@ export default function ScanPage() {
                 fontFamily: "Inter, sans-serif",
               }}
             >
-              <UserIcon size={32} color="#ddd" strokeWidth={1.5} aria-hidden />
-              <span style={{ fontSize: 13, color: "#999", textAlign: "center" }}>
-                Contact details will appear here
-              </span>
+              {scanRetryingAttempt != null ? (
+                <p style={{ fontSize: 13, color: "#999", textAlign: "center", margin: 0 }}>
+                  Retrying scan (attempt {scanRetryingAttempt} of 3)...
+                </p>
+              ) : (
+                <>
+                  <UserIcon size={32} color="#ddd" strokeWidth={1.5} aria-hidden />
+                  <span style={{ fontSize: 13, color: "#999", textAlign: "center" }}>
+                    Contact details will appear here
+                  </span>
+                </>
+              )}
             </div>
           ) : (
             <div
