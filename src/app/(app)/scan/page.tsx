@@ -709,7 +709,6 @@ export default function ScanPage() {
       }
     }
     setScanRetryingAttempt(null);
-    setUploadedImage(null);
     setScanReadError(true);
     setScanMode("idle");
     if (lastFail?.kind === "422") {
@@ -3035,7 +3034,19 @@ export default function ScanPage() {
                         </p>
                         <button
                           type="button"
-                          onClick={() => resetScan()}
+                          onClick={() => {
+                            setScanReadError(false);
+                            setShowManualEntry(false);
+                            const img = uploadedImage;
+                            if (!img || !img.startsWith("data:") || !img.includes(",")) {
+                              resetScan();
+                              return;
+                            }
+                            const base64 = img.split(",")[1];
+                            const mimeMatch = img.match(/^data:([^;]+);/);
+                            const mediaType = mimeMatch ? mimeMatch[1] : "image/jpeg";
+                            void scanWithClaude(base64, mediaType);
+                          }}
                           style={{
                             marginTop: 16,
                             background: "#fff",
@@ -3068,6 +3079,25 @@ export default function ScanPage() {
                           }}
                         >
                           Enter manually
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => resetScan()}
+                          style={{
+                            marginTop: 8,
+                            padding: 0,
+                            border: "none",
+                            background: "none",
+                            fontSize: 12,
+                            color: "#999",
+                            cursor: "pointer",
+                            textDecoration: "underline",
+                            fontFamily: "Inter, sans-serif",
+                            width: "100%",
+                            textAlign: "left",
+                          }}
+                        >
+                          Scan new photo
                         </button>
                       </div>
                     </div>
