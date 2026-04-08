@@ -1189,6 +1189,13 @@ export default function ScanPage() {
   if (!user) return <div className="min-h-screen bg-[#f7f7f5]" />;
 
   const showRightForm = scanMode === "review" && extracted;
+  const scanState: "idle" | "success" | "error" = scanReadError
+    ? "error"
+    : scanMode === "review" && extracted
+      ? "success"
+      : "idle";
+  const showScannedImagePreview =
+    !!uploadedImage && (scanState === "success" || showManualEntry);
   const bulkTotal = bulkFiles.length;
   const bulkProcessedCount = bulkFiles.filter((x) => x.status !== 'pending').length;
   const bulkAllProcessed = bulkTotal > 0 && bulkProcessedCount === bulkTotal;
@@ -2790,7 +2797,7 @@ export default function ScanPage() {
                 fontFamily: "Inter, sans-serif",
               }}
             >
-              {showManualEntry && uploadedImage ? (
+              {showManualEntry && showScannedImagePreview ? (
                 <div style={{ marginBottom: 16, width: "100%" }}>
                   <div
                     style={{
@@ -3415,9 +3422,9 @@ export default function ScanPage() {
 
           {scanMode === "extracting" && (
             <div style={{ border: "1px solid #ebebeb", borderRadius: 16, overflow: "hidden", background: "#fff" }}>
-              {uploadedImage && (
+              {showScannedImagePreview && (
                 <div className="aspect-video bg-slate-100">
-                  <img src={uploadedImage} alt="" className="w-full h-full object-cover" />
+                  <img src={uploadedImage!} alt="" className="w-full h-full object-cover" />
                 </div>
               )}
               <div style={{ padding: 40, textAlign: "center" }}>
@@ -3438,10 +3445,10 @@ export default function ScanPage() {
             </div>
           )}
 
-          {scanMode === "review" && extracted && uploadedImage && (
+          {scanMode === "review" && extracted && showScannedImagePreview && (
             <div style={{ marginBottom: 16 }}>
               <div style={{ borderRadius: 16, overflow: "hidden", border: "1px solid #ebebeb", aspectRatio: "16/10", background: "#f7f7f5" }}>
-                <img src={uploadedImage} alt="Scanned badge full" className="w-full h-full object-cover" />
+                <img src={uploadedImage!} alt="Scanned badge full" className="w-full h-full object-cover" />
               </div>
             </div>
           )}
@@ -3506,9 +3513,9 @@ export default function ScanPage() {
                   marginBottom: 16,
                 }}
               >
-                {uploadedImage && (
+                {showScannedImagePreview && (
                   <img
-                    src={uploadedImage}
+                    src={uploadedImage!}
                     alt="Scanned badge thumbnail"
                     style={{
                       width: 56,
