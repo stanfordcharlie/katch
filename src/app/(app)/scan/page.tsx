@@ -172,6 +172,7 @@ export default function ScanPage() {
   const [saveContactFeedback, setSaveContactFeedback] = useState<null | "success" | "error">(null);
   const [enrichingNotice, setEnrichingNotice] = useState(false);
   const [enrichment, setEnrichment] = useState<any>(null);
+  const [insightsExpanded, setInsightsExpanded] = useState(false);
   const [scanReadError, setScanReadError] = useState(false);
   const [scanRetryingAttempt, setScanRetryingAttempt] = useState<number | null>(null);
   const [showManualEntry, setShowManualEntry] = useState(false);
@@ -951,6 +952,10 @@ export default function ScanPage() {
   const handleSaveContact = async () => {
     if (saving || saveContactFeedback) return;
 
+    setSaving(true);
+    setSaveContactFeedback(null);
+    lastSavedContactIdRef.current = null;
+
     const failSaveUi = () => {
       setSaving(false);
       setSaveContactFeedback("error");
@@ -965,10 +970,6 @@ export default function ScanPage() {
         after();
       }, 1200);
     };
-
-    setSaving(true);
-    setSaveContactFeedback(null);
-    lastSavedContactIdRef.current = null;
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -3594,36 +3595,79 @@ export default function ScanPage() {
                       ) : null}
                     </div>
                   )}
-                  {typeof enrichment.summary === "string" ? (
-                    <p style={{ fontSize: 13, color: "#444", lineHeight: 1.6, margin: "0 0 8px 0" }}>{enrichment.summary}</p>
+                  {!insightsExpanded &&
+                  (typeof enrichment.summary === "string" ||
+                    (Array.isArray(enrichment.talking_points) && enrichment.talking_points.length > 0) ||
+                    (Array.isArray(enrichment.red_flags) && enrichment.red_flags.length > 0)) ? (
+                    <button
+                      type="button"
+                      onClick={() => setInsightsExpanded(true)}
+                      style={{
+                        marginTop: 0,
+                        padding: 0,
+                        border: "none",
+                        background: "none",
+                        fontSize: 12,
+                        color: "#1a3a2a",
+                        cursor: "pointer",
+                        fontFamily: "Inter, sans-serif",
+                      }}
+                    >
+                      Show more
+                    </button>
                   ) : null}
-                  {Array.isArray(enrichment.talking_points) && enrichment.talking_points.length > 0 ? (
-                    <div style={{ marginBottom: 8 }}>
-                      <p style={{ fontSize: 11, color: "#999", margin: "0 0 4px 0" }}>Talking points</p>
-                      <ul style={{ margin: 0, paddingLeft: 18 }}>
-                        {(enrichment.talking_points as unknown[])
-                          .filter((point) => typeof point === "string")
-                          .map((point, idx) => (
-                            <li key={idx} style={{ fontSize: 13, color: "#444" }}>
-                              {point as string}
-                            </li>
-                          ))}
-                      </ul>
-                    </div>
-                  ) : null}
-                  {Array.isArray(enrichment.red_flags) && enrichment.red_flags.length > 0 ? (
-                    <div>
-                      <p style={{ fontSize: 11, color: "#e55a5a", margin: "0 0 4px 0" }}>Red flags</p>
-                      <ul style={{ margin: 0, paddingLeft: 18 }}>
-                        {(enrichment.red_flags as unknown[])
-                          .filter((flag) => typeof flag === "string")
-                          .map((flag, idx) => (
-                            <li key={idx} style={{ fontSize: 13, color: "#444" }}>
-                              {flag as string}
-                            </li>
-                          ))}
-                      </ul>
-                    </div>
+                  {insightsExpanded ? (
+                    <>
+                      {typeof enrichment.summary === "string" ? (
+                        <p style={{ fontSize: 13, color: "#444", lineHeight: 1.6, margin: "0 0 8px 0" }}>
+                          {enrichment.summary}
+                        </p>
+                      ) : null}
+                      {Array.isArray(enrichment.talking_points) && enrichment.talking_points.length > 0 ? (
+                        <div style={{ marginBottom: 8 }}>
+                          <p style={{ fontSize: 11, color: "#999", margin: "0 0 4px 0" }}>Talking points</p>
+                          <ul style={{ margin: 0, paddingLeft: 18 }}>
+                            {(enrichment.talking_points as unknown[])
+                              .filter((point) => typeof point === "string")
+                              .map((point, idx) => (
+                                <li key={idx} style={{ fontSize: 13, color: "#444" }}>
+                                  {point as string}
+                                </li>
+                              ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                      {Array.isArray(enrichment.red_flags) && enrichment.red_flags.length > 0 ? (
+                        <div>
+                          <p style={{ fontSize: 11, color: "#e55a5a", margin: "0 0 4px 0" }}>Red flags</p>
+                          <ul style={{ margin: 0, paddingLeft: 18 }}>
+                            {(enrichment.red_flags as unknown[])
+                              .filter((flag) => typeof flag === "string")
+                              .map((flag, idx) => (
+                                <li key={idx} style={{ fontSize: 13, color: "#444" }}>
+                                  {flag as string}
+                                </li>
+                              ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() => setInsightsExpanded(false)}
+                        style={{
+                          marginTop: 10,
+                          padding: 0,
+                          border: "none",
+                          background: "none",
+                          fontSize: 12,
+                          color: "#1a3a2a",
+                          cursor: "pointer",
+                          fontFamily: "Inter, sans-serif",
+                        }}
+                      >
+                        Show less
+                      </button>
+                    </>
                   ) : null}
                 </div>
               ) : null}
@@ -4022,7 +4066,7 @@ export default function ScanPage() {
                         borderRadius: "50%",
                       }}
                     />
-                    Saving and enriching...
+                    Saving...
                   </>
                 ) : saveContactFeedback === "success" ? (
                   "✓ Saved!"
