@@ -163,6 +163,24 @@ export async function POST(req: NextRequest) {
       phone: result.phone,
       linkedin: result.linkedin,
     };
+    let icp: {
+      what_we_sell?: string;
+      target_customer?: string;
+      problems_solved?: string;
+      ideal_titles?: string;
+      ideal_industries?: string;
+      ideal_company_size?: string;
+      disqualifiers?: string;
+      value_props?: string;
+    } | null = null;
+    if (userId) {
+      const { data: settings } = await supabaseAdmin
+        .from("user_settings")
+        .select("icp_profile")
+        .eq("user_id", userId)
+        .single();
+      icp = (settings?.icp_profile as typeof icp) ?? null;
+    }
     const enrichmentPrompt = `You are an expert sales intelligence analyst. Given a contact and a company ICP profile, return enrichment data.
 
 CONTACT:
@@ -171,7 +189,15 @@ Title: ${contact.title || "Unknown"}
 Company: ${contact.company || "Unknown"}
 Email: ${contact.email || "Unknown"}
 
-No ICP profile provided.
+${icp ? `SELLER ICP PROFILE:
+What they sell: ${icp.what_we_sell || "Not specified"}
+Target customer: ${icp.target_customer || "Not specified"}
+Problems they solve: ${icp.problems_solved || "Not specified"}
+Ideal titles: ${icp.ideal_titles || "Not specified"}
+Ideal industries: ${icp.ideal_industries || "Not specified"}
+Ideal company size: ${icp.ideal_company_size || "Not specified"}
+Disqualifiers: ${icp.disqualifiers || "Not specified"}
+Value props: ${icp.value_props || "Not specified"}` : "No ICP profile provided."}
 
 Return ONLY a valid JSON object, no markdown, no explanation:
 {

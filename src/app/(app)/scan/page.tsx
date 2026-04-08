@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Upload, User as UserIcon } from "lucide-react";
+import { Upload, User as UserIcon, X } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -172,6 +172,7 @@ export default function ScanPage() {
   const [saveContactFeedback, setSaveContactFeedback] = useState<null | "success" | "error">(null);
   const [enrichingNotice, setEnrichingNotice] = useState(false);
   const [enrichment, setEnrichment] = useState<any>(null);
+  const [scanReadError, setScanReadError] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -273,6 +274,7 @@ export default function ScanPage() {
     setSaveContactFeedback(null);
     setEnrichingNotice(false);
     setEnrichment(null);
+    setScanReadError(false);
   };
 
   const handleBulkProcess = async (
@@ -634,6 +636,7 @@ export default function ScanPage() {
   };
 
   const scanWithClaude = async (base64: string, mediaType: string) => {
+    setScanReadError(false);
     setSingleEnrichment(null);
     setSingleEnrichError(false);
     setSinglePanelEnriching(false);
@@ -652,6 +655,13 @@ export default function ScanPage() {
             : "Could not extract contact information from this image. Please try a clearer photo.",
           { background: "#e55a5a", color: "#fff" }
         );
+        setScanReadError(true);
+        setScanMode("idle");
+        return;
+      }
+      if (data?.error != null && !data.contact) {
+        showToast("Couldn't read card — try a clearer photo");
+        setScanReadError(true);
         setScanMode("idle");
         return;
       }
@@ -672,10 +682,12 @@ export default function ScanPage() {
         } catch (e) {}
       } else {
         showToast("Couldn't read card — try a clearer photo");
+        setScanReadError(true);
         setScanMode("idle");
       }
     } catch {
       showToast("Scan failed — check your connection");
+      setScanReadError(true);
       setScanMode("idle");
     }
   };
@@ -2861,21 +2873,64 @@ export default function ScanPage() {
               }}
             >
               {stagedFiles.length === 0 ? (
-                <div
-                  style={{
-                    minHeight: 296,
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                  }}
-                >
-                  <UserIcon size={32} color="#ddd" strokeWidth={1.5} aria-hidden />
-                  <span style={{ fontSize: 13, color: "#999", textAlign: "center" }}>
-                    Contact details will appear here
-                  </span>
-                </div>
+                scanReadError ? (
+                  <div
+                    style={{
+                      background: "rgba(229,90,90,0.08)",
+                      border: "1px solid rgba(229,90,90,0.2)",
+                      borderRadius: 12,
+                      padding: 20,
+                      boxSizing: "border-box",
+                      width: "100%",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                      <X size={20} color="#e55a5a" strokeWidth={2} aria-hidden style={{ flexShrink: 0, marginTop: 2 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 15, fontWeight: 500, color: "#111", margin: "0 0 6px 0" }}>
+                          Could not read badge
+                        </p>
+                        <p style={{ fontSize: 13, color: "#999", margin: 0, lineHeight: 1.5 }}>
+                          Try retaking the photo with better lighting or a straighter angle.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => resetScan()}
+                          style={{
+                            marginTop: 16,
+                            background: "#fff",
+                            border: "1px solid rgba(229,90,90,0.35)",
+                            color: "#e55a5a",
+                            fontWeight: 600,
+                            fontSize: 13,
+                            borderRadius: 10,
+                            padding: "10px 18px",
+                            cursor: "pointer",
+                            fontFamily: "Inter, sans-serif",
+                          }}
+                        >
+                          Try again
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      minHeight: 296,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <UserIcon size={32} color="#ddd" strokeWidth={1.5} aria-hidden />
+                    <span style={{ fontSize: 13, color: "#999", textAlign: "center" }}>
+                      Contact details will appear here
+                    </span>
+                  </div>
+                )
               ) : (
                 <div style={{ padding: 0 }}>
                   <div
