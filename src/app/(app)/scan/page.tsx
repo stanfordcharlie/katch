@@ -2789,100 +2789,116 @@ export default function ScanPage() {
                 fontFamily: "Inter, sans-serif",
               }}
             >
-              <div
-                style={{
-                  width: "100%",
-                  minHeight: 296,
-                  border: "2px dashed rgba(0,0,0,0.1)",
-                  borderRadius: 12,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 12,
-                  padding: "28px 20px",
-                  textAlign: "center",
-                  boxSizing: "border-box",
-                  transition: "border-color 0.2s ease, background 0.2s ease",
-                  ...(isDragging
-                    ? { background: "rgba(0,0,0,0.03)", borderColor: "rgba(0,0,0,0.16)" }
-                    : {}),
-                }}
-              >
-                <Upload size={28} color="#999" strokeWidth={1.5} aria-hidden />
-                <p
-                  style={{
-                    fontSize: 15,
-                    fontWeight: 500,
-                    textAlign: "center",
-                    color: "#111",
-                    margin: 0,
-                  }}
-                >
-                  Drop a badge or card here
-                </p>
-                <p
-                  style={{
-                    fontSize: 13,
-                    color: "#999",
-                    textAlign: "center",
-                    lineHeight: 1.5,
-                    margin: 0,
-                    maxWidth: 280,
-                  }}
-                >
-                  Drag one photo to scan, or drop multiple to bulk upload
-                </p>
+              {showManualEntry && uploadedImage ? (
+                <div style={{ marginBottom: 16, width: "100%" }}>
+                  <div
+                    style={{
+                      borderRadius: 16,
+                      overflow: "hidden",
+                      border: "1px solid #ebebeb",
+                      aspectRatio: "16/10",
+                      background: "#f7f7f5",
+                    }}
+                  >
+                    <img src={uploadedImage} alt="Scanned badge full" className="w-full h-full object-cover" />
+                  </div>
+                </div>
+              ) : (
                 <div
                   style={{
+                    width: "100%",
+                    minHeight: 296,
+                    border: "2px dashed rgba(0,0,0,0.1)",
+                    borderRadius: 12,
                     display: "flex",
-                    flexDirection: "row",
-                    flexWrap: "wrap",
-                    justifyContent: "center",
+                    flexDirection: "column",
                     alignItems: "center",
-                    gap: 10,
-                    marginTop: 4,
+                    justifyContent: "center",
+                    gap: 12,
+                    padding: "28px 20px",
+                    textAlign: "center",
+                    boxSizing: "border-box",
+                    transition: "border-color 0.2s ease, background 0.2s ease",
+                    ...(isDragging
+                      ? { background: "rgba(0,0,0,0.03)", borderColor: "rgba(0,0,0,0.16)" }
+                      : {}),
                   }}
                 >
-                  <button
-                    type="button"
-                    onClick={handleOpenCamera}
+                  <Upload size={28} color="#999" strokeWidth={1.5} aria-hidden />
+                  <p
                     style={{
-                      background: "#1a3a2a",
-                      color: "#fff",
+                      fontSize: 15,
                       fontWeight: 500,
-                      borderRadius: 8,
-                      padding: "9px 18px",
-                      fontSize: 13,
-                      border: "none",
-                      cursor: "pointer",
-                      fontFamily: "Inter, sans-serif",
-                    }}
-                  >
-                    Open Camera
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const input = document.getElementById("single-upload-input") as HTMLInputElement | null;
-                      input?.click();
-                    }}
-                    style={{
-                      background: "#fff",
-                      border: "1px solid #e8e8e8",
+                      textAlign: "center",
                       color: "#111",
-                      borderRadius: 8,
-                      padding: "9px 18px",
-                      fontSize: 13,
-                      fontWeight: 500,
-                      cursor: "pointer",
-                      fontFamily: "Inter, sans-serif",
+                      margin: 0,
                     }}
                   >
-                    Upload photo
-                  </button>
+                    Drop a badge or card here
+                  </p>
+                  <p
+                    style={{
+                      fontSize: 13,
+                      color: "#999",
+                      textAlign: "center",
+                      lineHeight: 1.5,
+                      margin: 0,
+                      maxWidth: 280,
+                    }}
+                  >
+                    Drag one photo to scan, or drop multiple to bulk upload
+                  </p>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "row",
+                      flexWrap: "wrap",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      gap: 10,
+                      marginTop: 4,
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={handleOpenCamera}
+                      style={{
+                        background: "#1a3a2a",
+                        color: "#fff",
+                        fontWeight: 500,
+                        borderRadius: 8,
+                        padding: "9px 18px",
+                        fontSize: 13,
+                        border: "none",
+                        cursor: "pointer",
+                        fontFamily: "Inter, sans-serif",
+                      }}
+                    >
+                      Open Camera
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const input = document.getElementById("single-upload-input") as HTMLInputElement | null;
+                        input?.click();
+                      }}
+                      style={{
+                        background: "#fff",
+                        border: "1px solid #e8e8e8",
+                        color: "#111",
+                        borderRadius: 8,
+                        padding: "9px 18px",
+                        fontSize: 13,
+                        fontWeight: 500,
+                        cursor: "pointer",
+                        fontFamily: "Inter, sans-serif",
+                      }}
+                    >
+                      Upload photo
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
             <div
               style={{
