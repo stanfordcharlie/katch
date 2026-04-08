@@ -2,6 +2,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+export const config = { api: { bodyParser: { sizeLimit: "10mb" } } };
+
 const anthropic = new Anthropic();
 
 const supabaseAdmin = createClient(
