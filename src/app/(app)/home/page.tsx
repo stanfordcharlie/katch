@@ -280,10 +280,10 @@ export default function HomePage() {
           <div
             style={{
               width: "100%",
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 24,
+              display: "flex",
+              flexDirection: "row",
               alignItems: "flex-start",
+              gap: 24,
             }}
           >
             <div className="skeleton" style={{ minHeight: 220, borderRadius: 14 }} />
@@ -377,11 +377,10 @@ export default function HomePage() {
 
           <section
             style={{
-              width: "100%",
               display: "grid",
               gridTemplateColumns: "1fr 1fr",
               gap: 24,
-              alignItems: "flex-start",
+              width: "100%",
             }}
           >
             <div style={cardShell}>
@@ -515,7 +514,7 @@ export default function HomePage() {
                 </p>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column" }}>
-                  {needsFollowUp.map((c) => {
+                  {needsFollowUp.slice(0, 3).map((c) => {
                     const badge = scoreBadge(c.lead_score ?? 0);
                     const initials = (c.name || "?").trim().charAt(0).toUpperCase();
                     const eventLine = followUpEventLabel(c.event);
@@ -581,7 +580,7 @@ export default function HomePage() {
           </section>
 
           {unsyncedCrmContacts.length > 0 ? (
-            <div style={{ ...cardShell, marginTop: 20, width: "100%", boxSizing: "border-box" }}>
+            <div style={{ ...cardShell, marginTop: 24, width: "100%", boxSizing: "border-box" }}>
               <div
                 style={{
                   display: "flex",

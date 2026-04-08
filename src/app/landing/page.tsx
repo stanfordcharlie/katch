@@ -152,18 +152,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Logos */}
-      <section style={{ borderTop: '1px solid #f0f0ec', borderBottom: '1px solid #f0f0ec', padding: '28px 32px' }}>
-        <div style={{ maxWidth: 1080, margin: '0 auto', textAlign: 'center' }}>
-          <p style={{ fontSize: 13, color: '#999', marginBottom: 20, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Trusted by teams at</p>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 48, flexWrap: 'wrap', alignItems: 'center' }}>
-            {['Rec Technologies', 'Denver Parks', 'Active Network', 'YMCA', 'Vermont Systems'].map(c => (
-              <span key={c} style={{ fontSize: 15, fontWeight: 500, color: '#bbb', letterSpacing: '-0.01em' }}>{c}</span>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* How it works */}
       <section id="how-it-works" style={{ maxWidth: 1080, margin: '0 auto', padding: '100px 32px' }}>
         <div style={{ textAlign: 'center', marginBottom: 64 }}>
