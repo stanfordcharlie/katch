@@ -1221,128 +1221,117 @@ export default function SettingsPage() {
 
             {activeSection === "icp-profile" && (
               <section>
-                <SettingRowCard
-                  title="What does your company sell?"
-                  description="Helps Katch understand your product or service positioning."
-                  controlFullWidth
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 24,
+                  }}
                 >
-                  <textarea
-                    value={icpProfile.what_we_sell}
-                    onChange={(e) =>
-                      setIcpProfile((p) => ({ ...p, what_we_sell: e.target.value }))
-                    }
-                    placeholder="e.g. AI-powered sales automation software for B2B SaaS companies"
-                    rows={3}
-                    className="settings-form-control resize-y"
-                  />
-                </SettingRowCard>
-                <SettingRowCard
-                  title="Who is your target customer?"
-                  description="Describe your ideal buyer or account profile."
-                  controlFullWidth
-                >
-                  <textarea
-                    value={icpProfile.target_customer}
-                    onChange={(e) =>
-                      setIcpProfile((p) => ({ ...p, target_customer: e.target.value }))
-                    }
-                    placeholder="e.g. VP of Sales and CROs at Series A-C SaaS companies with 50-500 employees"
-                    rows={3}
-                    className="settings-form-control resize-y"
-                  />
-                </SettingRowCard>
-                <SettingRowCard
-                  title="What problems do you solve?"
-                  description="Pain points your solution addresses for prospects."
-                  controlFullWidth
-                >
-                  <textarea
-                    value={icpProfile.problems_solved}
-                    onChange={(e) =>
-                      setIcpProfile((p) => ({ ...p, problems_solved: e.target.value }))
-                    }
-                    placeholder="e.g. Sales reps waste time on manual data entry and miss follow-ups after events"
-                    rows={3}
-                    className="settings-form-control resize-y"
-                  />
-                </SettingRowCard>
-                <SettingRowCard
-                  title="Ideal job titles"
-                  description="Roles you typically sell to."
-                  controlFullWidth
-                >
-                  <input
-                    type="text"
-                    className="settings-form-control"
-                    value={icpProfile.ideal_titles}
-                    onChange={(e) =>
-                      setIcpProfile((p) => ({ ...p, ideal_titles: e.target.value }))
-                    }
-                    placeholder="e.g. VP Sales, CRO, Head of Revenue, Sales Director"
-                  />
-                </SettingRowCard>
-                <SettingRowCard
-                  title="Ideal industries"
-                  description="Sectors or verticals you focus on."
-                  controlFullWidth
-                >
-                  <input
-                    type="text"
-                    className="settings-form-control"
-                    value={icpProfile.ideal_industries}
-                    onChange={(e) =>
-                      setIcpProfile((p) => ({ ...p, ideal_industries: e.target.value }))
-                    }
-                    placeholder="e.g. SaaS, Fintech, MarTech, Enterprise Software"
-                  />
-                </SettingRowCard>
-                <SettingRowCard
-                  title="Ideal company size"
-                  description="Employee range, funding stage, or similar signals."
-                  controlFullWidth
-                >
-                  <input
-                    type="text"
-                    className="settings-form-control"
-                    value={icpProfile.ideal_company_size}
-                    onChange={(e) =>
-                      setIcpProfile((p) => ({ ...p, ideal_company_size: e.target.value }))
-                    }
-                    placeholder="e.g. 50-500 employees, Series A to Series C"
-                  />
-                </SettingRowCard>
-                <SettingRowCard
-                  title="Deal disqualifiers"
-                  description="Who is not a good fit for your product or outreach."
-                  controlFullWidth
-                >
-                  <textarea
-                    value={icpProfile.disqualifiers}
-                    onChange={(e) =>
-                      setIcpProfile((p) => ({ ...p, disqualifiers: e.target.value }))
-                    }
-                    placeholder="e.g. Freelancers, companies under 10 employees, non-tech industries"
-                    rows={3}
-                    className="settings-form-control resize-y"
-                  />
-                </SettingRowCard>
-                <SettingRowCard
-                  title="Key value propositions"
-                  description="One value prop per line — used in scoring and sequences."
-                  controlFullWidth
-                >
-                  <textarea
-                    value={icpProfile.value_props}
-                    onChange={(e) =>
-                      setIcpProfile((p) => ({ ...p, value_props: e.target.value }))
-                    }
-                    placeholder={
-                      "e.g. Save 3 hours per event on manual data entry\nSync leads to HubSpot instantly\nAI-scored leads so you follow up with the right people first"
-                    }
-                    rows={4}
-                    className="settings-form-control resize-y"
-                  />
-                </SettingRowCard>
+                  {(
+                    [
+                      {
+                        key: "what_we_sell" as const,
+                        label: "What does your company sell?",
+                        hint: "Product or service positioning.",
+                        placeholder:
+                          "e.g. AI-powered sales automation software for B2B SaaS companies",
+                      },
+                      {
+                        key: "target_customer" as const,
+                        label: "Who is your target customer?",
+                        hint: "Ideal buyer or account profile.",
+                        placeholder:
+                          "e.g. VP of Sales and CROs at Series A-C SaaS companies with 50-500 employees",
+                      },
+                      {
+                        key: "problems_solved" as const,
+                        label: "What problems do you solve?",
+                        hint: "Pain points your solution addresses.",
+                        placeholder:
+                          "e.g. Sales reps waste time on manual data entry and miss follow-ups after events",
+                      },
+                      {
+                        key: "ideal_titles" as const,
+                        label: "Ideal job titles",
+                        hint: "Roles you typically sell to.",
+                        placeholder: "e.g. VP Sales, CRO, Head of Revenue, Sales Director",
+                      },
+                      {
+                        key: "ideal_industries" as const,
+                        label: "Ideal industries",
+                        hint: "Sectors or verticals you focus on.",
+                        placeholder: "e.g. SaaS, Fintech, MarTech, Enterprise Software",
+                      },
+                      {
+                        key: "ideal_company_size" as const,
+                        label: "Ideal company size",
+                        hint: "Employee range, funding stage, or similar.",
+                        placeholder: "e.g. 50-500 employees, Series A to Series C",
+                      },
+                      {
+                        key: "disqualifiers" as const,
+                        label: "Deal disqualifiers",
+                        hint: "Who is not a good fit.",
+                        placeholder:
+                          "e.g. Freelancers, companies under 10 employees, non-tech industries",
+                      },
+                      {
+                        key: "value_props" as const,
+                        label: "Key value propositions",
+                        hint: "Used in scoring and sequences.",
+                        placeholder:
+                          "e.g. Save 3 hours per event on manual data entry\nSync leads to HubSpot instantly\nAI-scored leads so you follow up with the right people first",
+                      },
+                    ] as const
+                  ).map(({ key, label, hint, placeholder }) => (
+                    <div key={key}>
+                      <label
+                        htmlFor={`icp-${key}`}
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 500,
+                          color: "#111",
+                          marginBottom: 6,
+                          display: "block",
+                          fontFamily: "Inter, sans-serif",
+                        }}
+                      >
+                        {label}
+                      </label>
+                      <p
+                        style={{
+                          fontSize: 12,
+                          color: "#999",
+                          margin: "0 0 8px 0",
+                          fontFamily: "Inter, sans-serif",
+                        }}
+                      >
+                        {hint}
+                      </p>
+                      <textarea
+                        id={`icp-${key}`}
+                        value={icpProfile[key]}
+                        onChange={(e) =>
+                          setIcpProfile((p) => ({ ...p, [key]: e.target.value }))
+                        }
+                        placeholder={placeholder}
+                        style={{
+                          minHeight: 80,
+                          fontSize: 13,
+                          padding: "10px 12px",
+                          border: "1px solid #e8e8e8",
+                          borderRadius: 8,
+                          width: "100%",
+                          resize: "vertical",
+                          boxSizing: "border-box",
+                          fontFamily: "Inter, sans-serif",
+                          color: "#111",
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
               </section>
             )}
 
