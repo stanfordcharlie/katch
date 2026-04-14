@@ -84,6 +84,15 @@ button {
   color: inherit;
 }
 
+.btn-ghost {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.btn-ghost:hover {
+  background: transparent !important;
+}
+
 .bg-slate-900, [class*="bg-slate-9"] {
   color: white !important;
 }

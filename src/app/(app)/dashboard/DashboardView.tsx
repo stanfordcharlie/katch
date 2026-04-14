@@ -582,23 +582,21 @@ export function DashboardView(props: DashboardViewProps) {
           >
             <div>
               {props.mode === "event" && (
-                <button
-                  type="button"
-                  onClick={() => router.push("/events")}
+                <a
+                  href="/events"
                   style={{
-                    display: "block",
-                    border: "none",
-                    background: "transparent",
-                    color: "rgba(255,255,255,0.75)",
-                    fontSize: 14,
-                    fontWeight: 500,
+                    color: "rgba(255,255,255,0.7)",
+                    fontSize: 13,
                     cursor: "pointer",
-                    padding: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    textDecoration: "none",
                     marginBottom: 10,
                   }}
                 >
                   ← All events
-                </button>
+                </a>
               )}
               <h1
                 style={{
