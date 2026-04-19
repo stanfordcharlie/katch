@@ -61,64 +61,20 @@ const scoreAccent = (score: number | null | undefined): 'high' | 'mid' | 'low' =
   return 'low';
 };
 
-/** Desktop contacts table: shared flex/minWidth per column (header + body). */
+/** Desktop row: checkbox/link columns size to content; NAME 20%, TITLE 16%, COMPANY 20%, EVENT 14%, SCORE 8%, SOURCE 12%, SYNCED 10%. Rows use width 100% + fixed column template (grid). */
+const CONTACTS_DESKTOP_GRID_TEMPLATE =
+  'minmax(0, auto) 20% 16% 20% 14% 8% 12% 10% minmax(0, auto)';
+
 const CONTACTS_DESKTOP_COL_STYLE: CSSProperties[] = [
-  { minWidth: 40, width: 40, flexGrow: 0, flexShrink: 0, flexBasis: 40, boxSizing: 'border-box' },
-  { minWidth: 220, flexGrow: 1, flexShrink: 1, flexBasis: 0, boxSizing: 'border-box' },
-  {
-    width: 200,
-    minWidth: 200,
-    maxWidth: 200,
-    flexGrow: 0,
-    flexShrink: 0,
-    flexBasis: 200,
-    boxSizing: 'border-box',
-  },
-  {
-    width: 160,
-    minWidth: 160,
-    maxWidth: 160,
-    flexGrow: 0,
-    flexShrink: 0,
-    flexBasis: 160,
-    boxSizing: 'border-box',
-  },
-  {
-    width: 80,
-    minWidth: 80,
-    maxWidth: 80,
-    flexGrow: 0,
-    flexShrink: 0,
-    flexBasis: 80,
-    boxSizing: 'border-box',
-  },
-  {
-    width: 120,
-    minWidth: 120,
-    maxWidth: 120,
-    flexGrow: 0,
-    flexShrink: 0,
-    flexBasis: 120,
-    boxSizing: 'border-box',
-  },
-  {
-    width: 80,
-    minWidth: 80,
-    maxWidth: 80,
-    flexGrow: 0,
-    flexShrink: 0,
-    flexBasis: 80,
-    boxSizing: 'border-box',
-  },
-  {
-    width: 36,
-    minWidth: 36,
-    maxWidth: 36,
-    flexGrow: 0,
-    flexShrink: 0,
-    flexBasis: 36,
-    boxSizing: 'border-box',
-  },
+  { minWidth: 0, boxSizing: 'border-box' },
+  { minWidth: 0, boxSizing: 'border-box' },
+  { minWidth: 0, boxSizing: 'border-box' },
+  { minWidth: 0, boxSizing: 'border-box' },
+  { minWidth: 0, boxSizing: 'border-box' },
+  { minWidth: 0, boxSizing: 'border-box' },
+  { minWidth: 0, boxSizing: 'border-box' },
+  { minWidth: 0, boxSizing: 'border-box' },
+  { minWidth: 0, boxSizing: 'border-box' },
 ];
 
 type ContactsSortBy = 'newest' | 'oldest' | 'az' | 'za' | 'highest' | 'lowest';
@@ -1522,8 +1478,9 @@ export default function ContactsPage() {
             >
               <div
                 style={{
-                  display: 'flex',
+                  display: 'grid',
                   width: '100%',
+                  gridTemplateColumns: CONTACTS_DESKTOP_GRID_TEMPLATE,
                   boxSizing: 'border-box',
                   borderBottom: '1px solid #ebebeb',
                   background: '#fafafa',
@@ -1559,8 +1516,9 @@ export default function ContactsPage() {
                 <div
                   key={i}
                   style={{
-                    display: 'flex',
+                    display: 'grid',
                     width: '100%',
+                    gridTemplateColumns: CONTACTS_DESKTOP_GRID_TEMPLATE,
                     boxSizing: 'border-box',
                     alignItems: 'center',
                     borderBottom: '1px solid #f5f5f5',
@@ -1577,7 +1535,7 @@ export default function ContactsPage() {
                         boxSizing: 'border-box',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: j === 0 || j >= 4 ? 'center' : 'flex-start',
+                        justifyContent: j === 0 || j >= 5 ? 'center' : 'flex-start',
                       }}
                     >
                       <div
@@ -1588,8 +1546,19 @@ export default function ContactsPage() {
                             'linear-gradient(90deg, #f0f0f0 25%, #e6e6e6 50%, #f0f0f0 75%)',
                           backgroundSize: '200% 100%',
                           animation: 'shimmer 1.2s infinite',
-                          width: j === 0 ? 14 : j === 1 ? '72%' : j === 2 ? '55%' : j === 3 ? '50%' : 28,
-                          minWidth: j >= 4 ? 28 : undefined,
+                          width:
+                            j === 0
+                              ? 14
+                              : j === 1
+                                ? '72%'
+                                : j === 2
+                                  ? '48%'
+                                  : j === 3
+                                    ? '55%'
+                                    : j === 4
+                                      ? '50%'
+                                      : 28,
+                          minWidth: j >= 5 ? 28 : undefined,
                         }}
                       />
                     </div>
@@ -1768,14 +1737,16 @@ export default function ContactsPage() {
           >
             <div
               style={{
-                display: 'flex',
+                display: 'grid',
                 width: '100%',
+                gridTemplateColumns: CONTACTS_DESKTOP_GRID_TEMPLATE,
                 boxSizing: 'border-box',
               }}
             >
               {[
                 '',
                 'NAME',
+                'TITLE',
                 'COMPANY',
                 'EVENT',
                 'SCORE',
@@ -1796,7 +1767,7 @@ export default function ContactsPage() {
                     paddingBottom: 10,
                     paddingLeft: i === 0 ? 0 : 12,
                     paddingRight: i === 0 ? 0 : 12,
-                    textAlign: i === 0 || i >= 4 ? 'center' : 'left',
+                    textAlign: i === 0 || i >= 5 ? 'center' : 'left',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
@@ -1986,8 +1957,9 @@ export default function ContactsPage() {
                         boxSizing: 'border-box',
                       }
                     : {
-                        display: 'flex',
+                        display: 'grid',
                         width: '100%',
+                        gridTemplateColumns: CONTACTS_DESKTOP_GRID_TEMPLATE,
                         boxSizing: 'border-box',
                         alignItems: 'center',
                       }
@@ -2235,9 +2207,24 @@ export default function ContactsPage() {
                 {!isMobile && (
                   <>
                     <div
-                      title={contact.company ?? undefined}
+                      title={contact.title ?? undefined}
                       style={{
                         ...CONTACTS_DESKTOP_COL_STYLE[2],
+                        padding: '12px 12px',
+                        fontSize: 13,
+                        color: '#666',
+                        boxSizing: 'border-box',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {contact.title ?? '—'}
+                    </div>
+                    <div
+                      title={contact.company ?? undefined}
+                      style={{
+                        ...CONTACTS_DESKTOP_COL_STYLE[3],
                         padding: '12px 12px',
                         fontSize: 14,
                         color: '#555',
@@ -2252,7 +2239,7 @@ export default function ContactsPage() {
                     <div
                       title={eventLabel ?? undefined}
                       style={{
-                        ...CONTACTS_DESKTOP_COL_STYLE[3],
+                        ...CONTACTS_DESKTOP_COL_STYLE[4],
                         padding: '12px 12px',
                         boxSizing: 'border-box',
                         overflow: 'hidden',
@@ -2294,7 +2281,7 @@ export default function ContactsPage() {
                           justifyContent: 'flex-end',
                         }
                       : {
-                          ...CONTACTS_DESKTOP_COL_STYLE[4],
+                          ...CONTACTS_DESKTOP_COL_STYLE[5],
                           textAlign: 'center',
                           padding: '12px 12px',
                           boxSizing: 'border-box',
@@ -2348,7 +2335,7 @@ export default function ContactsPage() {
                 {!isMobile && (
                   <div
                     style={{
-                      ...CONTACTS_DESKTOP_COL_STYLE[5],
+                      ...CONTACTS_DESKTOP_COL_STYLE[6],
                       display: 'flex',
                       justifyContent: 'center',
                       alignItems: 'center',
@@ -2362,7 +2349,7 @@ export default function ContactsPage() {
                 {!isMobile && (
                   <div
                     style={{
-                      ...CONTACTS_DESKTOP_COL_STYLE[6],
+                      ...CONTACTS_DESKTOP_COL_STYLE[7],
                       display: 'flex',
                       justifyContent: 'center',
                       alignItems: 'center',
@@ -2395,7 +2382,7 @@ export default function ContactsPage() {
                 {!isMobile && (
                   <div
                     style={{
-                      ...CONTACTS_DESKTOP_COL_STYLE[7],
+                      ...CONTACTS_DESKTOP_COL_STYLE[8],
                       display: 'flex',
                       justifyContent: 'center',
                       alignItems: 'center',
