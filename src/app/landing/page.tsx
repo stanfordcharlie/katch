@@ -84,9 +84,6 @@ export default function LandingPage() {
         .billing-toggle { display: flex; align-items: center; background: #f3f3ef; border-radius: 100px; padding: 4px; gap: 2px; }
         .billing-opt { padding: 8px 20px; border-radius: 100px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.15s; color: #888; }
         .billing-opt.active { background: #fff; color: #0a0a0a; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
-        #pricing .billing-toggle { background: rgba(255,255,255,0.1); }
-        #pricing .billing-opt { color: #fff; }
-        #pricing .billing-opt.active { background: rgba(255,255,255,0.2); color: #fff; box-shadow: none; }
         .check { color: #7dde3c; font-weight: 600; margin-right: 10px; }
         .check-dark { color: #a8f060; font-weight: 600; margin-right: 10px; }
         .badge { display: inline-block; background: #f0fae6; color: #2d6a1f; border-radius: 100px; padding: 4px 12px; font-size: 13px; font-weight: 500; }
@@ -94,7 +91,6 @@ export default function LandingPage() {
         .faq-item { border-bottom: 1px solid #e8e8e4; padding: 24px 0; }
         .pill-tag { display: inline-block; background: #f3f3ef; border-radius: 100px; padding: 6px 14px; font-size: 13px; color: #555; margin: 4px; }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        #pricing .cta-plan:hover { background: rgba(255,255,255,0.08); color: #fff; }
       `}</style>
 
       {/* Nav */}
@@ -326,10 +322,10 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" style={{ background: '#0a0a0a', padding: '100px 32px' }}>
+      <section id="pricing" style={{ background: '#fff', padding: '100px 32px' }}>
         <div style={{ maxWidth: 1080, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 48 }}>
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>Pricing</p>
+            <p style={{ fontSize: 13, color: '#999', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>Pricing</p>
             <h2
               style={{
                 fontSize: 'clamp(36px, 5vw, 52px)',
@@ -337,7 +333,7 @@ export default function LandingPage() {
                 fontWeight: 300,
                 letterSpacing: '-0.02em',
                 marginBottom: 32,
-                color: '#fff',
+                color: '#0a0a0a',
               }}
             >
               Start for free.
@@ -347,7 +343,7 @@ export default function LandingPage() {
                 <div className={`billing-opt ${billing === 'monthly' ? 'active' : ''}`} onClick={() => setBilling('monthly')}>Monthly</div>
                 <div className={`billing-opt ${billing === 'annually' ? 'active' : ''}`} onClick={() => setBilling('annually')}>
                   Annually
-                  {billing === 'annually' && <span style={{ marginLeft: 6, background: 'rgba(255,255,255,0.15)', color: '#fff', borderRadius: 100, padding: '1px 8px', fontSize: 11, fontWeight: 600 }}>-20%</span>}
+                  {billing === 'annually' && <span style={{ marginLeft: 6, background: '#f0fae6', color: '#2d6a1f', borderRadius: 100, padding: '1px 8px', fontSize: 11, fontWeight: 600 }}>-20%</span>}
                   {billing === 'monthly' && <span style={{ marginLeft: 6, color: '#7dde3c', fontSize: 11, fontWeight: 600 }}>Save 20%</span>}
                 </div>
               </div>
@@ -357,48 +353,34 @@ export default function LandingPage() {
             {plans.map(p => (
               <div
                 key={p.name}
-                className="plan-card"
+                className={`plan-card ${p.featured ? 'featured' : ''}`}
                 style={
                   p.featured
                     ? {
-                        background: 'rgba(255,255,255,0.12)',
-                        border: '1px solid rgba(255,255,255,0.2)',
+                        background: '#0a0a0a',
+                        border: '2px solid #0a0a0a',
                         color: '#fff',
                       }
                     : {
-                        background: 'rgba(255,255,255,0.06)',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        color: '#fff',
+                        background: '#fff',
+                        border: '1px solid #e8e8e4',
+                        color: '#0a0a0a',
                       }
                 }
               >
-                <p style={{ fontSize: 13, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', marginBottom: 12 }}>{p.name}</p>
+                <p style={{ fontSize: 13, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: p.featured ? 'rgba(255,255,255,0.5)' : '#999', marginBottom: 12 }}>{p.name}</p>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 8 }}>
-                  <span style={{ fontSize: 48, fontWeight: 300, letterSpacing: '-0.03em', color: '#fff' }}>
+                  <span style={{ fontSize: 48, fontWeight: 300, letterSpacing: '-0.03em', color: p.featured ? '#fff' : '#0a0a0a' }}>
                     {p.price[billing] === 0 ? 'Free' : `$${p.price[billing]}`}
                   </span>
-                  {p.price[billing] > 0 && <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>/mo</span>}
+                  {p.price[billing] > 0 && <span style={{ fontSize: 14, color: p.featured ? 'rgba(255,255,255,0.5)' : '#999' }}>/mo</span>}
                 </div>
-                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 28, lineHeight: 1.5 }}>{p.description}</p>
-                <Link
-                  href={p.ctaHref}
-                  className={p.featured ? 'cta-featured' : 'cta-plan'}
-                  style={
-                    p.featured
-                      ? {}
-                      : {
-                          background: 'transparent',
-                          color: '#fff',
-                          border: '1px solid rgba(255,255,255,0.25)',
-                        }
-                  }
-                >
-                  {p.cta}
-                </Link>
-                <div style={{ borderTop: '1px solid rgba(255,255,255,0.12)', marginTop: 28, paddingTop: 24 }}>
+                <p style={{ fontSize: 14, color: p.featured ? 'rgba(255,255,255,0.6)' : '#888', marginBottom: 28, lineHeight: 1.5 }}>{p.description}</p>
+                <Link href={p.ctaHref} className={p.featured ? 'cta-featured' : 'cta-plan'}>{p.cta}</Link>
+                <div style={{ borderTop: `1px solid ${p.featured ? 'rgba(255,255,255,0.1)' : '#f0f0ec'}`, marginTop: 28, paddingTop: 24 }}>
                   {p.features.map(f => (
-                    <div key={f} style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 12, fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>
-                      <span className="check">✓</span>
+                    <div key={f} style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 12, fontSize: 14, color: p.featured ? 'rgba(255,255,255,0.85)' : '#444' }}>
+                      <span className={p.featured ? 'check-dark' : 'check'}>✓</span>
                       {f}
                     </div>
                   ))}
