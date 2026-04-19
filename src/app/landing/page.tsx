@@ -58,7 +58,7 @@ export default function LandingPage() {
   ]
 
   return (
-    <div style={{ fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif", background: '#fff', color: '#0a0a0a', minHeight: '100vh' }}>
+    <div style={{ fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif", background: 'transparent', color: '#0a0a0a', minHeight: '100vh' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -149,6 +149,7 @@ export default function LandingPage() {
           alignItems: 'center',
           justifyContent: 'center',
           textAlign: 'center',
+          background: '#0a0a0a',
         }}
       >
         <img
@@ -251,21 +252,6 @@ export default function LandingPage() {
               >
                 Get started free
               </Link>
-              <a
-                href="#how-it-works"
-                style={{
-                  background: 'transparent',
-                  color: '#fff',
-                  border: '1px solid rgba(255,255,255,0.35)',
-                  borderRadius: 100,
-                  padding: '16px 32px',
-                  fontSize: 16,
-                  fontWeight: 500,
-                  display: 'inline-block',
-                }}
-              >
-                See how it works
-              </a>
             </div>
             <p style={{ marginTop: 16, fontSize: 13, color: 'rgba(255,255,255,0.55)' }}>
               Free to start. No credit card required.
@@ -275,28 +261,30 @@ export default function LandingPage() {
       </section>
 
       {/* How it works */}
-      <section id="how-it-works" style={{ maxWidth: 1080, margin: '0 auto', padding: '100px 32px' }}>
-        <div style={{ textAlign: 'center', marginBottom: 64 }}>
-          <p style={{ fontSize: 13, color: '#999', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>How it works</p>
-          <h2 style={{ fontSize: 'clamp(36px, 5vw, 52px)', fontWeight: 300, letterSpacing: '-0.02em', lineHeight: 1.1 }}>From badge to CRM<br />in three steps.</h2>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
-          {[
-            { n: '1', title: 'Scan', body: 'Point your phone at any badge or business card. Claude Vision reads it instantly — no QR codes, no manual typing.' },
-            { n: '2', title: 'Score', body: 'Every contact is scored against your ICP in seconds. Talking points, red flags, and fit reason generated automatically.' },
-            { n: '3', title: 'Hand off', body: 'Push to HubSpot or Salesforce with one tap. Contacts arrive with scores, notes, and AI insights attached.' },
-          ].map(s => (
-            <div key={s.n} style={{ padding: '40px 36px', background: '#f9f9f7', borderRadius: 20 }}>
-              <div className="step-num" style={{ marginBottom: 24 }}>{s.n}</div>
-              <h3 style={{ fontSize: 24, fontWeight: 500, letterSpacing: '-0.02em', marginBottom: 12 }}>{s.title}</h3>
-              <p style={{ fontSize: 16, color: '#666', lineHeight: 1.65 }}>{s.body}</p>
-            </div>
-          ))}
+      <section id="how-it-works" style={{ width: '100%', background: '#fff', padding: '100px 32px' }}>
+        <div style={{ maxWidth: 1080, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 64 }}>
+            <p style={{ fontSize: 13, color: '#999', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>How it works</p>
+            <h2 style={{ fontSize: 'clamp(36px, 5vw, 52px)', fontWeight: 300, letterSpacing: '-0.02em', lineHeight: 1.1, color: '#0a0a0a' }}>From badge to CRM<br />in three steps.</h2>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
+            {[
+              { n: '1', title: 'Scan', body: 'Point your phone at any badge or business card. Claude Vision reads it instantly — no QR codes, no manual typing.' },
+              { n: '2', title: 'Score', body: 'Every contact is scored against your ICP in seconds. Talking points, red flags, and fit reason generated automatically.' },
+              { n: '3', title: 'Hand off', body: 'Push to HubSpot or Salesforce with one tap. Contacts arrive with scores, notes, and AI insights attached.' },
+            ].map(s => (
+              <div key={s.n} style={{ padding: '40px 36px', background: '#f9f9f7', borderRadius: 20 }}>
+                <div className="step-num" style={{ marginBottom: 24 }}>{s.n}</div>
+                <h3 style={{ fontSize: 24, fontWeight: 500, letterSpacing: '-0.02em', marginBottom: 12 }}>{s.title}</h3>
+                <p style={{ fontSize: 16, color: '#666', lineHeight: 1.65 }}>{s.body}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* Features */}
-      <section id="features" style={{ background: '#f9f9f7', padding: '100px 32px' }}>
+      <section id="features" style={{ width: '100%', background: '#fff', padding: '100px 32px' }}>
         <div style={{ maxWidth: 1080, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 64 }}>
             <p style={{ fontSize: 13, color: '#999', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>Features</p>
@@ -322,7 +310,7 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" style={{ background: '#fff', padding: '100px 32px' }}>
+      <section id="pricing" style={{ width: '100%', background: '#fff', padding: '100px 32px' }}>
         <div style={{ maxWidth: 1080, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 48 }}>
             <p style={{ fontSize: 13, color: '#999', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>Pricing</p>
@@ -392,14 +380,16 @@ export default function LandingPage() {
       </section>
 
       {/* CTA banner */}
-      <section style={{ background: '#0a0a0a', margin: '0 32px 80px', borderRadius: 24, padding: '72px 48px', textAlign: 'center', maxWidth: 1016, marginLeft: 'auto', marginRight: 'auto' }}>
-        <h2 style={{ fontSize: 'clamp(32px, 5vw, 52px)', fontWeight: 300, color: '#fff', letterSpacing: '-0.02em', marginBottom: 16 }}>Never lose a conference<br />lead again.</h2>
-        <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.5)', marginBottom: 36 }}>Join sales reps who use Katch to capture, score, and close.</p>
-        <Link href="/signup" style={{ background: '#7dde3c', color: '#1a3a2a', borderRadius: 100, padding: '16px 36px', fontSize: 16, fontWeight: 600, display: 'inline-block' }}>Get started free</Link>
+      <section style={{ width: '100%', background: '#fff', padding: '0 32px 80px' }}>
+        <div style={{ maxWidth: 1080, margin: '0 auto', borderRadius: 24, padding: '72px 48px', textAlign: 'center' }}>
+          <h2 style={{ fontSize: 'clamp(32px, 5vw, 52px)', fontWeight: 300, color: '#0a0a0a', letterSpacing: '-0.02em', marginBottom: 16 }}>Never lose a conference<br />lead again.</h2>
+          <p style={{ fontSize: 18, color: 'rgba(10,10,10,0.55)', marginBottom: 36 }}>Join sales reps who use Katch to capture, score, and close.</p>
+          <Link href="/signup" style={{ background: '#7dde3c', color: '#1a3a2a', borderRadius: 100, padding: '16px 36px', fontSize: 16, fontWeight: 600, display: 'inline-block' }}>Get started free</Link>
+        </div>
       </section>
 
       {/* Footer */}
-      <footer style={{ borderTop: '1px solid #f0f0ec', padding: '40px 32px' }}>
+      <footer style={{ width: '100%', background: '#fff', borderTop: '1px solid #f0f0ec', padding: '40px 32px' }}>
         <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 24, height: 24, background: '#0a0a0a', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

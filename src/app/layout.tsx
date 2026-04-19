@@ -20,10 +20,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={inter.variable} style={{ backgroundColor: "#f0f0ec" }}>
+    <html lang="en" className={inter.variable} style={{ backgroundColor: "#fff" }}>
       <body
         className="antialiased"
-        style={{ backgroundColor: "#f0f0ec", margin: 0 }}
+        style={{ background: "#0a0a0a", margin: 0 }}
       >
         {children}
       </body>
