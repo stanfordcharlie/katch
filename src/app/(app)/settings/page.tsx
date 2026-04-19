@@ -1303,7 +1303,7 @@ export default function SettingsPage() {
                         style={{
                           fontSize: 12,
                           color: "#999",
-                          margin: "0 0 8px 0",
+                          margin: "0 0 6px 0",
                           fontFamily: "Inter, sans-serif",
                         }}
                       >
@@ -1315,18 +1315,28 @@ export default function SettingsPage() {
                         onChange={(e) =>
                           setIcpProfile((p) => ({ ...p, [key]: e.target.value }))
                         }
+                        onFocus={(e) => {
+                          e.currentTarget.style.borderColor = "#1a3a2a";
+                        }}
+                        onBlur={(e) => {
+                          e.currentTarget.style.borderColor = "#e8e8e8";
+                        }}
                         placeholder={placeholder}
                         style={{
-                          minHeight: 80,
-                          fontSize: 13,
-                          padding: "10px 12px",
+                          minHeight: 72,
                           border: "1px solid #e8e8e8",
-                          borderRadius: 8,
-                          width: "100%",
-                          resize: "vertical",
-                          boxSizing: "border-box",
-                          fontFamily: "Inter, sans-serif",
+                          borderRadius: 10,
+                          padding: "10px 14px",
+                          fontSize: 14,
                           color: "#111",
+                          background: "#fff",
+                          fontFamily: "inherit",
+                          lineHeight: 1.6,
+                          resize: "vertical",
+                          outline: "none",
+                          transition: "border-color 0.15s",
+                          width: "100%",
+                          boxSizing: "border-box",
                         }}
                       />
                     </div>

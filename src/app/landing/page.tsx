@@ -12,7 +12,7 @@ export default function LandingPage() {
       price: { monthly: 0, annually: 0 },
       description: 'For individuals trying out Katch.',
       cta: 'Get started free',
-      ctaHref: '/login',
+      ctaHref: '/signup',
       featured: false,
       features: [
         '50 badge scans / month',
@@ -27,7 +27,7 @@ export default function LandingPage() {
       price: { monthly: 29, annually: 23 },
       description: 'For sales reps who live at conferences.',
       cta: 'Start free trial',
-      ctaHref: '/login',
+      ctaHref: '/signup',
       featured: true,
       features: [
         'Unlimited badge scans',
@@ -84,71 +84,197 @@ export default function LandingPage() {
         .billing-toggle { display: flex; align-items: center; background: #f3f3ef; border-radius: 100px; padding: 4px; gap: 2px; }
         .billing-opt { padding: 8px 20px; border-radius: 100px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.15s; color: #888; }
         .billing-opt.active { background: #fff; color: #0a0a0a; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+        #pricing .billing-toggle { background: rgba(255,255,255,0.1); }
+        #pricing .billing-opt { color: #fff; }
+        #pricing .billing-opt.active { background: rgba(255,255,255,0.2); color: #fff; box-shadow: none; }
         .check { color: #7dde3c; font-weight: 600; margin-right: 10px; }
         .check-dark { color: #a8f060; font-weight: 600; margin-right: 10px; }
         .badge { display: inline-block; background: #f0fae6; color: #2d6a1f; border-radius: 100px; padding: 4px 12px; font-size: 13px; font-weight: 500; }
         .step-num { width: 36px; height: 36px; border-radius: 50%; background: #0a0a0a; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; flex-shrink: 0; }
         .faq-item { border-bottom: 1px solid #e8e8e4; padding: 24px 0; }
         .pill-tag { display: inline-block; background: #f3f3ef; border-radius: 100px; padding: 6px 14px; font-size: 13px; color: #555; margin: 4px; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        #pricing .cta-plan:hover { background: rgba(255,255,255,0.08); color: #fff; }
       `}</style>
 
       {/* Nav */}
-      <nav style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)', borderBottom: '1px solid #f0f0ec', padding: '0 32px' }}>
+      <nav
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 10,
+          background: 'transparent',
+          borderBottom: 'none',
+          padding: '0 32px',
+        }}
+      >
         <div style={{ maxWidth: 1080, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 60 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 28, height: 28, background: '#0a0a0a', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="5" height="5" rx="1" fill="white"/><rect x="8" y="1" width="5" height="5" rx="1" fill="white" opacity="0.5"/><rect x="1" y="8" width="5" height="5" rx="1" fill="white" opacity="0.5"/><rect x="8" y="8" width="5" height="5" rx="1" fill="#7dde3c"/></svg>
             </div>
-            <span style={{ fontWeight: 600, fontSize: 16 }}>Katch</span>
+            <span style={{ fontWeight: 600, fontSize: 16, color: '#fff' }}>Katch</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
-            <a href="#how-it-works" className="nav-link">How it works</a>
-            <a href="#features" className="nav-link">Features</a>
-            <a href="#pricing" className="nav-link">Pricing</a>
+            <a href="#how-it-works" className="nav-link" style={{ color: '#fff' }}>How it works</a>
+            <a href="#features" className="nav-link" style={{ color: '#fff' }}>Features</a>
+            <a href="#pricing" className="nav-link" style={{ color: '#fff' }}>Pricing</a>
           </div>
-          <Link href="/login" className="cta-primary" style={{ padding: '10px 22px', fontSize: 14 }}>Go to app</Link>
+          <Link
+            href="/login"
+            style={{
+              padding: '10px 22px',
+              fontSize: 14,
+              background: 'rgba(255,255,255,0.15)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              border: '1px solid rgba(255,255,255,0.3)',
+              color: '#fff',
+              borderRadius: 100,
+              textDecoration: 'none',
+              display: 'inline-block',
+            }}
+          >
+            Go to app
+          </Link>
         </div>
       </nav>
 
       {/* Hero */}
       <section
         style={{
-          maxWidth: 1080,
-          margin: '0 auto',
-          padding: '160px 32px 120px',
-          textAlign: 'center',
+          width: '100%',
+          minHeight: '100vh',
           position: 'relative',
           overflow: 'hidden',
-          backgroundImage: "url('/hero-city.jpg')",
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          textAlign: 'center',
         }}
       >
+        <img
+          src="/hero-city.jpg"
+          alt=""
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            zIndex: 0,
+          }}
+        />
         <div
           style={{
             position: 'absolute',
             inset: 0,
-            background: 'rgba(255,255,255,0.75)',
-            zIndex: 0,
+            background: 'rgba(0,0,0,0.45)',
+            zIndex: 1,
           }}
         />
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ marginBottom: 20 }}>
-            <span className="badge">Now with HubSpot + Salesforce sync</span>
+        <div style={{ position: 'relative', zIndex: 2, padding: '0 24px', maxWidth: 900 }}>
+          <div
+            style={{
+              marginBottom: 20,
+              opacity: 0,
+              animation: 'fadeUp 0.5s ease forwards',
+              animationDelay: '0.2s',
+            }}
+          >
+            <span
+              style={{
+                display: 'inline-block',
+                background: 'rgba(255,255,255,0.15)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255,255,255,0.25)',
+                color: '#fff',
+                borderRadius: 100,
+                padding: '6px 16px',
+                fontSize: 13,
+                fontWeight: 500,
+              }}
+            >
+              Now with HubSpot + Salesforce sync
+            </span>
           </div>
-          <h1 style={{ fontSize: 'clamp(52px, 8vw, 88px)', fontWeight: 300, lineHeight: 1.05, letterSpacing: '-0.03em', marginBottom: 28 }}>
+          <h1
+            style={{
+              fontSize: 'clamp(52px, 8vw, 88px)',
+              fontWeight: 300,
+              lineHeight: 1.05,
+              letterSpacing: '-0.03em',
+              marginBottom: 28,
+              color: '#fff',
+              opacity: 0,
+              animation: 'fadeUp 0.6s ease forwards',
+              animationDelay: '0.4s',
+            }}
+          >
             Scan it. Score it.<br />
             <span style={{ fontStyle: 'italic', color: '#7dde3c' }}>Close it.</span>
           </h1>
-          <p style={{ fontSize: 20, color: '#666', maxWidth: 520, margin: '0 auto 40px', lineHeight: 1.6, fontWeight: 400 }}>
+          <p
+            style={{
+              fontSize: 20,
+              color: 'rgba(255,255,255,0.8)',
+              maxWidth: 520,
+              margin: '0 auto 40px',
+              lineHeight: 1.6,
+              fontWeight: 400,
+              opacity: 0,
+              animation: 'fadeUp 0.6s ease forwards',
+              animationDelay: '0.6s',
+            }}
+          >
             The AI-powered lead capture platform for in-person events. Stop forgetting leads. Start closing deals.
           </p>
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href="/login" className="cta-primary" style={{ fontSize: 16, padding: '16px 32px' }}>Get started free</Link>
-            <a href="#how-it-works" className="cta-secondary" style={{ fontSize: 16, padding: '16px 32px' }}>See how it works</a>
+          <div
+            style={{
+              opacity: 0,
+              animation: 'fadeUp 0.6s ease forwards',
+              animationDelay: '0.8s',
+            }}
+          >
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <Link
+                href="/signup"
+                style={{
+                  background: '#fff',
+                  color: '#0a0a0a',
+                  border: 'none',
+                  borderRadius: 100,
+                  padding: '16px 32px',
+                  fontSize: 16,
+                  fontWeight: 500,
+                  display: 'inline-block',
+                }}
+              >
+                Get started free
+              </Link>
+              <a
+                href="#how-it-works"
+                style={{
+                  background: 'transparent',
+                  color: '#fff',
+                  border: '1px solid rgba(255,255,255,0.35)',
+                  borderRadius: 100,
+                  padding: '16px 32px',
+                  fontSize: 16,
+                  fontWeight: 500,
+                  display: 'inline-block',
+                }}
+              >
+                See how it works
+              </a>
+            </div>
+            <p style={{ marginTop: 16, fontSize: 13, color: 'rgba(255,255,255,0.55)' }}>
+              Free to start. No credit card required.
+            </p>
           </div>
-          <p style={{ marginTop: 16, fontSize: 13, color: '#999' }}>Free to start. No credit card required.</p>
         </div>
       </section>
 
@@ -200,43 +326,86 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" style={{ maxWidth: 1080, margin: '0 auto', padding: '100px 32px' }}>
-        <div style={{ textAlign: 'center', marginBottom: 48 }}>
-          <p style={{ fontSize: 13, color: '#999', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>Pricing</p>
-          <h2 style={{ fontSize: 'clamp(36px, 5vw, 52px)', fontWeight: 300, letterSpacing: '-0.02em', marginBottom: 32 }}>Start for free.</h2>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <div className="billing-toggle">
-              <div className={`billing-opt ${billing === 'monthly' ? 'active' : ''}`} onClick={() => setBilling('monthly')}>Monthly</div>
-              <div className={`billing-opt ${billing === 'annually' ? 'active' : ''}`} onClick={() => setBilling('annually')}>
-                Annually
-                {billing === 'annually' && <span style={{ marginLeft: 6, background: '#f0fae6', color: '#2d6a1f', borderRadius: 100, padding: '1px 8px', fontSize: 11, fontWeight: 600 }}>-20%</span>}
-                {billing === 'monthly' && <span style={{ marginLeft: 6, color: '#7dde3c', fontSize: 11, fontWeight: 600 }}>Save 20%</span>}
+      <section id="pricing" style={{ background: '#0a0a0a', padding: '100px 32px' }}>
+        <div style={{ maxWidth: 1080, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 48 }}>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>Pricing</p>
+            <h2
+              style={{
+                fontSize: 'clamp(36px, 5vw, 52px)',
+                fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif",
+                fontWeight: 300,
+                letterSpacing: '-0.02em',
+                marginBottom: 32,
+                color: '#fff',
+              }}
+            >
+              Start for free.
+            </h2>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <div className="billing-toggle">
+                <div className={`billing-opt ${billing === 'monthly' ? 'active' : ''}`} onClick={() => setBilling('monthly')}>Monthly</div>
+                <div className={`billing-opt ${billing === 'annually' ? 'active' : ''}`} onClick={() => setBilling('annually')}>
+                  Annually
+                  {billing === 'annually' && <span style={{ marginLeft: 6, background: 'rgba(255,255,255,0.15)', color: '#fff', borderRadius: 100, padding: '1px 8px', fontSize: 11, fontWeight: 600 }}>-20%</span>}
+                  {billing === 'monthly' && <span style={{ marginLeft: 6, color: '#7dde3c', fontSize: 11, fontWeight: 600 }}>Save 20%</span>}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, alignItems: 'start' }}>
-          {plans.map(p => (
-            <div key={p.name} className={`plan-card ${p.featured ? 'featured' : ''}`}>
-              <p style={{ fontSize: 13, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: p.featured ? 'rgba(255,255,255,0.5)' : '#999', marginBottom: 12 }}>{p.name}</p>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 8 }}>
-                <span style={{ fontSize: 48, fontWeight: 300, letterSpacing: '-0.03em' }}>
-                  {p.price[billing] === 0 ? 'Free' : `$${p.price[billing]}`}
-                </span>
-                {p.price[billing] > 0 && <span style={{ fontSize: 14, color: p.featured ? 'rgba(255,255,255,0.5)' : '#999' }}>/mo</span>}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, alignItems: 'start' }}>
+            {plans.map(p => (
+              <div
+                key={p.name}
+                className="plan-card"
+                style={
+                  p.featured
+                    ? {
+                        background: 'rgba(255,255,255,0.12)',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        color: '#fff',
+                      }
+                    : {
+                        background: 'rgba(255,255,255,0.06)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        color: '#fff',
+                      }
+                }
+              >
+                <p style={{ fontSize: 13, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', marginBottom: 12 }}>{p.name}</p>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 8 }}>
+                  <span style={{ fontSize: 48, fontWeight: 300, letterSpacing: '-0.03em', color: '#fff' }}>
+                    {p.price[billing] === 0 ? 'Free' : `$${p.price[billing]}`}
+                  </span>
+                  {p.price[billing] > 0 && <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>/mo</span>}
+                </div>
+                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', marginBottom: 28, lineHeight: 1.5 }}>{p.description}</p>
+                <Link
+                  href={p.ctaHref}
+                  className={p.featured ? 'cta-featured' : 'cta-plan'}
+                  style={
+                    p.featured
+                      ? {}
+                      : {
+                          background: 'transparent',
+                          color: '#fff',
+                          border: '1px solid rgba(255,255,255,0.25)',
+                        }
+                  }
+                >
+                  {p.cta}
+                </Link>
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.12)', marginTop: 28, paddingTop: 24 }}>
+                  {p.features.map(f => (
+                    <div key={f} style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 12, fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>
+                      <span className="check">✓</span>
+                      {f}
+                    </div>
+                  ))}
+                </div>
               </div>
-              <p style={{ fontSize: 14, color: p.featured ? 'rgba(255,255,255,0.6)' : '#888', marginBottom: 28, lineHeight: 1.5 }}>{p.description}</p>
-              <Link href={p.ctaHref} className={p.featured ? 'cta-featured' : 'cta-plan'} style={!p.featured ? {} : {}}>{p.cta}</Link>
-              <div style={{ borderTop: `1px solid ${p.featured ? 'rgba(255,255,255,0.1)' : '#f0f0ec'}`, marginTop: 28, paddingTop: 24 }}>
-                {p.features.map(f => (
-                  <div key={f} style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 12, fontSize: 14, color: p.featured ? 'rgba(255,255,255,0.85)' : '#444' }}>
-                    <span className={p.featured ? 'check-dark' : 'check'}>✓</span>
-                    {f}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
@@ -244,7 +413,7 @@ export default function LandingPage() {
       <section style={{ background: '#0a0a0a', margin: '0 32px 80px', borderRadius: 24, padding: '72px 48px', textAlign: 'center', maxWidth: 1016, marginLeft: 'auto', marginRight: 'auto' }}>
         <h2 style={{ fontSize: 'clamp(32px, 5vw, 52px)', fontWeight: 300, color: '#fff', letterSpacing: '-0.02em', marginBottom: 16 }}>Never lose a conference<br />lead again.</h2>
         <p style={{ fontSize: 18, color: 'rgba(255,255,255,0.5)', marginBottom: 36 }}>Join sales reps who use Katch to capture, score, and close.</p>
-        <Link href="/login" style={{ background: '#7dde3c', color: '#1a3a2a', borderRadius: 100, padding: '16px 36px', fontSize: 16, fontWeight: 600, display: 'inline-block' }}>Get started free</Link>
+        <Link href="/signup" style={{ background: '#7dde3c', color: '#1a3a2a', borderRadius: 100, padding: '16px 36px', fontSize: 16, fontWeight: 600, display: 'inline-block' }}>Get started free</Link>
       </section>
 
       {/* Footer */}
