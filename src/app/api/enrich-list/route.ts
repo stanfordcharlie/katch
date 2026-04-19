@@ -318,7 +318,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const contactsToProcess = validContacts.slice(0, 100)
+    const contactsToProcess = validContacts
 
     const { data: settings } = await supabaseAdmin
       .from('user_settings')

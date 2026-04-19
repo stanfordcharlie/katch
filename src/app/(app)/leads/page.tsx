@@ -511,7 +511,7 @@ export default function LeadsPage() {
       return;
     }
     const dataRows = parsed.length - 1;
-    const cappedForEta = Math.min(dataRows, 100);
+    const cappedForEta = dataRows;
     const eventName =
       selectedEventId === ""
         ? "No specific event"

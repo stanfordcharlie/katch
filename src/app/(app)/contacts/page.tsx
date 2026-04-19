@@ -1756,6 +1756,7 @@ export default function ContactsPage() {
               ].map((h, i) => (
                 <div
                   key={h + i}
+                  className={i === 0 ? 'w-10 text-center align-middle' : undefined}
                   style={{
                     ...CONTACTS_DESKTOP_COL_STYLE[i],
                     fontSize: 11,
@@ -1783,6 +1784,7 @@ export default function ContactsPage() {
                   {i === 0 ? (
                     <input
                       type='checkbox'
+                      className='w-4 h-4 accent-[#7dde3c] cursor-pointer'
                       checked={
                         sortedContacts.length > 0 &&
                         sortedContacts.every((c) =>
@@ -1800,13 +1802,6 @@ export default function ContactsPage() {
                         }
                       }}
                       onClick={(e) => e.stopPropagation()}
-                      style={{
-                        width: 14,
-                        height: 14,
-                        cursor: 'pointer',
-                        accentColor: '#1a3a2a',
-                        flexShrink: 0,
-                      }}
                     />
                   ) : (
                     h
@@ -1987,6 +1982,7 @@ export default function ContactsPage() {
                   />
                 ) : (
                   <div
+                    className='w-10 text-center align-middle'
                     style={{
                       ...CONTACTS_DESKTOP_COL_STYLE[0],
                       display: 'flex',
@@ -1996,6 +1992,7 @@ export default function ContactsPage() {
                   >
                     <input
                       type='checkbox'
+                      className='w-4 h-4 accent-[#7dde3c] cursor-pointer'
                       checked={selectedIds.includes(contact.id)}
                       onChange={(e) =>
                         e.target.checked
@@ -2005,13 +2002,6 @@ export default function ContactsPage() {
                             )
                       }
                       onClick={(e) => e.stopPropagation()}
-                      style={{
-                        width: 14,
-                        height: 14,
-                        cursor: 'pointer',
-                        accentColor: '#1a3a2a',
-                        flexShrink: 0,
-                      }}
                     />
                   </div>
                 )}
