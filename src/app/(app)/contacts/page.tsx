@@ -2573,7 +2573,7 @@ export default function ContactsPage() {
                           padding: '10px 12px',
                           boxSizing: 'border-box',
                           verticalAlign: 'middle',
-                          textAlign: 'center' as string,
+                          textAlign: 'center' as const,
                         }}
                       >
                         <ContactSourceCell contact={contact} />
@@ -2585,7 +2585,7 @@ export default function ContactsPage() {
                           padding: '10px 12px',
                           boxSizing: 'border-box',
                           verticalAlign: 'middle',
-                          textAlign: 'center' as string,
+                          textAlign: 'center' as const,
                         }}
                       >
                         {contact.synced_to_hubspot === true ? (
@@ -2615,7 +2615,7 @@ export default function ContactsPage() {
                           padding: '10px 12px',
                           boxSizing: 'border-box',
                           verticalAlign: 'middle',
-                          textAlign: 'center' as string,
+                          textAlign: 'center' as const,
                         }}
                       >
                         <a
