@@ -1735,80 +1735,72 @@ export default function ContactsPage() {
               boxShadow: '0 1px 0 rgba(0,0,0,0.04)',
             }}
           >
-            <div
+            <table
               style={{
-                display: 'grid',
                 width: '100%',
-                gridTemplateColumns: CONTACTS_DESKTOP_GRID_TEMPLATE,
-                boxSizing: 'border-box',
+                tableLayout: 'fixed',
+                borderCollapse: 'collapse',
               }}
             >
-              {[
-                '',
-                'NAME',
-                'TITLE',
-                'COMPANY',
-                'EVENT',
-                'SCORE',
-                'SOURCE',
-                'SYNCED',
-                '',
-              ].map((h, i) => (
-                <div
-                  key={h + i}
-                  className={i === 0 ? 'w-10 text-center align-middle' : undefined}
-                  style={{
-                    ...CONTACTS_DESKTOP_COL_STYLE[i],
-                    fontSize: 11,
-                    fontWeight: 600,
-                    letterSpacing: '0.06em',
-                    textTransform: 'uppercase',
-                    color: '#999',
-                    paddingTop: 10,
-                    paddingBottom: 10,
-                    paddingLeft: i === 0 ? 0 : 12,
-                    paddingRight: i === 0 ? 0 : 12,
-                    textAlign: i === 0 || i >= 5 ? 'center' : 'left',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    ...(i === 0
-                      ? {
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }
-                      : {}),
-                  }}
-                >
-                  {i === 0 ? (
-                    <input
-                      type='checkbox'
-                      className='w-4 h-4 accent-[#7dde3c] cursor-pointer'
-                      checked={
-                        sortedContacts.length > 0 &&
-                        sortedContacts.every((c) =>
-                          selectedIds.includes(c.id)
-                        )
-                      }
-                      onChange={(e) => {
-                        const visibleIds = sortedContacts.map((c) => c.id);
-                        if (e.target.checked) {
-                          setSelectedIds(visibleIds);
-                        } else {
-                          setSelectedIds((prev) =>
-                            prev.filter((id) => !visibleIds.includes(id))
-                          );
-                        }
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  ) : (
-                    h
-                  )}
-                </div>
-              ))}
-            </div>
+              <thead>
+                <tr>
+                  <th className='w-10' />
+                  <th
+                    style={{
+                      ...CONTACTS_DESKTOP_COL_STYLE[1],
+                      fontSize: 11,
+                      fontWeight: 600,
+                      letterSpacing: '0.06em',
+                      textTransform: 'uppercase',
+                      color: '#999',
+                      paddingTop: 10,
+                      paddingBottom: 10,
+                      paddingLeft: 12,
+                      paddingRight: 12,
+                      textAlign: 'left',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    NAME
+                  </th>
+                  {['TITLE', 'COMPANY', 'EVENT', 'SCORE', 'SOURCE', 'SYNCED', ''].map((h, j) => {
+                    const i = j + 2;
+                    return (
+                      <th
+                        key={h + String(j)}
+                        style={{
+                          ...CONTACTS_DESKTOP_COL_STYLE[i],
+                          ...(h === 'SCORE'
+                            ? { width: 80 }
+                            : h === 'SOURCE'
+                              ? { width: 100 }
+                              : h === 'SYNCED'
+                                ? { width: 80 }
+                                : {}),
+                          fontSize: 11,
+                          fontWeight: 600,
+                          letterSpacing: '0.06em',
+                          textTransform: 'uppercase',
+                          color: '#999',
+                          paddingTop: 10,
+                          paddingBottom: 10,
+                          paddingLeft: 12,
+                          paddingRight: 12,
+                          textAlign: i >= 5 ? 'center' : 'left',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {h}
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+            </table>
           </div>
         )}
         {sortedContacts.length === 0 && contacts.length > 0 ? (
@@ -1938,28 +1930,19 @@ export default function ContactsPage() {
                 if (!isMobile) e.currentTarget.style.background = '#fff';
               }}
             >
-              <div
-                style={
-                  isMobile
-                    ? {
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 10,
-                        padding: '12px 16px',
-                        width: '100%',
-                        maxWidth: '100%',
-                        minWidth: 0,
-                        boxSizing: 'border-box',
-                      }
-                    : {
-                        display: 'grid',
-                        width: '100%',
-                        gridTemplateColumns: CONTACTS_DESKTOP_GRID_TEMPLATE,
-                        boxSizing: 'border-box',
-                        alignItems: 'center',
-                      }
-                }
-              >
+              {isMobile ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '12px 16px',
+                    width: '100%',
+                    maxWidth: '100%',
+                    minWidth: 0,
+                    boxSizing: 'border-box',
+                  }}
+                >
                 {isMobile ? (
                   <input
                     type='checkbox'
@@ -2393,7 +2376,264 @@ export default function ContactsPage() {
                     </a>
                   </div>
                 )}
-              </div>
+                </div>
+              ) : (
+                <table
+                  style={{
+                    width: '100%',
+                    tableLayout: 'fixed',
+                    borderCollapse: 'collapse',
+                  }}
+                >
+                  <tbody>
+                    <tr>
+                      <td className='w-10 pl-3' style={{ verticalAlign: 'middle' }}>
+                        <input
+                          type='checkbox'
+                          style={{ width: 16, height: 16, accentColor: '#7dde3c', cursor: 'pointer', display: 'block' }}
+                          checked={selectedIds.includes(contact.id)}
+                          onChange={(e) =>
+                            e.target.checked
+                              ? setSelectedIds((prev) => [...prev, contact.id])
+                              : setSelectedIds((prev) =>
+                                  prev.filter((id) => id !== contact.id)
+                                )
+                          }
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </td>
+                      <td
+                        style={{
+                          ...CONTACTS_DESKTOP_COL_STYLE[1],
+                          padding: '10px 12px',
+                          verticalAlign: 'middle',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          {contact.image ? (
+                            <img
+                              src={contact.image as string}
+                              alt={`${contact.name || 'Contact'} badge`}
+                              style={{
+                                width: 32,
+                                height: 32,
+                                borderRadius: '50%',
+                                objectFit: 'cover',
+                                flexShrink: 0,
+                              }}
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                width: 32,
+                                height: 32,
+                                borderRadius: '50%',
+                                background: '#f0f0f0',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: 12,
+                                fontWeight: 600,
+                                color: '#999',
+                                flexShrink: 0,
+                              }}
+                            >
+                              {initials}
+                            </div>
+                          )}
+                          <div style={{ minWidth: 0, flex: 1, overflow: 'hidden' }}>
+                            {contact.name ? (
+                              <span
+                                role='link'
+                                tabIndex={0}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    window.open(`/contacts/${contact.id}`, '_blank', 'noopener,noreferrer');
+                                  }
+                                }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(`/contacts/${contact.id}`, '_blank', 'noopener,noreferrer');
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.textDecorationColor = '#1a3a2a';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.textDecorationColor = 'rgba(26,58,42,0.3)';
+                                }}
+                                style={{
+                                  fontSize: '14px',
+                                  fontWeight: 600,
+                                  color: '#1a3a2a',
+                                  textDecoration: 'underline',
+                                  cursor: 'pointer',
+                                  textUnderlineOffset: 3,
+                                  textDecorationColor: 'rgba(26,58,42,0.3)',
+                                }}
+                              >
+                                {contact.name}
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: '14px', fontWeight: 600, color: '#111' }}>—</span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td
+                        title={contact.title ?? undefined}
+                        style={{
+                          ...CONTACTS_DESKTOP_COL_STYLE[2],
+                          padding: '10px 12px',
+                          fontSize: 13,
+                          color: '#666',
+                          boxSizing: 'border-box',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {contact.title ?? '—'}
+                      </td>
+                      <td
+                        title={contact.company ?? undefined}
+                        style={{
+                          ...CONTACTS_DESKTOP_COL_STYLE[3],
+                          padding: '10px 12px',
+                          fontSize: 14,
+                          color: '#555',
+                          boxSizing: 'border-box',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {contact.company || '—'}
+                      </td>
+                      <td
+                        title={eventLabel ?? undefined}
+                        style={{
+                          ...CONTACTS_DESKTOP_COL_STYLE[4],
+                          padding: '10px 12px',
+                          boxSizing: 'border-box',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {eventLabel ? (
+                          <span
+                            style={{
+                              display: 'block',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              fontSize: 12,
+                              color: '#666',
+                            }}
+                          >
+                            {eventLabel}
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: 12, color: '#999' }}>—</span>
+                        )}
+                      </td>
+                      <td
+                        style={{
+                          ...CONTACTS_DESKTOP_COL_STYLE[5],
+                          width: 80,
+                          textAlign: 'center',
+                          padding: '10px 12px',
+                          boxSizing: 'border-box',
+                          verticalAlign: 'middle',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            letterSpacing: '0.02em',
+                            padding: '5px 12px',
+                            borderRadius: 999,
+                            background: badgeBg,
+                            color: badgeColor,
+                            flexShrink: 0,
+                            textAlign: 'center',
+                            boxSizing: 'border-box',
+                          }}
+                        >
+                          {scoreNum == null ? '—' : scoreNum}
+                        </span>
+                      </td>
+                      <td
+                        style={{
+                          ...CONTACTS_DESKTOP_COL_STYLE[6],
+                          width: 100,
+                          padding: '10px 12px',
+                          boxSizing: 'border-box',
+                          verticalAlign: 'middle',
+                          textAlign: 'center' as string,
+                        }}
+                      >
+                        <ContactSourceCell contact={contact} />
+                      </td>
+                      <td
+                        style={{
+                          ...CONTACTS_DESKTOP_COL_STYLE[7],
+                          width: 80,
+                          padding: '10px 12px',
+                          boxSizing: 'border-box',
+                          verticalAlign: 'middle',
+                          textAlign: 'center' as string,
+                        }}
+                      >
+                        {contact.synced_to_hubspot === true ? (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              background: '#fff3ee',
+                              border: '1px solid #ffd4c2',
+                              color: '#ff7a59',
+                              fontSize: 10,
+                              fontWeight: 600,
+                              padding: '2px 6px',
+                              borderRadius: 4,
+                            }}
+                          >
+                            H
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: 14, color: '#999' }}>—</span>
+                        )}
+                      </td>
+                      <td
+                        style={{
+                          ...CONTACTS_DESKTOP_COL_STYLE[8],
+                          padding: '10px 12px',
+                          boxSizing: 'border-box',
+                          verticalAlign: 'middle',
+                          textAlign: 'center' as string,
+                        }}
+                      >
+                        <a
+                          href={`/contacts/${contact.id}`}
+                          target='_blank'
+                          rel='noopener noreferrer'
+                          aria-label='Open contact in new tab'
+                          className='opacity-0 group-hover:opacity-100 transition-opacity'
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          <ExternalLink size={13} color='#999' />
+                        </a>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              )}
 
               {selected?.id === contact.id && (
                 <div

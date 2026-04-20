@@ -1,8 +1,11 @@
 'use client'
 import Link from 'next/link'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
 
 export default function LandingPage() {
+  const router = useRouter()
   const [billing, setBilling] = useState<'monthly' | 'annually'>('monthly')
   const [mobileMenu, setMobileMenu] = useState(false)
 
@@ -118,8 +121,12 @@ export default function LandingPage() {
             <a href="#features" className="nav-link" style={{ color: '#fff' }}>Features</a>
             <a href="#pricing" className="nav-link" style={{ color: '#fff' }}>Pricing</a>
           </div>
-          <Link
-            href="/login"
+          <button
+            type='button'
+            onClick={async () => {
+              const { data } = await supabase.auth.getSession()
+              router.push(data.session ? '/dashboard' : '/login')
+            }}
             style={{
               padding: '10px 22px',
               fontSize: 14,
@@ -131,10 +138,11 @@ export default function LandingPage() {
               borderRadius: 100,
               textDecoration: 'none',
               display: 'inline-block',
+              cursor: 'pointer',
             }}
           >
             Go to app
-          </Link>
+          </button>
         </div>
       </nav>
 
