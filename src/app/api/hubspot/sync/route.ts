@@ -277,6 +277,75 @@ export async function POST(req: NextRequest) {
           return { contactId: contact.id, success: true, hubspotId: data.id as string | undefined };
         }
 
+        if (!response.ok && (data.category === "CONFLICT" || response.status === 409)) {
+          const emailSearch = (contact.email ?? "").trim();
+          if (emailSearch) {
+            const searchRes = await fetch("https://api.hubapi.com/crm/v3/objects/contacts/search", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${accessToken}`,
+              },
+              body: JSON.stringify({
+                filterGroups: [
+                  {
+                    filters: [
+                      {
+                        propertyName: "email",
+                        operator: "EQ",
+                        value: emailSearch,
+                      },
+                    ],
+                  },
+                ],
+                limit: 1,
+              }),
+            });
+            const searchText = await searchRes.text();
+            let searchData: { results?: { id?: string }[] } = {};
+            try {
+              if (searchText) searchData = JSON.parse(searchText) as { results?: { id?: string }[] };
+            } catch {
+              searchData = {};
+            }
+            const existingIdRaw = searchData.results?.[0]?.id;
+            const existingId = existingIdRaw != null ? String(existingIdRaw) : "";
+            if (existingId) {
+              const patchRes = await fetch(
+                `https://api.hubapi.com/crm/v3/objects/contacts/${existingId}`,
+                {
+                  method: "PATCH",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${accessToken}`,
+                  },
+                  body: JSON.stringify({ properties }),
+                }
+              );
+              if (patchRes.ok) {
+                await supabaseAdmin
+                  .from("contacts")
+                  .update({
+                    synced_to_hubspot: true,
+                    hubspot_synced_at: new Date().toISOString(),
+                  })
+                  .eq("id", contact.id);
+
+                if (shouldCreateKatchNote(contact)) {
+                  try {
+                    const noteText = await buildKatchHubSpotNote(contact as Record<string, unknown>);
+                    await attachKatchNoteToContact(accessToken, existingId, noteText);
+                  } catch (noteErr) {
+                    console.error("HubSpot Katch note error:", noteErr);
+                  }
+                }
+
+                return { contactId: contact.id, success: true, hubspotId: existingId };
+              }
+            }
+          }
+        }
+
         const errMsg = hubspotErrorMessage(responseText, data);
         return {
           contactId: contact.id,
