@@ -297,7 +297,7 @@ function LoginForm() {
                       background: "none",
                       border: "none",
                       cursor: "pointer",
-                      color: "#999",
+                      color: "#fff",
                       display: "flex",
                       alignItems: "center",
                     }}
@@ -394,7 +394,7 @@ function LoginForm() {
                     background: "none",
                     border: "none",
                     cursor: "pointer",
-                    color: "#999",
+                    color: "#fff",
                     display: "flex",
                     alignItems: "center",
                   }}
