@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 
 export const maxDuration = 300
+export const dynamic = 'force-dynamic'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -20,72 +21,7 @@ type CsvContact = {
   linkedin: string
 }
 
-const knownMappings: Record<string, string> = {
-  'first name': 'first_name',
-  firstname: 'first_name',
-  first: 'first_name',
-  'last name': 'last_name',
-  lastname: 'last_name',
-  last: 'last_name',
-  'full name': 'name',
-  name: 'name',
-  attendee: 'name',
-  delegate: 'name',
-  contact: 'name',
-  'attendee name': 'name',
-  'member name': 'name',
-  participant: 'name',
-  registrant: 'name',
-  'badge name': 'name',
-  'display name': 'name',
-  email: 'email',
-  'email address': 'email',
-  'e-mail': 'email',
-  'work email': 'email',
-  'business email': 'email',
-  'corp email': 'email',
-  company: 'company',
-  organization: 'company',
-  organisation: 'company',
-  employer: 'company',
-  'company name': 'company',
-  institution: 'company',
-  agency: 'company',
-  org: 'company',
-  dept: 'company',
-  department: 'company',
-  affiliation: 'company',
-  workplace: 'company',
-  title: 'title',
-  'job title': 'title',
-  position: 'title',
-  role: 'title',
-  job: 'title',
-  designation: 'title',
-  'job function': 'title',
-  level: 'title',
-  seniority: 'title',
-  phone: 'phone',
-  'phone number': 'phone',
-  mobile: 'phone',
-  cell: 'phone',
-  telephone: 'phone',
-  'cell phone': 'phone',
-  'mobile phone': 'phone',
-  direct: 'phone',
-  'work phone': 'phone',
-  linkedin: 'linkedin',
-  'linkedin url': 'linkedin',
-  'linkedin profile': 'linkedin',
-  suffix: 'ignore',
-  prefix: 'ignore',
-  salutation: 'ignore',
-  city: 'ignore',
-  state: 'ignore',
-  country: 'ignore',
-  zip: 'ignore',
-  address: 'ignore',
-}
+type CanonicalField = 'name' | 'first_name' | 'last_name' | 'email' | 'company' | 'title' | 'phone' | 'linkedin' | 'ignore'
 
 const headerKeywords = [
   'name',
@@ -113,9 +49,25 @@ const scoreRow = (row: string[]) =>
     return score + (headerKeywords.some((k) => normalized.includes(k)) ? 1 : 0)
   }, 0)
 
-const mapHeader = (h: string): string => {
-  const normalized = h.toLowerCase().trim().replace(/[^a-z0-9 ]/g, '')
-  return knownMappings[normalized] || 'ignore'
+const normalizeHeader = (header: string): string =>
+  header
+    .toLowerCase()
+    .trim()
+    .replace(/[ .|]/g, '')
+
+const mapHeader = (h: string): CanonicalField => {
+  const normalized = normalizeHeader(h)
+
+  if (normalized.includes('email') || normalized.includes('mail')) return 'email'
+  if (normalized.includes('org') || normalized.includes('company') || normalized.includes('organization') || normalized.includes('organisation')) return 'company'
+  if (normalized.includes('title')) return 'title'
+  if (normalized.includes('phone')) return 'phone'
+  if (normalized.includes('linkedin')) return 'linkedin'
+  if (normalized.includes('first')) return 'first_name'
+  if (normalized.includes('last')) return 'last_name'
+  if (normalized.includes('name') && !normalized.includes('first') && !normalized.includes('last')) return 'name'
+
+  return 'ignore'
 }
 
 function parseCsv(csvText: string): string[][] {
@@ -253,7 +205,6 @@ function extractContacts(dataRows: string[][], fieldToIndex: Record<string, numb
         linkedin: idx.linkedin !== undefined ? (r[idx.linkedin] ?? '').trim() : '',
       }
     })
-    .filter((c) => !((c.name || '').trim() === '' && (c.email || '').trim() === ''))
 }
 
 export async function POST(req: NextRequest) {
@@ -274,7 +225,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error: 'no_valid_rows',
-          message: 'Could not find name or email columns in this CSV. Headers found: ',
+          message: 'Could not parse this CSV.',
         },
         { status: 400 }
       )
@@ -308,16 +259,6 @@ export async function POST(req: NextRequest) {
     const validContacts = extractContacts(dataRows, fieldToIndex)
     console.log('enrich-list: valid contacts extracted', validContacts.length)
 
-    if (!validContacts.length) {
-      return NextResponse.json(
-        {
-          error: 'no_valid_rows',
-          message: 'Could not find name or email columns in this CSV. Headers found: ' + headers.join(', '),
-        },
-        { status: 400 }
-      )
-    }
-
     const contactsToProcess = validContacts
 
     const { data: settings } = await supabaseAdmin
@@ -332,8 +273,9 @@ export async function POST(req: NextRequest) {
       async start(controller) {
         try {
           const chunks: CsvContact[][] = []
-          for (let i = 0; i < contactsToProcess.length; i += 10) {
-            chunks.push(contactsToProcess.slice(i, i + 10))
+          const chunkSize = 20
+          for (let i = 0; i < contactsToProcess.length; i += chunkSize) {
+            chunks.push(contactsToProcess.slice(i, i + chunkSize))
           }
 
           const apiKey = process.env.ANTHROPIC_API_KEY
@@ -341,20 +283,23 @@ export async function POST(req: NextRequest) {
             throw new Error('Missing ANTHROPIC_API_KEY')
           }
 
-          const processChunk = async (chunk: CsvContact[]): Promise<Record<string, unknown>[]> => {
+          const buildFallback = (contact: CsvContact): Record<string, unknown> => ({
+            ...contact,
+            icp_fit_score: 5,
+            icp_fit_reason: 'Could not score',
+            suggested_lead_score: 5,
+            lead_score: 5,
+            summary: '',
+            talking_points: [] as unknown[],
+            red_flags: [] as unknown[],
+            ai_enrichment: null,
+          })
+
+          const processChunk = async (
+            chunk: CsvContact[],
+            attempt = 0
+          ): Promise<Record<string, unknown>[]> => {
             let responseText = '[]'
-            const buildFallbacks = (): Record<string, unknown>[] =>
-              chunk.map((contact) => ({
-                ...contact,
-                icp_fit_score: 5,
-                icp_fit_reason: 'Could not score',
-                suggested_lead_score: 5,
-                lead_score: 5,
-                summary: '',
-                talking_points: [] as unknown[],
-                red_flags: [] as unknown[],
-                ai_enrichment: null,
-              }))
 
             try {
               const batchPrompt = `You are a B2B sales intelligence assistant. Score each of the following contacts against this ICP profile and return a JSON array.
@@ -363,17 +308,7 @@ ICP Profile:
 ${JSON.stringify(icpProfile, null, 2)}
 
 Contacts to score:
-${JSON.stringify(
-                chunk.map((c, i) => ({
-                  index: i,
-                  name: c.name,
-                  title: c.title,
-                  company: c.company,
-                  email: c.email,
-                })),
-                null,
-                2
-              )}
+${JSON.stringify(chunk.map((c, i) => ({ index: i, name: c.name, title: c.title, company: c.company, email: c.email })), null, 2)}
 
 For each contact return an object with these exact fields:
 - index: the contact's index number from above
@@ -394,7 +329,7 @@ Return ONLY a valid JSON array with no markdown, no backticks, no explanation. J
                   'anthropic-version': '2023-06-01',
                 },
                 body: JSON.stringify({
-                  model: 'claude-sonnet-4-5',
+                  model: 'claude-haiku-4-5-20251001',
                   max_tokens: 4000,
                   messages: [{ role: 'user', content: batchPrompt }],
                 }),
@@ -414,66 +349,62 @@ Return ONLY a valid JSON array with no markdown, no backticks, no explanation. J
               if (!Array.isArray(scores)) {
                 throw new Error('Expected JSON array from Claude')
               }
-
               const byIndex = new Map<number, Record<string, unknown>>()
               for (const score of scores) {
                 const idx = typeof score.index === 'number' ? score.index : NaN
                 if (!Number.isNaN(idx)) byIndex.set(idx, score)
               }
 
-              const enrichedList: Record<string, unknown>[] = []
-              for (let i = 0; i < chunk.length; i++) {
-                const contact = chunk[i]
+              return chunk.map((contact, i) => {
                 const score = byIndex.get(i)
-                let enriched: Record<string, unknown>
-                if (score) {
-                  const talking_points = Array.isArray(score.talking_points) ? score.talking_points : []
-                  const red_flags = Array.isArray(score.red_flags) ? score.red_flags : []
-                  const suggestedLead = Number(score.suggested_lead_score ?? 5) || 5
-                  const icpFitForLead = Number(score.icp_fit_score ?? 5) || 5
-                  enriched = {
-                    ...contact,
-                    icp_fit_score: icpFitForLead,
-                    icp_fit_reason:
-                      typeof score.icp_fit_reason === 'string' ? score.icp_fit_reason : '',
-                    suggested_lead_score: suggestedLead,
-                    lead_score: icpFitForLead,
-                    summary: typeof score.summary === 'string' ? score.summary : '',
-                    talking_points,
-                    red_flags,
-                    ai_enrichment: {
-                      icp_fit_score: score.icp_fit_score,
-                      icp_fit_reason: score.icp_fit_reason,
-                      suggested_lead_score: score.suggested_lead_score,
-                      summary: score.summary,
-                      talking_points: score.talking_points,
-                      red_flags: score.red_flags,
-                    },
-                  }
-                } else {
-                  enriched = {
-                    ...contact,
-                    icp_fit_score: 5,
-                    icp_fit_reason: 'Could not score',
-                    suggested_lead_score: 5,
-                    lead_score: 5,
-                    summary: '',
-                    talking_points: [],
-                    red_flags: [],
-                    ai_enrichment: null,
-                  }
+                if (!score) return buildFallback(contact)
+                const talking_points = Array.isArray(score.talking_points) ? score.talking_points : []
+                const red_flags = Array.isArray(score.red_flags) ? score.red_flags : []
+                const suggestedLead = Number(score.suggested_lead_score ?? 5) || 5
+                const icpFitForLead = Number(score.icp_fit_score ?? 5) || 5
+                return {
+                  ...contact,
+                  icp_fit_score: icpFitForLead,
+                  icp_fit_reason: typeof score.icp_fit_reason === 'string' ? score.icp_fit_reason : '',
+                  suggested_lead_score: suggestedLead,
+                  lead_score: icpFitForLead,
+                  summary: typeof score.summary === 'string' ? score.summary : '',
+                  talking_points,
+                  red_flags,
+                  ai_enrichment: {
+                    icp_fit_score: score.icp_fit_score,
+                    icp_fit_reason: score.icp_fit_reason,
+                    suggested_lead_score: score.suggested_lead_score,
+                    summary: score.summary,
+                    talking_points: score.talking_points,
+                    red_flags: score.red_flags,
+                  },
                 }
-                enrichedList.push(enriched)
-              }
-              return enrichedList
+              })
             } catch (e) {
+              if (attempt < 1) {
+                return processChunk(chunk, attempt + 1)
+              }
               console.error('Batch parse failed:', e, 'Raw response:', responseText)
-              return buildFallbacks()
+              return chunk.map((contact) => buildFallback(contact))
             }
           }
 
-          const chunkResults = await Promise.all(chunks.map((chunk) => processChunk(chunk)))
-          const results = chunkResults.flat().map((row) => ({ ...row, status: contactStatus }))
+          const chunkResults: Record<string, unknown>[] = []
+          for (let i = 0; i < chunks.length; i += 5) {
+            const batch = chunks.slice(i, i + 5)
+            const settled = await Promise.allSettled(batch.map((chunk) => processChunk(chunk)))
+            for (let j = 0; j < settled.length; j++) {
+              const result = settled[j]
+              if (result.status === 'fulfilled') {
+                chunkResults.push(...result.value)
+              } else {
+                chunkResults.push(...batch[j].map((contact) => buildFallback(contact)))
+              }
+            }
+          }
+
+          const results = chunkResults.map((row) => ({ ...row, status: contactStatus }))
 
           for (let pi = 0; pi < results.length; pi++) {
             if (pi > 0) {

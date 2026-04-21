@@ -4,6 +4,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { User } from "@supabase/supabase-js";
+import { CalendarDays, Flame, ScanLine } from "lucide-react";
 
 interface Contact {
   id: string;
@@ -172,23 +173,6 @@ export default function HomePage() {
     return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
   };
 
-  const unsyncedCrmRowSubtitle = (c: Contact): string | null => {
-    const evId = c.event?.trim();
-    if (!evId) return null;
-    const evRow = events.find((e) => e.id === evId);
-    const label = followUpEventLabel(c.event);
-    const datePart = evRow ? formatDate(evRow.date) : "";
-    const parts = [label, datePart].filter(Boolean) as string[];
-    return parts.length ? parts.join(" · ") : null;
-  };
-
-  const scoreBadge = (score: number | null) => {
-    const s = score ?? 0;
-    if (s >= 9) return { label: "Fire", color: "#ff9500", bg: "#fff3ee" };
-    if (s >= 5) return { label: "Warm", color: "#2d6a1f", bg: "#f0faf0" };
-    return { label: "Cold", color: "#999", bg: "#f5f5f5" };
-  };
-
   const todayLabel = new Date().toLocaleDateString(undefined, {
     weekday: "long",
     month: "long",
@@ -217,15 +201,10 @@ export default function HomePage() {
     );
   }
 
-  const showSequencesSent = sequencesSentCount != null && sequencesSentCount > 0;
-
   const statItems = [
-    { label: "TOTAL SCANNED", value: totalContactsCount.toString() },
-    { label: "HOT LEADS", value: hotLeadsCount.toString() },
-    ...(showSequencesSent
-      ? [{ label: "SEQUENCES SENT", value: String(sequencesSentCount) }]
-      : []),
-    { label: "EVENTS ATTENDED", value: eventsAttended.toString() },
+    { label: "TOTAL SCANNED", value: totalContactsCount.toString(), icon: ScanLine },
+    { label: "HOT LEADS", value: hotLeadsCount.toString(), icon: Flame },
+    { label: "EVENTS ATTENDED", value: eventsAttended.toString(), icon: CalendarDays },
   ];
 
   const cardShell: CSSProperties = {
@@ -233,16 +212,17 @@ export default function HomePage() {
     backdropFilter: "blur(16px)",
     WebkitBackdropFilter: "blur(16px)",
     border: "1px solid rgba(0,0,0,0.07)",
-    borderRadius: 14,
-    padding: 20,
+    borderRadius: 16,
+    padding: 24,
   };
 
   const sectionLabelStyle: CSSProperties = {
     fontSize: 11,
     color: "#999",
     textTransform: "uppercase",
-    letterSpacing: "0.06em",
-    fontWeight: 600,
+    letterSpacing: "2px",
+    fontWeight: 500,
+    marginBottom: 12,
   };
 
   const pillStyle = (badge: { bg: string; color: string }) => ({
@@ -303,7 +283,7 @@ export default function HomePage() {
             }}
           >
             <div>
-              <div style={{ fontSize: 28, fontWeight: 500, color: "#111", lineHeight: 1.2 }}>
+              <div style={{ fontSize: 28, fontWeight: 400, color: "#111", lineHeight: 1.2 }}>
                 {greeting}, {firstName}
               </div>
               <div style={{ fontSize: 13, color: "#999", marginTop: 4 }}>{todayLabel}</div>
@@ -331,54 +311,33 @@ export default function HomePage() {
 
           <div
             style={{
-              background: "rgba(255,255,255,0.6)",
-              backdropFilter: "blur(16px)",
-              WebkitBackdropFilter: "blur(16px)",
-              border: "1px solid rgba(0,0,0,0.07)",
-              borderRadius: 14,
-              padding: "16px 32px",
-              display: "flex",
-              gap: 0,
-              alignItems: "stretch",
+              display: "grid",
+              gridTemplateColumns: isMobile ? "1fr" : "repeat(3, minmax(0, 1fr))",
+              gap: 16,
               marginBottom: 24,
-              width: "auto",
-              alignSelf: "flex-start",
-              boxSizing: "border-box",
+              width: "100%",
             }}
           >
-            {statItems.map((stat, i) => (
-              <div
-                key={stat.label}
-                style={{
-                  padding: "0 32px",
-                  borderLeft: i > 0 ? "1px solid rgba(0,0,0,0.08)" : "none",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  textAlign: "center",
-                }}
-              >
-                <span style={{ fontSize: 22, fontWeight: 600, color: "#111", lineHeight: 1.1 }}>{stat.value}</span>
-                <span
-                  style={{
-                    fontSize: 11,
-                    color: "#999",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                    marginTop: 4,
-                  }}
-                >
-                  {stat.label}
-                </span>
-              </div>
-            ))}
+            {statItems.map((stat) => {
+              const Icon = stat.icon;
+              return (
+                <div key={stat.label} style={cardShell}>
+                  <Icon size={16} color="#999" />
+                  <div style={{ fontSize: 36, fontWeight: 700, color: "#1a3a2a", lineHeight: 1.1, marginTop: 10 }}>
+                    {stat.value}
+                  </div>
+                  <div style={{ fontSize: 11, color: "#999", textTransform: "uppercase", letterSpacing: "0.12em", marginTop: 6 }}>
+                    {stat.label}
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           <section
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr 1fr",
+              gridTemplateColumns: isMobile ? "1fr" : "2fr 1fr",
               gap: 24,
               width: "100%",
             }}
@@ -424,7 +383,6 @@ export default function HomePage() {
                     const eventContacts = contactsByEventId.get(ev.id) || [];
                     const count = eventContacts.length;
                     const highest = hottestScoreForEvent(ev.id);
-                    const badge = scoreBadge(highest);
                     return (
                       <div
                         key={ev.id}
@@ -440,33 +398,38 @@ export default function HomePage() {
                         }}
                       >
                         <div style={{ minWidth: 0 }}>
-                          <a
-                            href={`/events/${ev.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{
-                              fontSize: 14,
-                              fontWeight: 500,
-                              color: "#1a3a2a",
-                              textDecoration: "underline",
-                              textUnderlineOffset: 3,
-                              textDecorationColor: "rgba(26,58,42,0.3)",
-                              cursor: "pointer",
-                            }}
-                          >
+                          <div style={{ fontSize: 14, color: "#1a3a2a", fontWeight: 600 }}>
                             {ev.name || "Untitled event"}
-                          </a>
+                          </div>
                           <div style={{ fontSize: 12, color: "#999", marginTop: 2 }}>
                             {[formatDate(ev.date), ev.location].filter(Boolean).join(" · ")}
                           </div>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-                          <span style={{ fontSize: 13, fontWeight: 500, color: "#111", whiteSpace: "nowrap" }}>
+                          <span
+                            style={{
+                              background: "#f0f2f0",
+                              borderRadius: 20,
+                              padding: "2px 10px",
+                              fontSize: 12,
+                              color: "#1a3a2a",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
                             {count} contact{count === 1 ? "" : "s"}
                           </span>
                           {count > 0 && highest > 0 ? (
-                            <span style={pillStyle(badge)}>
-                              {highest} · {badge.label}
+                            <span
+                              style={{
+                                background: "rgba(125,222,60,0.12)",
+                                color: "#4a8a1a",
+                                borderRadius: 20,
+                                padding: "2px 10px",
+                                fontSize: 12,
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              Hot {highest}
                             </span>
                           ) : null}
                         </div>
@@ -515,7 +478,13 @@ export default function HomePage() {
               ) : (
                 <div style={{ display: "flex", flexDirection: "column" }}>
                   {needsFollowUp.slice(0, 3).map((c) => {
-                    const badge = scoreBadge(c.lead_score ?? 0);
+                    const score = c.lead_score ?? 0;
+                    const scoreColors =
+                      score >= 8
+                        ? { color: "#7dde3c", bg: "rgba(125,222,60,0.12)" }
+                        : score >= 5
+                          ? { color: "#f59e0b", bg: "rgba(245,158,11,0.1)" }
+                          : { color: "#ef4444", bg: "rgba(239,68,68,0.1)" };
                     const initials = (c.name || "?").trim().charAt(0).toUpperCase();
                     const eventLine = followUpEventLabel(c.event);
                     return (
@@ -535,32 +504,23 @@ export default function HomePage() {
                         <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
                           <div
                             style={{
-                              width: 28,
-                              height: 28,
+                              width: 32,
+                              height: 32,
                               borderRadius: "50%",
-                              backgroundColor: "#ebebeb",
-                              color: "#555",
+                              backgroundColor: "#f0f0f0",
+                              color: "#999",
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
-                              fontSize: 11,
-                              fontWeight: 600,
+                              fontSize: 12,
+                              fontWeight: 500,
                               flexShrink: 0,
                             }}
                           >
                             {initials}
                           </div>
                           <div style={{ minWidth: 0 }}>
-                            <span
-                              style={{
-                                fontSize: 14,
-                                fontWeight: 500,
-                                color: "#1a3a2a",
-                                textDecoration: "underline",
-                                textUnderlineOffset: 3,
-                                textDecorationColor: "rgba(26,58,42,0.3)",
-                              }}
-                            >
+                            <span style={{ fontSize: 14, fontWeight: 600, color: "#1a3a2a" }}>
                               {c.name || "Unknown contact"}
                             </span>
                             {eventLine ? (
@@ -568,8 +528,17 @@ export default function HomePage() {
                             ) : null}
                           </div>
                         </div>
-                        <span style={pillStyle(badge)}>
-                          {c.lead_score ?? 0}/10 · {badge.label}
+                        <span
+                          style={{
+                            fontSize: 12,
+                            borderRadius: 20,
+                            padding: "2px 10px",
+                            background: scoreColors.bg,
+                            color: scoreColors.color,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {score}/10
                         </span>
                       </div>
                     );
@@ -611,11 +580,21 @@ export default function HomePage() {
                   View all
                 </button>
               </div>
-              <div style={{ display: "flex", flexDirection: "column" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  overflowX: "auto",
+                  flexWrap: "nowrap",
+                  paddingBottom: 4,
+                }}
+              >
                 {unsyncedCrmContacts.map((c) => {
-                  const badge = scoreBadge(c.lead_score ?? 0);
+                  const score = c.lead_score ?? 0;
+                  const scoreColor =
+                    score >= 8 ? "#7dde3c" : score >= 5 ? "#f59e0b" : "#ef4444";
                   const initials = (c.name || "?").trim().charAt(0).toUpperCase();
-                  const sub = unsyncedCrmRowSubtitle(c);
                   return (
                     <div
                       key={c.id}
@@ -623,55 +602,37 @@ export default function HomePage() {
                       style={{
                         display: "flex",
                         alignItems: "center",
-                        gap: 12,
-                        justifyContent: "space-between",
-                        padding: "12px 0",
-                        borderBottom: "1px solid rgba(0,0,0,0.06)",
+                        gap: 10,
+                        background: "#fff",
+                        border: "1px solid rgba(0,0,0,0.07)",
+                        borderRadius: 12,
+                        padding: "8px 14px",
+                        minWidth: "fit-content",
                         cursor: "pointer",
                       }}
                     >
-                      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-                        <div
-                          style={{
-                            width: 28,
-                            height: 28,
-                            borderRadius: "50%",
-                            backgroundColor: "#ebebeb",
-                            color: "#555",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: 11,
-                            fontWeight: 600,
-                            flexShrink: 0,
-                          }}
-                        >
-                          {initials}
-                        </div>
-                        <div style={{ minWidth: 0 }}>
-                          <a
-                            href={`/contacts/${c.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            style={{
-                              fontSize: 14,
-                              fontWeight: 500,
-                              color: "#111",
-                              textDecoration: "underline",
-                              textUnderlineOffset: 3,
-                              textDecorationColor: "rgba(26,58,42,0.3)",
-                            }}
-                          >
-                            {c.name || "Unknown contact"}
-                          </a>
-                          {sub ? (
-                            <div style={{ fontSize: 12, color: "#999", marginTop: 2 }}>{sub}</div>
-                          ) : null}
-                        </div>
+                      <div
+                        style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: "50%",
+                          backgroundColor: "#f0f0f0",
+                          color: "#999",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 11,
+                          fontWeight: 500,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {initials}
                       </div>
-                      <span style={pillStyle(badge)}>
-                        {c.lead_score ?? 0}/10 · {badge.label}
+                      <span style={{ fontSize: 13, color: "#1a3a2a", whiteSpace: "nowrap" }}>
+                        {c.name || "Unknown contact"}
+                      </span>
+                      <span style={{ fontSize: 12, color: scoreColor, marginLeft: 8 }}>
+                        {score}/10
                       </span>
                     </div>
                   );

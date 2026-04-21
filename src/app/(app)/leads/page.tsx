@@ -29,6 +29,11 @@ function patchEnrichmentJob(patch: Record<string, unknown>) {
   localStorage.setItem(ENRICHMENT_JOB_KEY, JSON.stringify({ ...cur, ...patch }));
 }
 
+function clearEnrichmentJob() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(ENRICHMENT_JOB_KEY);
+}
+
 const ENRICHMENT_RESULTS_KEY = "katch_enrichment_results";
 const OPEN_RESULTS_FLAG = "katch_open_results";
 
@@ -58,6 +63,61 @@ const parseCSV = (text: string): string[][] => {
   }
   return results;
 };
+
+const CANONICAL_LEAD_HEADERS = ["name", "email", "company", "title", "phone"] as const;
+
+function normalizeCsvHeader(header: string): string {
+  return header.toLowerCase().replace(/[\s|.]/g, "");
+}
+
+function mapLeadListHeaders(headers: string[]): {
+  first_name?: number;
+  last_name?: number;
+  email?: number;
+  company?: number;
+  title?: number;
+  phone?: number;
+} {
+  const idx: {
+    first_name?: number;
+    last_name?: number;
+    email?: number;
+    company?: number;
+    title?: number;
+    phone?: number;
+  } = {};
+  for (let i = 0; i < headers.length; i++) {
+    const n = normalizeCsvHeader(headers[i] ?? "");
+    if (n.includes("first") && idx.first_name === undefined) idx.first_name = i;
+    else if (n.includes("last") && idx.last_name === undefined) idx.last_name = i;
+    else if ((n.includes("email") || n.includes("mail")) && idx.email === undefined) idx.email = i;
+    else if ((n.includes("org") || n.includes("company")) && idx.company === undefined) idx.company = i;
+    else if (n.includes("title") && idx.title === undefined) idx.title = i;
+    else if (n.includes("phone") && idx.phone === undefined) idx.phone = i;
+  }
+  return idx;
+}
+
+function remapLeadListCsvRows(headerRow: string[], dataRows: string[][]): { headerRow: string[]; rows: string[][] } {
+  const map = mapLeadListHeaders(headerRow);
+  const cellAt = (row: string[], col?: number) => (col !== undefined ? String(row[col] ?? "").trim() : "");
+
+  const rows = dataRows.map((row) => {
+    let name = "";
+    if (map.first_name !== undefined && map.last_name !== undefined) {
+      name = `${cellAt(row, map.first_name)} ${cellAt(row, map.last_name)}`.trim();
+    }
+    return [
+      name,
+      cellAt(row, map.email),
+      cellAt(row, map.company),
+      cellAt(row, map.title),
+      cellAt(row, map.phone),
+    ];
+  });
+
+  return { headerRow: [...CANONICAL_LEAD_HEADERS], rows };
+}
 
 type EventRow = { id: string; name: string | null };
 
@@ -165,6 +225,7 @@ export default function LeadsPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const dragDepthRef = useRef(0);
   const eventDropdownRef = useRef<HTMLDivElement | null>(null);
+  const scoringAbortRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(true);
   const [user, setUser] = useState<User | null>(null);
   const [events, setEvents] = useState<EventRow[]>([]);
@@ -224,6 +285,16 @@ export default function LeadsPage() {
   }, []);
 
   useEffect(() => {
+    return () => {
+      scoringAbortRef.current?.abort();
+      scoringAbortRef.current = null;
+      setEnrichLoading(false);
+      setBarProgress(0);
+      setProgressText("");
+    };
+  }, []);
+
+  useEffect(() => {
     const check = () => setIsMobile(window.innerWidth <= 768);
     check();
     window.addEventListener("resize", check);
@@ -236,7 +307,10 @@ export default function LeadsPage() {
     if (job.status !== "processing") return;
     const startedAt = typeof job.startedAt === "string" ? job.startedAt : "";
     const startedMs = new Date(startedAt).getTime();
-    if (Number.isNaN(startedMs) || Date.now() - startedMs > 10 * 60 * 1000) return;
+    if (Number.isNaN(startedMs) || Date.now() - startedMs > 30 * 60 * 1000) {
+      clearEnrichmentJob();
+      return;
+    }
     const totalContacts = typeof job.totalContacts === "number" ? job.totalContacts : 0;
     const processed = typeof job.processed === "number" ? job.processed : 0;
     const pct =
@@ -306,7 +380,11 @@ export default function LeadsPage() {
             eventName: evName,
             contacts: withIds,
           });
-          setSelectedIds(withIds.filter((c) => (c.icp_fit_score ?? 0) >= 5).map((c) => c.__id));
+          setSelectedIds(
+            withIds
+              .filter((c) => (c.icp_fit_score ?? 0) >= 7)
+              .map((c) => c.__id)
+          );
         } catch {
           setEnrichLoading(false);
           setProgressText("");
@@ -466,7 +544,11 @@ export default function LeadsPage() {
         eventName: job?.eventName || "No specific event",
         contacts: withIds,
       });
-      setSelectedIds(withIds.filter((c) => (c.icp_fit_score ?? 0) >= 5).map((c) => c.__id));
+      setSelectedIds(
+        withIds
+          .filter((c) => (c.icp_fit_score ?? 0) >= 7)
+          .map((c) => c.__id)
+      );
     } catch {
       /* ignore */
     }
@@ -512,6 +594,11 @@ export default function LeadsPage() {
     }
     const dataRows = parsed.length - 1;
     const cappedForEta = dataRows;
+    const rawHeaderRow = parsed[0] ?? [];
+    const rawCsvRows = parsed.slice(1).filter((row) => row.some((cell) => String(cell).trim() !== ""));
+    const { headerRow, rows: csvRows } = remapLeadListCsvRows(rawHeaderRow, rawCsvRows);
+    const batchSize = 25;
+    const totalBatches = Math.max(1, Math.ceil(csvRows.length / batchSize));
     const eventName =
       selectedEventId === ""
         ? "No specific event"
@@ -522,6 +609,8 @@ export default function LeadsPage() {
     setBarProgress(0);
     setProgressText(`Scoring contact 0 of ${cappedForEta} against your ICP...`);
     setEnrichLoading(true);
+    const abortController = new AbortController();
+    scoringAbortRef.current = abortController;
 
     const jobId = Date.now();
     writeEnrichmentJobFull({
@@ -538,137 +627,184 @@ export default function LeadsPage() {
     });
 
     try {
-      const response = await fetch("/api/enrich-list", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          csvText,
-          userId: user.id,
-          eventId: selectedEventId || undefined,
-          listTiming,
-        }),
-      });
+      const escapeCsvCell = (cell: string) => {
+        const v = String(cell ?? "");
+        if (/[",\n]/.test(v)) return `"${v.replace(/"/g, '""')}"`;
+        return v;
+      };
+      const buildCsvText = (rows: string[][]) =>
+        [headerRow, ...rows].map((row) => row.map((cell) => escapeCsvCell(cell)).join(",")).join("\n");
 
-      if (!response.ok) {
-        const text = await response.text();
-        let msg = "Enrichment failed — try again.";
-        try {
-          const j = JSON.parse(text) as { error?: string; message?: string };
-          if (j.error === "no_valid_rows" && typeof j.message === "string") msg = j.message;
-          else if (typeof j.message === "string") msg = j.message;
-        } catch {
-          /* ignore */
-        }
-        patchEnrichmentJob({
-          status: "error",
-          errorMessage: msg,
-          progress: 100,
+      const allEnriched: unknown[] = [];
+      for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+        const start = batchIndex * batchSize;
+        const end = Math.min(csvRows.length, start + batchSize);
+        const batchRows = csvRows.slice(start, end);
+        const batchCsvText = buildCsvText(batchRows);
+        const batchLabel = `Scoring batch ${batchIndex + 1} of ${totalBatches}...`;
+        setProgressText(batchLabel);
+
+        const response = await fetch("/api/enrich-list", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: abortController.signal,
+          body: JSON.stringify({
+            csvText: batchCsvText,
+            userId: user.id,
+            eventId: selectedEventId || undefined,
+            listTiming,
+          }),
         });
-        if (mountedRef.current) showToast(msg, "error");
-        return;
-      }
 
-      const body = response.body;
-      if (!body) {
-        patchEnrichmentJob({
-          status: "error",
-          errorMessage: "Enrichment failed — try again.",
-          progress: 100,
-        });
-        if (mountedRef.current) showToast("Enrichment failed — try again.", "error");
-        return;
-      }
-
-      const reader = body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-        for (const line of lines) {
-          if (!line.trim()) continue;
+        if (!response.ok) {
+          const text = await response.text();
+          let msg = "Enrichment failed — try again.";
           try {
-            const event = JSON.parse(line) as {
-              type: string;
-              current?: number;
-              total?: number;
-              contact?: unknown;
-              contacts?: unknown[];
-              message?: string;
-              truncated?: boolean;
-              totalRows?: number;
-            };
-            if (event.type === "progress") {
-              const cur = event.current ?? 0;
-              const tot = event.total ?? 1;
-              const realProgress = Math.round((cur / tot) * 100);
-              const line = `Scoring contact ${cur} of ${tot} against your ICP...`;
-              patchEnrichmentJob({
-                progress: realProgress,
-                processed: cur,
-                totalContacts: tot,
-                progressText: line,
-              });
-              if (mountedRef.current) {
-                setBarProgress(realProgress);
-                setScoringCurrent(cur);
-                setScoringTotal(tot);
-                setProgressText(line);
-              }
-            } else if (event.type === "done" && Array.isArray(event.contacts)) {
-              const enriched = event.contacts;
-              localStorage.setItem(
-                ENRICHMENT_RESULTS_KEY,
-                JSON.stringify({
-                  contacts: enriched,
-                  savedAt: new Date().toISOString(),
-                  filename,
-                  truncated: event.truncated ?? false,
-                  totalRows: event.totalRows ?? enriched.length,
-                })
-              );
-              const jobCur = readEnrichmentJob() || {};
-              writeEnrichmentJobFull({
-                ...jobCur,
-                status: "complete",
-                progress: 100,
-                results: enriched,
-                filename,
-                eventId: selectedEventId || null,
-                eventName,
-              });
-              const withIds = mapRawContactsToEnrichedRows(enriched, jobId);
-              if (mountedRef.current) {
-                setBarProgress(100);
-                setScoringCurrent(withIds.length);
-                setScoringTotal(withIds.length);
-                setResultsModal({
-                  filename,
-                  eventId: selectedEventId || null,
-                  eventName,
-                  contacts: withIds,
+            const j = JSON.parse(text) as { error?: string; message?: string };
+            if (j.error === "no_valid_rows" && typeof j.message === "string") msg = j.message;
+            else if (typeof j.message === "string") msg = j.message;
+          } catch {
+            /* ignore */
+          }
+          patchEnrichmentJob({
+            status: "error",
+            errorMessage: msg,
+            progress: 100,
+          });
+          if (mountedRef.current) showToast(msg, "error");
+          return;
+        }
+
+        const body = response.body;
+        if (!body) {
+          patchEnrichmentJob({
+            status: "error",
+            errorMessage: "Enrichment failed — try again.",
+            progress: 100,
+          });
+          if (mountedRef.current) showToast("Enrichment failed — try again.", "error");
+          return;
+        }
+
+        const reader = body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let batchError: string | null = null;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const event = JSON.parse(line) as {
+                type: string;
+                current?: number;
+                total?: number;
+                contact?: unknown;
+                contacts?: unknown[];
+                message?: string;
+                truncated?: boolean;
+                totalRows?: number;
+              };
+              if (event.type === "progress") {
+                const cur = event.current ?? 0;
+                const globalCurrent = Math.min(cappedForEta, start + cur);
+                const realProgress = cappedForEta > 0 ? Math.round((globalCurrent / cappedForEta) * 100) : 0;
+                patchEnrichmentJob({
+                  progress: realProgress,
+                  processed: globalCurrent,
+                  totalContacts: cappedForEta,
+                  progressText: batchLabel,
                 });
-                setSelectedIds(withIds.filter((c) => (c.icp_fit_score ?? 0) >= 5).map((c) => c.__id));
+                if (mountedRef.current) {
+                  setBarProgress(realProgress);
+                  setScoringCurrent(globalCurrent);
+                  setScoringTotal(cappedForEta);
+                  setProgressText(batchLabel);
+                }
+              } else if (event.type === "done" && Array.isArray(event.contacts)) {
+                allEnriched.push(...event.contacts);
+                const globalCurrent = Math.min(cappedForEta, allEnriched.length);
+                const realProgress = cappedForEta > 0 ? Math.round((globalCurrent / cappedForEta) * 100) : 0;
+                patchEnrichmentJob({
+                  progress: realProgress,
+                  processed: globalCurrent,
+                  totalContacts: cappedForEta,
+                  progressText: batchLabel,
+                });
+                if (mountedRef.current) {
+                  setBarProgress(realProgress);
+                  setScoringCurrent(globalCurrent);
+                  setScoringTotal(cappedForEta);
+                  setProgressText(batchLabel);
+                }
+              } else if (event.type === "error") {
+                batchError = typeof event.message === "string" ? event.message : "Enrichment failed — try again.";
               }
-            } else if (event.type === "error") {
-              const em = typeof event.message === "string" ? event.message : "Enrichment failed — try again.";
-              patchEnrichmentJob({
-                status: "error",
-                errorMessage: em,
-                progress: 100,
-              });
-              if (mountedRef.current) showToast(em, "error");
+            } catch (e) {
+              console.error("Parse error on line:", line, e);
             }
-          } catch (e) {
-            console.error("Parse error on line:", line, e);
           }
         }
+
+        if (batchError) {
+          patchEnrichmentJob({
+            status: "error",
+            errorMessage: batchError,
+            progress: 100,
+          });
+          if (mountedRef.current) showToast(batchError, "error");
+          return;
+        }
+      }
+
+      localStorage.setItem(
+        ENRICHMENT_RESULTS_KEY,
+        JSON.stringify({
+          contacts: allEnriched,
+          savedAt: new Date().toISOString(),
+          filename,
+          truncated: false,
+          totalRows: allEnriched.length,
+        })
+      );
+      const jobCur = readEnrichmentJob() || {};
+      writeEnrichmentJobFull({
+        ...jobCur,
+        status: "complete",
+        progress: 100,
+        results: allEnriched,
+        filename,
+        eventId: selectedEventId || null,
+        eventName,
+      });
+      const withIds = mapRawContactsToEnrichedRows(allEnriched, jobId);
+      if (mountedRef.current) {
+        setBarProgress(100);
+        setScoringCurrent(withIds.length);
+        setScoringTotal(withIds.length);
+        setResultsModal({
+          filename,
+          eventId: selectedEventId || null,
+          eventName,
+          contacts: withIds,
+        });
+        setSelectedIds(
+          withIds
+            .filter((c) => (c.icp_fit_score ?? 0) >= 7)
+            .map((c) => c.__id)
+        );
+      }
+    } catch (error) {
+      if ((error as { name?: string })?.name !== "AbortError") {
+        throw error;
       }
     } finally {
+      scoringAbortRef.current = null;
       if (mountedRef.current) {
         setEnrichLoading(false);
         setProgressText("");
@@ -760,7 +896,11 @@ export default function LeadsPage() {
       eventName: list.eventName,
       contacts,
     });
-    setSelectedIds(contacts.filter((c) => (c.icp_fit_score ?? 0) >= 6).map((c) => c.__id));
+    setSelectedIds(
+      contacts
+        .filter((c) => (c.icp_fit_score ?? 0) >= 6 && c.icp_fit_reason !== "Could not score")
+        .map((c) => c.__id)
+    );
   };
 
   const deletePastList = (list: StoredLeadList) => {
@@ -885,6 +1025,30 @@ export default function LeadsPage() {
             <p style={{ fontSize: 12, color: "#999", marginTop: 6 }}>
               ~{formatTime(etaSeconds)} remaining
             </p>
+            <button
+              type="button"
+              onClick={() => {
+                scoringAbortRef.current?.abort();
+                scoringAbortRef.current = null;
+                setEnrichLoading(false);
+                setBarProgress(0);
+                setProgressText("");
+              }}
+              style={{
+                marginTop: 14,
+                background: "#fff",
+                border: "1px solid #e8e8e8",
+                color: "#666",
+                borderRadius: 8,
+                padding: "8px 14px",
+                fontSize: 12,
+                fontWeight: 500,
+                cursor: "pointer",
+                fontFamily: "Inter, sans-serif",
+              }}
+            >
+              Cancel
+            </button>
           </div>
         )}
 

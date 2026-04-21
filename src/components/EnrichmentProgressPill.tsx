@@ -81,7 +81,8 @@ export function EnrichmentProgressPill() {
         if (age > 10 * 60 * 1000) {
           patchJobMerge({
             status: "error",
-            errorMessage: "Lead scoring timed out — try again",
+            errorMessage:
+              "Scoring is taking longer than expected — it may still be running in the background. Refresh to check results.",
           });
           j = readJob();
         }
@@ -249,7 +250,7 @@ export function EnrichmentProgressPill() {
     const msg =
       typeof job.errorMessage === "string" && job.errorMessage.trim()
         ? job.errorMessage
-        : "Lead scoring timed out — try again";
+        : "Scoring is taking longer than expected — it may still be running in the background. Refresh to check results.";
     return (
       <div
         style={{
