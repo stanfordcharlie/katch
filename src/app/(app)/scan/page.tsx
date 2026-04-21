@@ -100,6 +100,80 @@ type DuplicateNewContact = {
   enriched?: boolean;
 };
 
+async function mergeDuplicateContactData(
+  sessionUser: User,
+  existingContact: DuplicateExistingContact,
+  newContact: DuplicateNewContact,
+  imageFile: File | null
+): Promise<boolean> {
+  if (!existingContact?.id) return false;
+
+  const pick = (newVal: unknown, oldVal: unknown) => {
+    if (newVal != null && String(newVal).trim() !== "") return String(newVal).trim();
+    if (oldVal == null) return "";
+    return String(oldVal);
+  };
+
+  const pickNullable = (newVal: unknown, oldVal: unknown) => {
+    if (newVal != null && String(newVal).trim() !== "") return String(newVal).trim();
+    if (oldVal != null && String(oldVal).trim() !== "") return String(oldVal).trim();
+    return null;
+  };
+
+  const ex = existingContact;
+  const nw = newContact;
+
+  let imageUrl: string | null = ex.image ?? null;
+  if (imageFile) {
+    try {
+      const filePath = `contacts/${sessionUser.id}/${Date.now()}-merge.jpg`;
+      const { error: uploadError } = await supabase.storage.from("avatars").upload(filePath, imageFile, {
+        upsert: false,
+      });
+      if (!uploadError) {
+        const { data: publicData } = supabase.storage.from("avatars").getPublicUrl(filePath);
+        if (publicData?.publicUrl) imageUrl = publicData.publicUrl;
+      }
+    } catch {
+      // keep existing imageUrl
+    }
+  }
+
+  const existingChecks = Array.isArray(ex.checks) ? ex.checks : [];
+  const newChecks = Array.isArray(nw.checks) ? nw.checks : [];
+  const mergedChecks = [...new Set([...existingChecks, ...newChecks])];
+
+  const merged: Record<string, unknown> = {
+    name: pick(nw.name, ex.name),
+    title: pick(nw.title, ex.title),
+    company: pick(nw.company, ex.company),
+    email: pickNullable(nw.email, ex.email),
+    phone: pickNullable(nw.phone, ex.phone),
+    linkedin: pickNullable(nw.linkedin, ex.linkedin),
+    lead_score: Math.max(Number(ex.lead_score) || 0, Number(nw.lead_score) || 0),
+    checks: mergedChecks,
+    free_note:
+      typeof nw.free_note === "string" && nw.free_note.trim()
+        ? nw.free_note
+        : (ex.free_note ?? "") || "",
+    event:
+      typeof nw.event === "string" && nw.event.trim()
+        ? nw.event
+        : (ex.event || "Untagged") as string,
+    enriched: !!(ex.enriched || nw.enriched),
+    source: "scan",
+    status: "captured",
+  };
+  if (imageUrl) merged.image = imageUrl;
+
+  const { error } = await supabase.from("contacts").update(merged).eq("id", ex.id);
+  if (error) {
+    console.error("Merge error:", error);
+    return false;
+  }
+  return true;
+}
+
 const BULK_REVIEW_DEFAULT_SIGNALS = [
   "Wants a demo",
   "Budget approved",
@@ -982,34 +1056,6 @@ export default function ScanPage() {
       }
 
       const activeChecks = signalLabels.filter((label) => checks[label]);
-      const imageUrlEarly = await uploadDataUrlAsContactImage(sessionUser as User, uploadedImage, "scan");
-      const hasEnrichmentEarly = !!singleEnrichment;
-      const mergePatchEarly: Record<string, unknown> = {
-        source: "scan",
-        status: "captured",
-        lead_score: leadScore,
-        checks: activeChecks,
-        free_note: freeNote,
-        event: eventTag || "Untagged",
-        ai_enrichment: singleEnrichment,
-        enriched: hasEnrichmentEarly,
-        enriched_at: hasEnrichmentEarly ? new Date().toISOString() : null,
-      };
-      if (imageUrlEarly) mergePatchEarly.image = imageUrlEarly;
-      const mergedEarly = await mergeLeadListProspectIfExists(sessionUser.id, extracted?.email, mergePatchEarly);
-      if (mergedEarly === "failed") {
-        showToast("Failed to save contact");
-        failSaveUi();
-        return;
-      }
-      if (mergedEarly === "merged") {
-        succeedSaveUi(() => {
-          showToast("Matched existing prospect — contact updated.");
-          resetScan();
-          router.push("/contacts");
-        });
-        return;
-      }
 
       const dup = await findDuplicateContact(
         extracted?.name ?? "",
@@ -1036,22 +1082,39 @@ export default function ScanPage() {
             imageFile = null;
           }
         }
+        const newContact: DuplicateNewContact = {
+          name: extracted?.name ?? "",
+          title: extracted?.title ?? "",
+          company: extracted?.company ?? "",
+          email: extracted?.email ?? "",
+          phone: extracted?.phone ?? "",
+          linkedin: extracted?.linkedin ?? "",
+          lead_score: leadScore,
+          checks: activeChecks,
+          free_note: freeNote,
+          event: eventTag || "Untagged",
+          enriched: !!singleEnrichment,
+        };
+        const norm = (s: string | undefined | null) => String(s ?? "").trim().toLowerCase();
+        const exactNameAndEmail =
+          norm(extracted?.name) === norm(dup.name) && norm(extracted?.email) === norm(dup.email);
+        if (exactNameAndEmail) {
+          const ok = await mergeDuplicateContactData(sessionUser as User, dup, newContact, imageFile);
+          if (!ok) {
+            showToast("Failed to save contact");
+            failSaveUi();
+            return;
+          }
+          setSaving(false);
+          showToast("Contact already saved — updated with latest scan");
+          resetScan();
+          router.push("/contacts");
+          return;
+        }
         setDuplicateModal({
           show: true,
           existingContact: dup,
-          newContact: {
-            name: extracted?.name ?? "",
-            title: extracted?.title ?? "",
-            company: extracted?.company ?? "",
-            email: extracted?.email ?? "",
-            phone: extracted?.phone ?? "",
-            linkedin: extracted?.linkedin ?? "",
-            lead_score: leadScore,
-            checks: activeChecks,
-            free_note: freeNote,
-            event: eventTag || "Untagged",
-            enriched: !!singleEnrichment,
-          },
+          newContact,
           imageFile,
         });
         setSaving(false);
@@ -1090,67 +1153,8 @@ export default function ScanPage() {
       return;
     }
 
-    const pick = (newVal: unknown, oldVal: unknown) => {
-      if (newVal != null && String(newVal).trim() !== "") return String(newVal).trim();
-      if (oldVal == null) return "";
-      return String(oldVal);
-    };
-
-    const pickNullable = (newVal: unknown, oldVal: unknown) => {
-      if (newVal != null && String(newVal).trim() !== "") return String(newVal).trim();
-      if (oldVal != null && String(oldVal).trim() !== "") return String(oldVal).trim();
-      return null;
-    };
-
-    const ex = existingContact;
-    const nw = newContact;
-
-    let imageUrl: string | null = ex.image ?? null;
-    if (imageFile) {
-      try {
-        const filePath = `contacts/${sessionUser.id}/${Date.now()}-merge.jpg`;
-        const { error: uploadError } = await supabase.storage.from("avatars").upload(filePath, imageFile, {
-          upsert: false,
-        });
-        if (!uploadError) {
-          const { data: publicData } = supabase.storage.from("avatars").getPublicUrl(filePath);
-          if (publicData?.publicUrl) imageUrl = publicData.publicUrl;
-        }
-      } catch {
-        // keep existing imageUrl
-      }
-    }
-
-    const existingChecks = Array.isArray(ex.checks) ? ex.checks : [];
-    const newChecks = Array.isArray(nw.checks) ? nw.checks : [];
-    const mergedChecks = [...new Set([...existingChecks, ...newChecks])];
-
-    const merged: Record<string, unknown> = {
-      name: pick(nw.name, ex.name),
-      title: pick(nw.title, ex.title),
-      company: pick(nw.company, ex.company),
-      email: pickNullable(nw.email, ex.email),
-      phone: pickNullable(nw.phone, ex.phone),
-      linkedin: pickNullable(nw.linkedin, ex.linkedin),
-      lead_score: Math.max(Number(ex.lead_score) || 0, Number(nw.lead_score) || 0),
-      checks: mergedChecks,
-      free_note:
-        typeof nw.free_note === "string" && nw.free_note.trim()
-          ? nw.free_note
-          : (ex.free_note ?? "") || "",
-      event:
-        typeof nw.event === "string" && nw.event.trim()
-          ? nw.event
-          : (ex.event || "Untagged") as string,
-      enriched: !!(ex.enriched || nw.enriched),
-      source: "scan",
-      status: "captured",
-    };
-    if (imageUrl) merged.image = imageUrl;
-
-    const { error } = await supabase.from("contacts").update(merged).eq("id", ex.id);
-    if (error) {
-      console.error("Merge error:", error);
+    const ok = await mergeDuplicateContactData(sessionUser as User, existingContact, newContact, imageFile);
+    if (!ok) {
       showToast("Failed to merge contact");
       return;
     }
@@ -2816,7 +2820,7 @@ export default function ScanPage() {
                   style={{
                     width: "100%",
                     minHeight: 296,
-                    border: "2px dashed rgba(0,0,0,0.1)",
+                    border: `2px dashed ${isDragging ? "rgba(0,0,0,0.16)" : "rgba(0,0,0,0.1)"}`,
                     borderRadius: 12,
                     display: "flex",
                     flexDirection: "column",
@@ -2827,9 +2831,7 @@ export default function ScanPage() {
                     textAlign: "center",
                     boxSizing: "border-box",
                     transition: "border-color 0.2s ease, background 0.2s ease",
-                    ...(isDragging
-                      ? { background: "rgba(0,0,0,0.03)", borderColor: "rgba(0,0,0,0.16)" }
-                      : {}),
+                    ...(isDragging ? { background: "rgba(0,0,0,0.03)" } : {}),
                   }}
                 >
                   <Upload size={28} color="#999" strokeWidth={1.5} aria-hidden />

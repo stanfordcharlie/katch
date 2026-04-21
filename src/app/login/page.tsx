@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 
 type Mode = "signin" | "signup";
@@ -73,6 +74,7 @@ function LoginForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -272,17 +274,37 @@ function LoginForm() {
                 />
               )}
               {step === 2 && (
-                <input
-                  className="auth-input"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onKeyDown={handleSignupFieldKeyDown}
-                  placeholder="••••••••"
-                  autoComplete="new-password"
-                  autoFocus
-                  style={{ ...inputBase, marginTop: 24, color: "#fff", caretColor: "#fff" }}
-                />
+                <div style={{ position: "relative" }}>
+                  <input
+                    className="auth-input"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onKeyDown={handleSignupFieldKeyDown}
+                    placeholder="••••••••"
+                    autoComplete="new-password"
+                    autoFocus
+                    style={{ ...inputBase, marginTop: 24, color: "#fff", caretColor: "#fff" }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((p) => !p)}
+                    style={{
+                      position: "absolute",
+                      right: 12,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "#999",
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               )}
 
               <button
@@ -349,17 +371,37 @@ function LoginForm() {
                 required
                 style={{ ...inputBase, marginTop: 24 }}
               />
-              <input
-                className="auth-input"
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
-                autoComplete="current-password"
-                required
-                style={{ ...inputBase, marginTop: 16 }}
-              />
+              <div style={{ position: "relative" }}>
+                <input
+                  className="auth-input"
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Password"
+                  autoComplete="current-password"
+                  required
+                  style={{ ...inputBase, marginTop: 16 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((p) => !p)}
+                  style={{
+                    position: "absolute",
+                    right: 12,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#999",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
 
               <button
                 type="submit"

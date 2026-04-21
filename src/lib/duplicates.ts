@@ -16,11 +16,7 @@ export async function findDuplicateContact(name: string, email: string, userId: 
     const existingEmail = contact.email?.toLowerCase().trim()
 
     const emailMatch = emailLower && existingEmail && emailLower === existingEmail
-    const nameMatch = nameLower && existingName && (
-      existingName === nameLower ||
-      existingName.includes(nameLower) ||
-      nameLower.includes(existingName)
-    )
+    const nameMatch = nameLower && existingName && nameLower === existingName
 
     return emailMatch || nameMatch
   }) || null
