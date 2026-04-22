@@ -278,29 +278,32 @@ export async function POST(req: NextRequest) {
         }
 
         if (!response.ok) {
-          const msgStr = String(data.message ?? responseText ?? '');
-          const errorsArr = Array.isArray(data.errors) ? data.errors : [];
-          const existingIdMatch =
-            msgStr.match(/Existing ID[:\s]+(\d+)/i) ||
-            errorsArr.map((e: Record<string, unknown>) => String(e.message ?? '')).join(' ').match(/Existing ID[:\s]+(\d+)/i);
-          const existingId = existingIdMatch?.[1] ?? (data.id != null ? String(data.id) : '');
+          const msgStr = String(data.message ?? '');
+          const match = msgStr.match(/Existing ID[:\s]+(\d+)/i);
+          const existingId = match?.[1] ?? '';
+          console.log('msgStr:', msgStr, 'existingId:', existingId);
           if (existingId) {
-            const patchRes = await fetch(`https://api.hubapi.com/crm/v3/objects/contacts/${existingId}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-              body: JSON.stringify({ properties }),
-            });
+            const patchRes = await fetch(
+              `https://api.hubapi.com/crm/v3/objects/contacts/${existingId}`,
+              {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+                body: JSON.stringify({ properties }),
+              }
+            );
             if (patchRes.ok) {
               await supabaseAdmin.from('contacts').update({ synced_to_hubspot: true, hubspot_synced_at: new Date().toISOString() }).eq('id', contact.id);
               if (shouldCreateKatchNote(contact)) {
-                try { const noteText = await buildKatchHubSpotNote(contact as Record<string, unknown>); await attachKatchNoteToContact(accessToken, existingId, noteText); } catch {}
+                try {
+                  const noteText = await buildKatchHubSpotNote(contact as Record<string, unknown>);
+                  await attachKatchNoteToContact(accessToken, existingId, noteText);
+                } catch {}
               }
               return { contactId: contact.id, success: true, hubspotId: existingId };
             }
-            return { contactId: contact.id, success: false, error: hubspotErrorMessage(responseText, data) };
+            return { contactId: contact.id, success: false, error: 'PATCH failed' };
           }
-          const errMsg = hubspotErrorMessage(responseText, data);
-          return { contactId: contact.id, success: false, error: errMsg };
+          return { contactId: contact.id, success: false, error: hubspotErrorMessage(responseText, data) };
         }
         return { contactId: contact.id as string, success: false, error: 'Unknown error' };
       })
