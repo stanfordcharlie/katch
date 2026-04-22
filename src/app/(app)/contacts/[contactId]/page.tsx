@@ -32,6 +32,7 @@ type DetailEditForm = {
   email: string;
   phone: string;
   linkedin: string;
+  event: string;
 };
 
 type SeqTone = 'professional' | 'friendly' | 'direct';
@@ -201,6 +202,7 @@ export default function ContactDetailPage() {
       email: contact.email ?? '',
       phone: contact.phone ?? '',
       linkedin: contact.linkedin ?? '',
+      event: contact.event ?? '',
     });
     setShowEditModal(true);
   };
@@ -219,6 +221,7 @@ export default function ContactDetailPage() {
       email: detailEditForm.email || null,
       phone: detailEditForm.phone || null,
       linkedin: detailEditForm.linkedin || null,
+      event: detailEditForm.event || null,
     };
     const { error } = await supabase.from('contacts').update(payload).eq('id', contact.id).eq('user_id', user.id);
     if (error) {
