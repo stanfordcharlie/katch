@@ -304,9 +304,9 @@ export async function POST(req: NextRequest) {
       })
     );
 
-    const succeeded = results.filter((r) => r.success).length;
-    const failed = results.filter((r) => !r.success).length;
-    const firstFailure = results.find((r) => !r.success);
+    const succeeded = results.filter((r) => r?.success).length;
+    const failed = results.filter((r) => !r?.success).length;
+    const firstFailure = results.find((r) => !r?.success);
 
     return NextResponse.json({
       succeeded,
