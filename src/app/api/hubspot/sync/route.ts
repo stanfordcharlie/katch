@@ -302,6 +302,7 @@ export async function POST(req: NextRequest) {
           const errMsg = hubspotErrorMessage(responseText, data);
           return { contactId: contact.id, success: false, error: errMsg };
         }
+        return { contactId: contact.id as string, success: false, error: 'Unknown error' };
       })
     );
 
