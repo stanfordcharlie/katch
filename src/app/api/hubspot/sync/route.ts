@@ -297,6 +297,7 @@ export async function POST(req: NextRequest) {
               }
               return { contactId: contact.id, success: true, hubspotId: existingId };
             }
+            return { contactId: contact.id, success: false, error: hubspotErrorMessage(responseText, data) };
           }
           const errMsg = hubspotErrorMessage(responseText, data);
           return { contactId: contact.id, success: false, error: errMsg };
