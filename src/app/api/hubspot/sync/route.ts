@@ -214,7 +214,7 @@ export async function POST(req: NextRequest) {
     }
 
     const results = await Promise.all(
-      contacts.map(async (contact) => {
+      contacts.map(async (contact): Promise<{ contactId: string; success: boolean; hubspotId?: string; error?: string }> => {
         const nameParts = (contact.name ?? "").split(" ");
         const firstname = nameParts[0] ?? "";
         const lastname = nameParts.slice(1).join(" ") ?? "";
